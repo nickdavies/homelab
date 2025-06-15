@@ -35,7 +35,9 @@ done
 talosctl gen config "$CLUSTER_NAME" "$CLUSTER_ENDPOINT" \
     --with-secrets "$SECRETS_DIR/talos.yaml" \
     --with-examples=false \
+    --with-docs=false \
+    --install-disk "" \
     --output-types="controlplane" \
     --output "$OUTPUT_NODES_DIR/${NODE}.yaml" \
     "${patchesArray[@]}" \
-    --config-patch "@$NODE_PATCH"
+    --config-patch "$(cat $NODE_PATCH | envsubst)"
