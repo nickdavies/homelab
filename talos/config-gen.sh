@@ -20,7 +20,8 @@ fi
 PATCHES=$(find ./patches | grep -e '.ya\?ml' | sed 's/^\.\///' | sort)
 OUTPUT_PATCHES_DIR="./rendered/patches/"
 
-rm "./rendered/$NODE" -rf
+rm "./rendered/nodes/$NODE" -rf
+mkdir -p "./rendered/nodes/"
 mkdir -p "$OUTPUT_PATCHES_DIR"
 
 patchesArray=()
@@ -33,6 +34,6 @@ done
 talosctl gen config "$CLUSTER_NAME" "$CLUSTER_ENDPOINT" \
     --with-secrets "$SECRETS_DIR/talos.yaml" \
     --with-examples=false \
-    --output "./rendered/$NODE" \
+    --output "./rendered/nodes/$NODE" \
     "${patchesArray[@]}" \
     --config-patch "@$NODE_PATCH"
