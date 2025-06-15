@@ -10,7 +10,7 @@ set -a; source talosenv; set +a
 NODE="$1"
 
 NODE_PATCH="./nodes/$NODE.yaml"
-SECRETS_DIR="./secrets"
+SECRETS_DIR="./output/secrets"
 
 if [ ! -f "$NODE_PATCH" ]; then
     echo "Node patch file $NODE_PATCH doesn't exist"
@@ -18,22 +18,24 @@ if [ ! -f "$NODE_PATCH" ]; then
 fi
 
 PATCHES=$(find ./patches | grep -e '.ya\?ml' | sed 's/^\.\///' | sort)
-OUTPUT_PATCHES_DIR="./rendered/patches/"
+OUTPUT_PATCHES_DIR="./output/rendered/patches"
+OUTPUT_NODES_DIR="output/rendered/nodes"
 
-rm "./rendered/nodes/$NODE" -rf
-mkdir -p "./rendered/nodes/"
+rm -f "$OUTPUT_NODES_DIR/${NODE}.yaml"
+mkdir -p "$OUTPUT_NODES_DIR"
 mkdir -p "$OUTPUT_PATCHES_DIR"
 
 patchesArray=()
 for PATCH in $PATCHES; do
-    mkdir -p "./rendered/patches/$(dirname $PATCH)"
-    cat "$PATCH" | envsubst > "./rendered/patches/$PATCH"
-    patchesArray+=(--config-patch @"rendered/patches/$PATCH")
+    mkdir -p "$OUTPUT_PATCHES_DIR/$(dirname $PATCH)"
+    cat "$PATCH" | envsubst > "$OUTPUT_PATCHES_DIR/$PATCH"
+    patchesArray+=(--config-patch @"$OUTPUT_PATCHES_DIR/$PATCH")
 done
 
 talosctl gen config "$CLUSTER_NAME" "$CLUSTER_ENDPOINT" \
     --with-secrets "$SECRETS_DIR/talos.yaml" \
     --with-examples=false \
-    --output "./rendered/nodes/$NODE" \
+    --output-types="controlplane" \
+    --output "$OUTPUT_NODES_DIR/${NODE}.yaml" \
     "${patchesArray[@]}" \
     --config-patch "@$NODE_PATCH"
