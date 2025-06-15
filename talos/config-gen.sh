@@ -5,9 +5,9 @@ set -euo pipefail
 SCRIPT_DIR=$(dirname "$0")
 cd $SCRIPT_DIR
 
+set -a; source talosenv; set +a
+
 NODE="$1"
-CLUSTER_ENDPOINT="https://192.168.254.10:6443"
-CLUSTER_NAME="homelab-cluster"
 
 NODE_PATCH="./nodes/$NODE.yaml"
 SECRETS_DIR="./secrets"
@@ -18,12 +18,16 @@ if [ ! -f "$NODE_PATCH" ]; then
 fi
 
 PATCHES=$(find ./patches | grep -e '.ya\?ml' | sed 's/^\.\///' | sort)
+OUTPUT_PATCHES_DIR="./rendered/patches/"
 
 rm "./rendered/$NODE" -rf
+mkdir -p "$OUTPUT_PATCHES_DIR"
 
 patchesArray=()
 for PATCH in $PATCHES; do
-    patchesArray+=(--config-patch @"$PATCH")
+    mkdir -p "./rendered/patches/$(dirname $PATCH)"
+    cat "$PATCH" | envsubst > "./rendered/patches/$PATCH"
+    patchesArray+=(--config-patch @"rendered/patches/$PATCH")
 done
 
 talosctl gen config "$CLUSTER_NAME" "$CLUSTER_ENDPOINT" \

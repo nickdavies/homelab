@@ -4,4 +4,4 @@ machine:
     interfaces:
       - interface: eth0
         vip:
-          ip: 192.168.254.10
+          ip: ${VIP}

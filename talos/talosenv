@@ -1,0 +1,4 @@
+VIP=192.168.254.10
+
+CLUSTER_ENDPOINT="https://$VIP:6443"
+CLUSTER_NAME="homelab-cluster"
