@@ -1,0 +1,6 @@
+---
+machine:
+  kubelet:
+    extraArgs:
+      image-gc-low-threshold: 50
+      image-gc-high-threshold: 55
