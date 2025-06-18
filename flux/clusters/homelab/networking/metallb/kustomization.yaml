@@ -1,0 +1,6 @@
+namespace: metallb-system
+
+resources:
+  - github.com/metallb/metallb/config/native?ref=v0.15.2
+  - pools.yaml
+  - advertise.yaml
