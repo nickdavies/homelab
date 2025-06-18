@@ -1,0 +1,22 @@
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: external-lb-pool
+spec:
+  avoidBuggyIPs: true
+  addresses:
+  - 192.168.254.2/32
+  serviceAllocation:
+    priority: 0
+    namespaces:
+      - envoy-gateway-system
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: main-pool
+spec:
+  avoidBuggyIPs: true
+  addresses:
+  - 192.168.254.128/25
