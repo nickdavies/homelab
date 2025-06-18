@@ -16,7 +16,6 @@ touch "$OUTPUT_DIR/.marker"
 # We need this otherwise git status says we deleted it :'(
 touch "$OUTPUT_DIR/.gitkeep"
 
-mkdir "$OUTPUT_DIR/generate"
 mkdir "$OUTPUT_DIR/secrets"
 
 op read 'op://Homelab/talos/secrets.yaml' --out-file "$OUTPUT_DIR/secrets/talos.yaml"
