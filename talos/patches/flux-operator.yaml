@@ -26,10 +26,40 @@ cluster:
             multitenant: false
             networkPolicy: true
             domain: "cluster.local"
-          sync:
+
+    - name: flux-homelab-repo
+      contents: |-
+        apiVersion: source.toolkit.fluxcd.io/v1
+        kind: GitRepository
+        metadata:
+          name: homelab
+          namespace: flux-system
+        spec:
+          interval: 5m
+          provider: generic
+          url: "${FLUX_REPO_URL}"
+          ref:
+            name: refs/heads/main
+          secretRef:
+            name: homelab-auth
+          ignore: |
+            # exclude all
+            /*
+            # include kubernetes directory
+            !/kubernetes
+
+    - name: flux-homelab-kustomization
+      contents: |-
+        apiVersion: kustomize.toolkit.fluxcd.io/v1
+        kind: Kustomization
+        metadata:
+          name: homelab
+          namespace: flux-system
+        spec:
+          interval: 5m
+          # We bootstrap the flux directory and it does the rest
+          path: ./kubernetes/flux
+          prune: true
+          sourceRef:
             kind: GitRepository
-            provider: github
-            url: "${FLUX_REPO_URL}"
-            ref: "refs/heads/main"
-            path: "flux/clusters/homelab"
-            pullSecret: "flux-system"
+            name: homelab

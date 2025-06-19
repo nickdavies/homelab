@@ -1,5 +1,0 @@
-namespace: envoy-gateway-system
-resources:
-  - namespace.yaml
-  - envoy-gateway.yaml
-  - gateway.yaml

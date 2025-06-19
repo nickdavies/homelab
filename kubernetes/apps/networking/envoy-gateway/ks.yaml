@@ -1,0 +1,17 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app envoy-gateway
+  namespace: flux-system
+spec:
+  targetNamespace: envoy-gateway-system
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/networking/envoy-gateway/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  interval: 30m
