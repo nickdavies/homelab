@@ -1,0 +1,35 @@
+---
+cluster:
+  extraManifests:
+    - https://github.com/controlplaneio-fluxcd/flux-operator/releases/latest/download/install.yaml
+  inlineManifests:
+    - name: flux-instance
+      contents: |-
+        apiVersion: fluxcd.controlplane.io/v1
+        kind: FluxInstance
+        metadata:
+          name: flux
+          namespace: flux-system
+        spec:
+          distribution:
+            version: "2.x"
+            registry: "ghcr.io/fluxcd"
+          components:
+            - source-controller
+            - kustomize-controller
+            - helm-controller
+            - notification-controller
+            - image-reflector-controller
+            - image-automation-controller
+          cluster:
+            type: kubernetes
+            multitenant: false
+            networkPolicy: true
+            domain: "cluster.local"
+          sync:
+            kind: GitRepository
+            provider: github
+            url: "${FLUX_REPO_URL}"
+            ref: "refs/heads/main"
+            path: "flux/clusters/homelab"
+            pullSecret: "flux-system"
