@@ -4,7 +4,7 @@ metadata:
   name: kube-web-view
 spec:
   parentRefs:
-    - name: primary
+    - name: internal
       namespace: network
   rules:
     - backendRefs:

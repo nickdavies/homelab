@@ -2,11 +2,11 @@
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
-  name: external-lb-pool
+  name: gateway-ip-pool
 spec:
   avoidBuggyIPs: true
   addresses:
-  - 192.168.254.2/32
+  - 192.168.254.2-192.168.254.3
   serviceAllocation:
     priority: 0
     namespaces:

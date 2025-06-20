@@ -3,4 +3,4 @@ kind: Namespace
 metadata:
   name: kube-web-view
   labels:
-    primary-gateway-access: "true"
+    internal-gateway-access: "true"

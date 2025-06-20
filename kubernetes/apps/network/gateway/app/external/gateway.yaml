@@ -1,16 +1,21 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
-  name: primary
+  name: external
 spec:
   controllerName: gateway.envoyproxy.io/gatewayclass-controller
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: primary
+  name: external
 spec:
-  gatewayClassName: primary
+  gatewayClassName: external
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: external
   listeners:
     - name: http
       protocol: HTTP
@@ -20,4 +25,4 @@ spec:
           from: Selector
           selector:
             matchLabels:
-              primary-gateway-access: "true"
+              external-gateway-access: "true"
