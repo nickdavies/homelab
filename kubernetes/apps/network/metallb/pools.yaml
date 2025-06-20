@@ -10,7 +10,7 @@ spec:
   serviceAllocation:
     priority: 0
     namespaces:
-      - envoy-gateway-system
+      - network
 ---
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
