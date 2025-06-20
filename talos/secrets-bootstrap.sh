@@ -39,6 +39,15 @@ fi
 OP_CREDENTIALS=$(cat $OP_CREDENTIALS_FILE | base64 | tr '/+' '_-' | tr -d '=' | tr -d '\n')
 OP_TOKEN=$(cat $OP_TOKEN_FILE)
 
+echo "Waiting for kubeAPI to be up"
+timeout 10m bash -c "until kubectl version >/dev/null 2>&1; do sleep 1; done"
+
+echo "Waiting for external-secrets namespace to exist"
+kubectl wait --for=create namespaces/external-secrets --timeout 10m
+
+echo "Waiting for flux-system namespace to exist"
+kubectl wait --for=create namespaces/flux-system --timeout 10m
+
 flux create secret git homelab-auth \
     --export \
     --url "$FLUX_REPO_URL" \
