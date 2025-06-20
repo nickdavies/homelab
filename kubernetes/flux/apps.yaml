@@ -8,6 +8,8 @@ spec:
   interval: 5m
   path: ./kubernetes/apps
   prune: true
+  dependsOn:
+    - name: cluster-config-secret
   sourceRef:
     kind: GitRepository
     name: homelab
