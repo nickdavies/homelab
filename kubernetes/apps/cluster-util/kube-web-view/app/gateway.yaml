@@ -3,9 +3,11 @@ kind: HTTPRoute
 metadata:
   name: kube-web-view
 spec:
+  hostnames:
+    - "kube-web-view.internal.${SECRET_DOMAIN}"
   parentRefs:
-    - name: primary
-      namespace: envoy-gateway-system
+    - name: internal
+      namespace: network
   rules:
     - backendRefs:
         - kind: Service

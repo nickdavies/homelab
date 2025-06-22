@@ -1,16 +1,23 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
-  name: primary
+  name: internal
 spec:
   controllerName: gateway.envoyproxy.io/gatewayclass-controller
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: primary
+  name: internal
+  labels:
+    "homelab/gateway-type": internal
 spec:
-  gatewayClassName: primary
+  gatewayClassName: internal
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: internal
   listeners:
     - name: http
       protocol: HTTP
@@ -20,4 +27,4 @@ spec:
           from: Selector
           selector:
             matchLabels:
-              primary-gateway-access: "true"
+              internal-gateway-access: "true"

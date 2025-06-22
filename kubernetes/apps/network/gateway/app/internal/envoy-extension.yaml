@@ -1,0 +1,12 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: internal
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        name: gateway-internal
+        type: LoadBalancer
+        loadBalancerIP: 192.168.254.2
