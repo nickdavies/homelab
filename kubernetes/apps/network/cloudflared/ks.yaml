@@ -1,0 +1,79 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app cloudflared
+  namespace: flux-system
+  labels:
+    # We will provide our own vars
+    substitution.flux.home.arpa/disabled: true
+spec:
+  targetNamespace: network
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  dependsOn:
+    - name: external-dns-external
+    - name: cloudflared-secret
+    - name: cloudflared-credentials
+  path: ./kubernetes/apps/network/cloudflared/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: false
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
+  postBuild:
+    substituteFrom:
+      - kind: Secret
+        name: cloudflared-secret
+      - kind: ConfigMap
+        name: cluster-settings
+      - kind: Secret
+        name: cluster-config-secret
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app cloudflared-secret
+  namespace: flux-system
+spec:
+  targetNamespace: flux-system
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  dependsOn:
+    - name: external-secrets
+  path: ./kubernetes/apps/network/cloudflared/secrets
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: false
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app cloudflared-credentials
+  namespace: flux-system
+spec:
+  targetNamespace: network
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  dependsOn:
+    - name: external-secrets
+  path: ./kubernetes/apps/network/cloudflared/credentials
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: false
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m

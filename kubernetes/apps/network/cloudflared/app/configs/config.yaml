@@ -1,0 +1,10 @@
+---
+originRequest:
+  originServerName: "external.${SECRET_PUBLIC_DOMAIN}"
+
+ingress:
+  - hostname: "${SECRET_PUBLIC_DOMAIN}"
+    service: https://gateway-external.network.svc.cluster.local:443
+  - hostname: "*.${SECRET_PUBLIC_DOMAIN}"
+    service: https://gateway-external.network.svc.cluster.local:443
+  - service: http_status:404
