@@ -7,5 +7,6 @@ spec:
     type: Kubernetes
     kubernetes:
       envoyService:
+        name: gateway-internal
         type: LoadBalancer
         loadBalancerIP: 192.168.254.2
