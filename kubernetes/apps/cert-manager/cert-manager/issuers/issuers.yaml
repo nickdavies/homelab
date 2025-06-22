@@ -4,7 +4,7 @@ metadata:
   name: letsencrypt-production
 spec:
   acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
+    server: https://acme-v02.api.letsencrypt.org./directory
     email: "${SECRET_CLOUDFLARE_EMAIL}"
     privateKeySecretRef:
       name: letsencrypt-production
@@ -25,7 +25,7 @@ metadata:
   name: letsencrypt-staging
 spec:
   acme:
-    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    server: https://acme-staging-v02.api.letsencrypt.org./directory
     email: "${SECRET_CLOUDFLARE_EMAIL}"
     privateKeySecretRef:
       name: letsencrypt-staging
