@@ -4,4 +4,5 @@ kind: Kustomization
 resources:
   - 1password-connect.yaml
   - bjw-s.yaml
+  - external-dns.yaml
   - external-secrets.yaml

@@ -9,6 +9,8 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: external
+  labels:
+    "homelab/gateway-type": external
 spec:
   gatewayClassName: external
   infrastructure:
