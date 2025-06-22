@@ -26,6 +26,15 @@ cluster:
             multitenant: false
             networkPolicy: true
             domain: "cluster.local"
+          kustomize:
+            patches:
+              - target:
+                  kind: Deployment
+                  name: "kustomize-controller"
+                patch: |
+                  - op: add
+                    path: /spec/template/spec/containers/0/args/-
+                    value: --feature-gates=StrictPostBuildSubstitutions=true
 
     - name: flux-homelab-repo
       contents: |-
@@ -63,3 +72,10 @@ cluster:
           sourceRef:
             kind: GitRepository
             name: homelab
+          postBuild:
+            substitute:
+              # If any flux resource up the chain doesn't have substitution enabled
+              # it's children won't. So we put this placeholder variable (which is not
+              # special in any way) here so that there is something that flux is trying
+              # to sub in which allows children to do substitution
+              var_substitution_enabled: "true"
