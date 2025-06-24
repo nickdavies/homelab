@@ -1,0 +1,15 @@
+---
+machine:
+  network:
+    hostname: k8s-node-2
+    interfaces:
+      - dhcp: true
+        deviceSelector:
+          hardwareAddr: "e0:51:d8:17:98:36"
+        vip:
+          ip: ${VIP}
+  install:
+    diskSelector:
+      size: '>= 256GB'
+      type: nvme
+      serial: "PL6005R010475P1103"
