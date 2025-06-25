@@ -9,6 +9,8 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: internal
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
   labels:
     "homelab/gateway-type": internal
 spec:
@@ -22,6 +24,20 @@ spec:
     - name: http
       protocol: HTTP
       port: 80
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              internal-gateway-access: "true"
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.internal.${SECRET_DOMAIN}"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: internal-tls
       allowedRoutes:
         namespaces:
           from: Selector
