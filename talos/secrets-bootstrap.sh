@@ -39,6 +39,8 @@ fi
 OP_CREDENTIALS=$(cat $OP_CREDENTIALS_FILE | base64 | tr '/+' '_-' | tr -d '=' | tr -d '\n')
 OP_TOKEN=$(cat $OP_TOKEN_FILE)
 
+export KUBECONFIG="$SECRETS_DIR/kubeconfig"
+
 echo "Waiting for kubeAPI to be up"
 timeout 10m bash -c "until kubectl version >/dev/null 2>&1; do sleep 1; done"
 
