@@ -11,5 +11,8 @@ machine:
   install:
     diskSelector:
       size: '>= 256GB'
-      type: nvme
-      serial: "PL6005R010475P1103"
+      wwid: "naa.57c354826af9cc67"
+    # diskSelector:
+    #   size: '>= 256GB'
+    #   type: nvme
+    #   serial: "PL6005R010475P1103"
