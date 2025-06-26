@@ -2,3 +2,17 @@
 machine:
   network:
     hostname: k8s-node-1
+    interfaces:
+      - dhcp: true
+        deviceSelector:
+          hardwareAddr: "e0:51:d8:1a:86:22"
+        vip:
+          ip: ${VIP}
+  install:
+    diskSelector:
+      size: '>= 256GB'
+      wwid: "naa.57c354826af9cba0"
+    # diskSelector:
+    #   size: '>= 256GB'
+    #   type: nvme
+    #   serial: "QBF186W014813P110W"
