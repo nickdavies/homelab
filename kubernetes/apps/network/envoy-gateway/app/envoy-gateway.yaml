@@ -8,3 +8,9 @@ spec:
     kind: OCIRepository
     name: envoy-gateway
     namespace: flux-system
+  values:
+    config:
+      envoyGateway:
+        logging:
+          level:
+            default: debug
