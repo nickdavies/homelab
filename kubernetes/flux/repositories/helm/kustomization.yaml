@@ -10,4 +10,5 @@ resources:
   - jetstack.yaml
   - openebs.yaml
   - piraeus.yaml
+  - prometheus-community.yaml
   - rook-ceph.yaml
