@@ -37,12 +37,14 @@ spec:
           resource:
             requests:
               memory: 128Mi
+              cpu: 0m
             limits:
               memory: 256Mi
         - name : csi-rbdplugin
           resource:
             requests:
               memory: 512Mi
+              cpu: 0m
             limits:
               memory: 1Gi
       csiRBDProvisionerResource: |
@@ -50,36 +52,42 @@ spec:
           resource:
             requests:
               memory: 128Mi
+              cpu: 0m
             limits:
               memory: 256Mi
         - name : csi-resizer
           resource:
             requests:
               memory: 128Mi
+              cpu: 0m
             limits:
               memory: 256Mi
         - name : csi-attacher
           resource:
             requests:
               memory: 128Mi
+              cpu: 0m
             limits:
               memory: 256Mi
         - name : csi-snapshotter
           resource:
             requests:
               memory: 128Mi
+              cpu: 0m
             limits:
               memory: 256Mi
         - name : csi-rbdplugin
           resource:
             requests:
               memory: 512Mi
+              cpu: 0m
             limits:
               memory: 1Gi
         - name : csi-omap-generator
           resource:
             requests:
               memory: 512Mi
+              cpu: 0m
             limits:
               memory: 1Gi
 
@@ -88,30 +96,35 @@ spec:
           resource:
             requests:
               memory: 128Mi
+              cpu: 0m
             limits:
               memory: 256Mi
         - name : csi-resizer
           resource:
             requests:
               memory: 128Mi
+              cpu: 0m
             limits:
               memory: 256Mi
         - name : csi-attacher
           resource:
             requests:
               memory: 128Mi
+              cpu: 0m
             limits:
               memory: 256Mi
         - name : csi-snapshotter
           resource:
             requests:
               memory: 128Mi
+              cpu: 0m
             limits:
               memory: 256Mi
         - name : csi-cephfsplugin
           resource:
             requests:
               memory: 512Mi
+              cpu: 0m
             limits:
               memory: 1Gi
 
@@ -120,19 +133,21 @@ spec:
           resource:
             requests:
               memory: 128Mi
+              cpu: 0m
             limits:
               memory: 256Mi
         - name : csi-cephfsplugin
           resource:
             requests:
               memory: 512Mi
+              cpu: 0m
             limits:
               memory: 1Gi
 
+    monitoring:
+      enabled: true
 #      serviceMonitor:
 #        enabled: true
-#    monitoring:
-#      enabled: true
     resources:
       requests:
         memory: 128Mi # unchangable
