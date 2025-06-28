@@ -30,6 +30,18 @@ spec:
           selector:
             matchLabels:
               internal-gateway-access: "true"
+    - name: unifi-passthrough
+      protocol: TLS
+      port: 443
+      hostname: "unifi.internal.${SECRET_DOMAIN}"
+      tls:
+        mode: Passthrough
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              internal-gateway-access: "true"
     - name: https
       protocol: HTTPS
       port: 443
