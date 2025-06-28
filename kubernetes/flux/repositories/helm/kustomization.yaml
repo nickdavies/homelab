@@ -5,6 +5,7 @@ resources:
   - 1password-connect.yaml
   - backube.yaml
   - bjw-s.yaml
+  - cloudnative-pg.yaml
   - external-dns.yaml
   - external-secrets.yaml
   - grafana.yaml
