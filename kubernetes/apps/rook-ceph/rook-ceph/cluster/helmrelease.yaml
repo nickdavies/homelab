@@ -30,9 +30,9 @@ spec:
     - name: snapshot-controller
       namespace: volsync-system
   values:
-    # monitoring:
-    #   enabled: true
-    #   createPrometheusRules: true
+    monitoring:
+      enabled: true
+      createPrometheusRules: true
     toolbox:
       enabled: true
 
@@ -44,10 +44,10 @@ spec:
           bdev_async_discard_threads: "1" # quote
           osd_class_update_on_start: "false" # quote
           device_failure_prediction_mode: local # requires mgr module
-          osd_pool_default_size: &node-count 2
-          osd_pool_default_min_size: 2
+          osd_pool_default_size: "3" # quote
+          osd_pool_default_min_size: "2" #quote
       mgr:
-        count: *node-count
+        count: &node-count 3
         modules:
           - name: diskprediction_local
             enabled: true
@@ -67,25 +67,55 @@ spec:
         mgr:
           requests:
             memory: 512Mi
+            cpu: 0m
           limits:
             memory: 2Gi
         mon:
           requests:
             memory: 512Mi
+            cpu: 0m
           limits:
             memory: 4Gi
-        prepareods:
+        prepareosd:
           requests:
+            memory: 50Mi
+            cpu: 0m
         osd:
           requests:
             memory: 2Gi
+            cpu: 0m
           limits:
             memory: 6Gi
         mgr-sidecar:
           requests:
             memory: 128Mi
+            cpu: 0m
           limits:
             memory: 256Mi
+        crashcollector:
+          requests:
+            memory: 60Mi
+            cpu: 0m
+          limits:
+            memory: 60Mi
+        logcollector:
+          requests:
+            memory: 100Mi
+            cpu: 0m
+          limits:
+            memory: 1Gi
+        cleanup:
+          requests:
+            memory: 100Mi
+            cpu: 0m
+          limits:
+            memory: 1Gi
+        exporter:
+          requests:
+            memory: 50Mi
+            cpu: 0m
+          limits:
+            memory: 128Mi
       crashCollector:
         disable: false
       dashboard:
@@ -153,6 +183,7 @@ spec:
             resources:
               requests:
                 memory: 1Gi
+                cpu: 0m
               limits:
                 memory: 4Gi
             placement:
@@ -205,6 +236,7 @@ spec:
             resources:
               requests:
                 memory: 1Gi
+                cpu: 0m
               limits:
                 memory: 2Gi
             instances: 2

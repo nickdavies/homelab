@@ -4,3 +4,6 @@ CLUSTER_ENDPOINT="https://$VIP:6443"
 CLUSTER_NAME="homelab-cluster"
 
 FLUX_REPO_URL="ssh://git@github.com/nickdavies/homelab.git"
+
+# renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
+PROMETHEUS_OPERATOR_VERSION="v0.73.2"

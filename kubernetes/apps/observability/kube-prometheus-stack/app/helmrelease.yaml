@@ -1,0 +1,130 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2beta2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+spec:
+  interval: 30m
+  timeout: 15m
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: 72.9.1
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: flux-system
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    crds:
+      enabled: true
+      upgradeJob:
+        enabled: true
+        forceConflicts: true
+    cleanPrometheusOperatorObjectNames: true
+    kubeEtcd:
+      service:
+        selector:
+          component: kube-apiserver
+    kubeProxy:
+      enabled: false
+    prometheus:
+      route:
+        main:
+          enabled: true
+          hostnames:
+            - "prometheus.internal.${SECRET_DOMAIN}"
+          parentRefs:
+            - name: internal
+              namespace: network
+      prometheusSpec:
+        replicas: 2
+        replicaExternalLabelName: __replica__
+        scrapeInterval: 1m # Must match interval in Grafana Helm chart
+        ruleSelectorNilUsesHelmValues: false
+        serviceMonitorSelectorNilUsesHelmValues: false
+        podMonitorSelectorNilUsesHelmValues: false
+        probeSelectorNilUsesHelmValues: false
+        scrapeConfigSelectorNilUsesHelmValues: false
+        enableAdminAPI: true
+        walCompression: true
+        enableFeatures:
+          - memory-snapshot-on-shutdown
+        retention: 14d
+        retentionSize: 50GB
+        resources:
+          requests:
+            cpu: 100m
+          limits:
+            memory: 1Gi
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: openebs-hostpath
+              resources:
+                requests:
+                  storage: 20Gi
+    prometheus-node-exporter:
+      fullnameOverride: node-exporter
+      prometheus:
+        monitor:
+          enabled: true
+          relabelings:
+            - action: replace
+              regex: (.*)
+              replacement: $1
+              sourceLabels:
+                - __meta_kubernetes_pod_node_name
+              targetLabel: kubernetes_node
+    kubeStateMetrics:
+      enabled: true
+    kube-state-metrics:
+      fullnameOverride: kube-state-metrics
+      metricLabelsAllowlist:
+        - pods=[*]
+        - deployments=[*]
+        - persistentvolumeclaims=[*]
+      prometheus:
+        monitor:
+          enabled: true
+          relabelings:
+            - action: replace
+              regex: (.*)
+              replacement: $1
+              sourceLabels:
+                - __meta_kubernetes_pod_node_name
+              targetLabel: kubernetes_node
+    grafana:
+      enabled: false
+      forceDeployDashboards: true
+      sidecar:
+        dashboards:
+          multicluster:
+            etcd:
+              enabled: true
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              version: v1
+              kind: ConfigMap
+              labelSelector: grafana_dashboard in (1)
+            patch: |-
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: not-used
+                namespace: not-used
+                annotations:
+                  grafana_folder: Kubernetes
