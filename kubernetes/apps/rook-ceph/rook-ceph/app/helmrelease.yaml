@@ -146,8 +146,8 @@ spec:
 
     monitoring:
       enabled: true
-#      serviceMonitor:
-#        enabled: true
+    serviceMonitor:
+      enabled: true
     resources:
       requests:
         memory: 128Mi # unchangable

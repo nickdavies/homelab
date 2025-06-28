@@ -84,13 +84,13 @@ spec:
         path: /volume1/k8s/minio
         globalMounts:
           - path: /data
-    # serviceMonitor:
-    #   minio:
-    #     enabled: true
-    #     serviceName: minio
-    #     endpoints:
-    #       - port: api
-    #         scheme: http
-    #         path: /minio/v2/metrics/cluster
-    #         interval: 1m
-    #         scrapeTimeout: 10s
+    serviceMonitor:
+      minio:
+        enabled: true
+        serviceName: minio
+        endpoints:
+          - port: api
+            scheme: http
+            path: /minio/v2/metrics/cluster
+            interval: 1m
+            scrapeTimeout: 10s

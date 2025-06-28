@@ -30,9 +30,9 @@ spec:
     - name: snapshot-controller
       namespace: volsync-system
   values:
-    # monitoring:
-    #   enabled: true
-    #   createPrometheusRules: true
+    monitoring:
+      enabled: true
+      createPrometheusRules: true
     toolbox:
       enabled: true
 

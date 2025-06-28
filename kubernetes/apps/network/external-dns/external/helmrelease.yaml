@@ -50,7 +50,7 @@ spec:
     domainFilters:
       - "${SECRET_PUBLIC_DOMAIN}"
       - "*.${SECRET_PUBLIC_DOMAIN}"
-    # serviceMonitor:
-    #   enabled: true
+    serviceMonitor:
+      enabled: true
     podAnnotations:
       secret.reloader.stakater.com/reload: external-dns-secret
