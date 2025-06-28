@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: blocky
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: app-template
+      version: 3.7.3
+      sourceRef:
+        kind: HelmRepository
+        name: bjw-s
+        namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      blocky:
+        replicas: 2
+        strategy: RollingUpdate
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: docker.io/spx01/blocky
+              tag: latest
+            args:
+              - --config
+              - /etc/blocky/config/config.yaml
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 256Mi
+    service:
+      dns:
+        controller: blocky
+        type: LoadBalancer
+        loadBalancerIP: 192.168.254.4
+        ports:
+          dns-tcp:
+            port: 53
+            targetPort: 1053
+            protocol: TCP
+          dns-udp:
+            port: 53
+            targetPort: 1053
+            protocol: UDP
+      http:
+        controller: blocky
+        ports:
+          http:
+            port: 4000
+            protocol: HTTP
+    serviceMonitor:
+      app:
+        enabled: true
+        serviceName: blocky-http
+        endpoints:
+          - port: http
+            scheme: http
+            path: /metrics
+            interval: 1m
+            scrapeTimeout: 10s
+    persistence:
+      config:
+        enabled: true
+        type: configMap
+        name: blocky-configmap
+        globalMounts:
+          - path: /etc/blocky/config/config.yaml
+            subPath: config.yaml
+            readOnly: true

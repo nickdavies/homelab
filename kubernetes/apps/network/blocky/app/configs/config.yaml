@@ -1,0 +1,26 @@
+ports:
+  dns: 1053
+  http: 4000
+
+log:
+  level: info
+
+prometheus:
+  enable: true
+  path: /metrics
+
+upstreams:
+  groups:
+    default:
+      - "8.8.8.8"
+      - "8.8.4.4"
+      - "1.1.1.1"
+
+blocking:
+  denylists:
+    ads:
+      - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+  clientGroupsBlock:
+    default:
+      - ads
+  blockTTL: 1m
