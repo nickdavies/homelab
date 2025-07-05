@@ -10,6 +10,7 @@ spec:
   prune: true
   dependsOn:
     - name: cluster-config-secret
+    - name: private-repos
   sourceRef:
     kind: GitRepository
     name: homelab
