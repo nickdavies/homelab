@@ -4,3 +4,4 @@ kind: Kustomization
 namespace: flux-system
 resources:
   - ./homelab-data.yaml
+  - ./hass-configs.yaml
