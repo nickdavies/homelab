@@ -22,6 +22,6 @@ spec:
   provider: generic
   url: ssh://git@github.com/nickdavies/hass-configs.git
   ref:
-    branch: main
+    branch: kubernetes
   secretRef:
     name: deploy-key-hass-configs

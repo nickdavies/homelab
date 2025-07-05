@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hass-static-config-sync
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hass-static-config-sync
+  template:
+    metadata:
+      labels:
+        app: hass-static-config-sync
+    spec:
+      volumes:
+        - name: content
+          persistentVolumeClaim:
+            claimName: hass-static-configs
+        - name: ssh-keys
+          secret:
+            secretName: deploy-key-hass-configs
+            defaultMode: 0644
+      securityContext:
+        runAsUser: 65533
+        runAsGroup: 65533
+        runAsNonRoot: true
+        fsGroup: 65533
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: git-sync
+          image: registry.k8s.io/git-sync/git-sync:v4.2.3
+          args:
+            - --repo=git@github.com:nickdavies/hass-configs.git
+            - --ref=kubernetes
+            - --root=/git
+            - --period=60s
+            - --link=head
+            - --max-failures=3
+            - --ssh-key-file=/etc/git-secret/identity
+            - --ssh-known-hosts-file=/etc/git-secret/known_hosts
+            - -v=5
+          volumeMounts:
+            - name: content
+              mountPath: /git
+            - name: ssh-keys
+              mountPath: /etc/git-secret
+              readOnly: true
