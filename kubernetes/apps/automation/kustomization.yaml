@@ -5,4 +5,5 @@ resources:
   - ./homeassistant/ks.yaml
   - ./homelab-data.yaml
   - ./mosquitto/ks.yaml
+  - ./zigbee2mqtt/ks.yaml
   - namespace.yaml
