@@ -62,6 +62,34 @@ spec:
           # We need to keep the work and upper directory inside the same mount (which should be inside the PVC)
           mkdir -p /mnt/rw-vol/upper /mnt/rw-vol/work /mnt/rw-vol/merged
 
+          # Validation checks before starting Home Assistant
+          echo "Running pre-startup validation checks..."
+
+          # Check if configuration.yaml exists in the static configs (required)
+          if [ ! -f /mnt/static-config/head/configuration.yaml ]; then
+            echo "ERROR: configuration.yaml not found in static-configs"
+            echo "Check that the static configs are properly mounted and contain configuration.yaml"
+            exit 1
+          fi
+
+          # Check if configuration.yaml exists in upper layer (bad)
+          if [ -f /mnt/rw-vol/upper/configuration.yaml ]; then
+            echo "ERROR: configuration.yaml found in upper layer at /mnt/rw-vol/upper/configuration.yaml"
+            echo "This indicates a HA ran without a configuration.yaml. Home Assistant should never create or modify configuration.yaml"
+            echo "Remove this file and identify how this happened"
+            exit 1
+          fi
+
+          # Check if any .yaml files exist in upper layer (warning)
+          YAML_FILES=$(find /mnt/rw-vol/upper -name "*.yaml" -type f 2>/dev/null || true)
+          if [ -n "$YAML_FILES" ]; then
+            echo "WARNING: Found .yaml files in upper layer:"
+            echo "$YAML_FILES"
+            echo "This may indicate configuration files being masked by the upper layer"
+          fi
+
+          echo "Pre-startup validation passed... allowing mount"
+
           mount -v -t overlay overlay \
             -o lowerdir=/mnt/static-config/head:/mnt/dynamic-config/dynamic:/mnt/secret-config/secrets,upperdir=/mnt/rw-vol/upper,workdir=/mnt/rw-vol/work \
             /mnt/rw-vol/merged
@@ -70,7 +98,7 @@ spec:
           if [ $MOUNT_EXIT_CODE -ne 0 ]; then
             dmesg | tail -n 15
             exit 1
-          fi 
+          fi
 
           touch /mnt/rw-vol/merged/.success-marker
 
@@ -153,6 +181,19 @@ spec:
             child=$!
             wait $child
           done
+
+          # Validation checks before starting Home Assistant
+          echo "Running pre-startup validation checks..."
+
+          # Check if configuration.yaml exists in the merged view (required)
+          if [ ! -f /config/configuration.yaml ]; then
+            echo "ERROR: configuration.yaml not found in /config/"
+            echo "Home Assistant requires configuration.yaml to be present"
+            echo "Check that the static configs are properly mounted and contain configuration.yaml"
+            exit 1
+          fi
+
+          echo "Pre-startup validation passed"
 
           mkdir /venv
           export VENV_FOLDER="/venv"
