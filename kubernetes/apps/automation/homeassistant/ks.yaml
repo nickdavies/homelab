@@ -8,7 +8,7 @@ spec:
   targetNamespace: automation
   dependsOn:
     - name: homeassistant-static-configs
-    - name: homeassistant-dynamic-configs
+    - name: homelab-data
     - name: external-secrets
   commonMetadata:
     labels:
@@ -41,29 +41,6 @@ spec:
     labels:
       app.kubernetes.io/name: *app
   path: ./kubernetes/apps/automation/homeassistant/static-configs
-  prune: true
-  sourceRef:
-    kind: GitRepository
-    name: homelab
-  wait: true
-  interval: 30m
-  retryInterval: 1m
-  timeout: 5m
----
-# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: &app homeassistant-dynamic-configs
-  namespace: flux-system
-spec:
-  targetNamespace: automation
-  dependsOn:
-    - name: homelab-data
-  commonMetadata:
-    labels:
-      app.kubernetes.io/name: *app
-  path: ./kubernetes/apps/automation/homeassistant/dynamic-configs
   prune: true
   sourceRef:
     kind: GitRepository

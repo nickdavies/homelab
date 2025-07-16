@@ -28,7 +28,7 @@ spec:
           claimName: hass-static-configs
       - name: dynamic-config-vol
         configMap:
-          name: dynamic-hass-configs
+          name: hass-dynamic-configs
           items:
             - key: zigbee_all_lights.yaml
               path: dynamic/lovelace/generated/all_lights.yaml
