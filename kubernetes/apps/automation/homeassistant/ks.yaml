@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app homeassistant-app
+  namespace: flux-system
+spec:
+  targetNamespace: automation
+  dependsOn:
+    - name: homeassistant-static-configs
+    - name: homelab-data
+    - name: external-secrets
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/automation/homeassistant/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: false # no flux ks dependents
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
+  postBuild:
+    substitute:
+      APP: homeassistant-rw
+      VOLSYNC_CAPACITY: 10Gi
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app homeassistant-static-configs
+  namespace: flux-system
+spec:
+  targetNamespace: automation
+  dependsOn:
+    - name: external-secrets
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/automation/homeassistant/static-configs
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: true
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m

@@ -5,3 +5,4 @@ namespace: flux-system
 resources:
   - ./helm
   - ./oci
+  - ./private/ks.yaml

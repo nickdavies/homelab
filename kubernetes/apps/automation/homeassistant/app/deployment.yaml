@@ -1,0 +1,213 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: &app homeassistant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: *app
+  serviceName: "homeassistant"
+  template:
+    metadata:
+      labels:
+        app: *app
+      annotations:
+        kubectl.kubernetes.io/default-container: app
+    spec:
+      terminationGracePeriodSeconds: 30
+      initContainers:
+        - name: init-db
+          image: ghcr.io/home-operations/postgres-init:17.5.0
+          envFrom:
+            - secretRef:
+                name: home-assistant-secret
+      volumes:
+      - name: static-config-vol
+        persistentVolumeClaim:
+          claimName: hass-static-configs
+      - name: dynamic-config-vol
+        configMap:
+          name: hass-dynamic-configs
+          items:
+            - key: zigbee_all_lights.yaml
+              path: dynamic/lovelace/generated/all_lights.yaml
+            - key: zigbee_light_groups.yaml
+              path: dynamic/mqtt_lights/zigbee_groups.yaml
+      - name: secret-config-vol
+        secret:
+          secretName: hass-secret-configs
+          items:
+            - key: secrets.yaml
+              path: secrets/secrets.yaml
+      - name: rw-data-vol
+        persistentVolumeClaim:
+          claimName: homeassistant-rw
+      containers:
+      - name: overlay-manager
+        image: ubuntu:latest
+        securityContext:
+          privileged: true
+          allowPrivilegeEscalation: true
+          runAsNonRoot: false
+          capabilities:
+            add: ["SYS_ADMIN"]
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # We need to keep the work and upper directory inside the same mount (which should be inside the PVC)
+          mkdir -p /mnt/rw-vol/upper /mnt/rw-vol/work /mnt/rw-vol/merged
+
+          # Validation checks before starting Home Assistant
+          echo "Running pre-startup validation checks..."
+
+          # Check if configuration.yaml exists in the static configs (required)
+          if [ ! -f /mnt/static-config/head/configuration.yaml ]; then
+            echo "ERROR: configuration.yaml not found in static-configs"
+            echo "Check that the static configs are properly mounted and contain configuration.yaml"
+            exit 1
+          fi
+
+          # Check if configuration.yaml exists in upper layer (bad)
+          if [ -f /mnt/rw-vol/upper/configuration.yaml ]; then
+            echo "ERROR: configuration.yaml found in upper layer at /mnt/rw-vol/upper/configuration.yaml"
+            echo "This indicates a HA ran without a configuration.yaml. Home Assistant should never create or modify configuration.yaml"
+            echo "Remove this file and identify how this happened"
+            exit 1
+          fi
+
+          # Check if any .yaml files exist in upper layer (warning)
+          YAML_FILES=$(find /mnt/rw-vol/upper -name "*.yaml" -type f 2>/dev/null || true)
+          if [ -n "$YAML_FILES" ]; then
+            echo "WARNING: Found .yaml files in upper layer:"
+            echo "$YAML_FILES"
+            echo "This may indicate configuration files being masked by the upper layer"
+          fi
+
+          echo "Pre-startup validation passed... allowing mount"
+
+          mount -v -t overlay overlay \
+            -o lowerdir=/mnt/static-config/head:/mnt/dynamic-config/dynamic:/mnt/secret-config/secrets,upperdir=/mnt/rw-vol/upper,workdir=/mnt/rw-vol/work \
+            /mnt/rw-vol/merged
+
+          MOUNT_EXIT_CODE=$?
+          if [ $MOUNT_EXIT_CODE -ne 0 ]; then
+            dmesg | tail -n 15
+            exit 1
+          fi
+
+          touch /mnt/rw-vol/merged/.success-marker
+
+          function finish {
+            echo "Cleaning up overlay mount..."
+            umount /mnt/rw-vol/merged || echo "Failed to unmount overlay"
+            echo "Exiting gracefully..."
+            kill -TERM "$child" 2>/dev/null
+            exit 0
+          }
+          trap finish SIGHUP SIGINT SIGQUIT SIGTERM
+
+          sleep infinity &
+          child=$!
+          wait $child
+        volumeMounts:
+        - name: static-config-vol
+          mountPath: /mnt/static-config
+          readOnly: true
+        - name: dynamic-config-vol
+          mountPath: /mnt/dynamic-config
+          readOnly: true
+        - name: secret-config-vol
+          mountPath: /mnt/secret-config
+          readOnly: true
+        - name: rw-data-vol
+          mountPath: /mnt/rw-vol
+          mountPropagation: Bidirectional
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "mountpoint -q /mnt/rw-vol/merged && test -f /mnt/rw-vol/merged/.success-marker"
+          initialDelaySeconds: 2
+          periodSeconds: 5
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "mountpoint -q /mnt/rw-vol/merged"
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+      - name: app
+        image: ghcr.io/home-operations/home-assistant:2025.6.3
+        livenessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - "test -f /config/.success-marker"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          failureThreshold: 3
+        env:
+          - name: TZ
+            value: ${TIMEZONE}
+        command:
+        - /usr/bin/catatonit
+        - --
+        - /bin/bash
+        - -c
+        - |
+          function finish {
+            echo "exciting gracefully . . ."
+            kill -TERM "$child" 2>/dev/null
+            exit 0
+          }
+          trap finish SIGHUP SIGINT SIGQUIT SIGTERM
+
+          while [ ! -f /config/.success-marker ]; do
+            echo "Waiting for mount..."
+            sleep 2 &
+            child=$!
+            wait $child
+          done
+
+          # Validation checks before starting Home Assistant
+          echo "Running pre-startup validation checks..."
+
+          # Check if configuration.yaml exists in the merged view (required)
+          if [ ! -f /config/configuration.yaml ]; then
+            echo "ERROR: configuration.yaml not found in /config/"
+            echo "Home Assistant requires configuration.yaml to be present"
+            echo "Check that the static configs are properly mounted and contain configuration.yaml"
+            exit 1
+          fi
+
+          echo "Pre-startup validation passed"
+
+          mkdir /venv
+          export VENV_FOLDER="/venv"
+          exec /entrypoint.sh "$@"
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: false
+          runAsUser: 0
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - name: rw-data-vol
+          mountPath: /config
+          subPath: merged
+          mountPropagation: HostToContainer

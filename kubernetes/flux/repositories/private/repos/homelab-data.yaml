@@ -1,0 +1,27 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: deploy-key-homelab-data
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: onepassword-connect
+  target:
+    name: deploy-key-homelab-data
+    creationPolicy: Owner
+  dataFrom:
+    - extract:
+        key: deploy_key_homelab_data
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: homelab-data
+spec:
+  interval: 5m0s
+  provider: generic
+  url: ssh://git@github.com/nickdavies/homelab-data.git
+  ref:
+    branch: main
+  secretRef:
+    name: deploy-key-homelab-data

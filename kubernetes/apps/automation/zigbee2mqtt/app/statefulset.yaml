@@ -1,0 +1,66 @@
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: zigbee2mqtt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: &app zigbee2mqtt
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: "zigbee2mqtt"
+        app.kubernetes.io/name: "zigbee2mqtt"
+        app.kubernetes.io/version: "2.5.1"
+        app: *app
+    spec:
+      containers:
+        - name: zigbee2mqtt
+          image: "koenkk/zigbee2mqtt:2.5.1"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: ${TIMEZONE}
+          ports:
+            - containerPort: 8080
+              name: web
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /
+              port: web
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          resources:
+            limits:
+              squat.ai/zigbee-serial: 1
+          volumeMounts:
+            - mountPath: /app/data/
+              name: data-vol
+            - mountPath: /app/data/configuration.yaml
+              name: config-vol
+              subPath: configuration.yaml
+            - mountPath: /mnt/dynamic/
+              name: dynamic-vol
+            - mountPath: /mnt/secrets/
+              name: secret-vol
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      volumes:
+        - name: data-vol
+          persistentVolumeClaim:
+            claimName: zigbee2mqtt
+        - name: config-vol
+          configMap:
+            name: zigbee2mqtt-configmap
+        - name: dynamic-vol
+          configMap:
+            name: zigbee2mqtt-dynamic
+        - name: secret-vol
+          secret:
+            secretName: zigbee2mqtt

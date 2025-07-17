@@ -1,0 +1,24 @@
+homeassistant:
+  enabled: true
+frontend:
+  enabled: true
+  port: 8080
+mqtt:
+  base_topic: zigbee2mqtt
+  server: mqtt://mosquitto.automation.svc.cluster.local:1883
+  user: '!/mnt/secrets/mqtt.yaml user'
+  password: '!/mnt/secrets/mqtt.yaml password'
+serial:
+  port: /dev/zigbee0
+  adapter: zstack
+  rtscts: false
+devices:
+  - /app/data/devices-auto.yaml
+  - /mnt/dynamic/devices.yaml
+groups: /mnt/dynamic/groups.yaml
+advanced:
+  log_level: info
+  log_directory: /var/log/zigbee2mqtt
+  log_output:
+    - console
+version: 4
