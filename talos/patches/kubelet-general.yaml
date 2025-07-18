@@ -4,3 +4,6 @@ machine:
     extraArgs:
       image-gc-low-threshold: 50
       image-gc-high-threshold: 55
+    nodeIP:
+        validSubnets:
+            - 192.168.254.0/24

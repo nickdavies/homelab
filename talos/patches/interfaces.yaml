@@ -1,0 +1,48 @@
+---
+machine:
+  network:
+    interfaces:
+      - deviceSelector:
+          hardwareAddr: "${PRIMARY_MAC}"
+          physical: true
+        dhcp: false
+        addresses:
+          - 192.168.254.${NODE_IP_SEGMENT}/24
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 192.168.254.1
+          - network: 192.168.254.0/24
+            gateway: 192.168.254.1
+        vip:
+          ip: ${VIP}
+        vlans:
+          # Trusted network
+          - vlanId: 10
+            mtu: 1500
+            dhcp: false
+            addresses:
+              - 192.168.10.${NODE_IP_SEGMENT}/24
+            routes:
+              - network: 192.168.10.0/24
+                gateway: 192.168.10.1
+                metric: 2048
+          # IoT
+          - vlanId: 20
+            mtu: 1500
+            dhcp: false
+            addresses:
+              - 192.168.20.${NODE_IP_SEGMENT}/24
+            routes:
+              - network: 192.168.20.0/24
+                gateway: 192.168.20.1
+                metric: 2048
+          # NoT
+          - vlanId: 30
+            mtu: 1500
+            dhcp: false
+            addresses:
+              - 192.168.30.${NODE_IP_SEGMENT}/24
+            routes:
+              - network: 192.168.30.0/24
+                gateway: 192.168.30.1
+                metric: 2048

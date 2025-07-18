@@ -10,12 +10,20 @@ set -a; source talosenv; set +a
 NODE="$1"
 
 NODE_PATCH="./nodes/$NODE.yaml"
+NODE_ENV="./nodes/$NODE.env"
 SECRETS_DIR="./output/secrets"
 
 if [ ! -f "$NODE_PATCH" ]; then
     echo "Node patch file $NODE_PATCH doesn't exist"
     exit 1
 fi
+
+if [ ! -f "$NODE_ENV" ]; then
+    echo "Node vars file $NODE_ENV doesn't exist"
+    exit 1
+fi
+
+set -a; source $NODE_ENV; set +a
 
 PATCHES=$(find ./patches | grep -e '.ya\?ml' | sed 's/^\.\///' | sort)
 OUTPUT_PATCHES_DIR="./output/rendered/patches"
@@ -26,7 +34,7 @@ rm -f "$OUTPUT_NODES_DIR/${NODE}.yaml"
 mkdir -p "$OUTPUT_NODES_DIR"
 mkdir -p "$OUTPUT_PATCHES_DIR"
 
-VALID_VARS=$(cat talosenv | grep -v "^\s*$" | sed 's/\([^=]*\)=.*/${\1}/')
+VALID_VARS=$(cat talosenv $NODE_ENV | grep -v "^\s*$" | sed 's/\([^=]*\)=.*/${\1}/')
 
 patchesArray=()
 for PATCH in $PATCHES; do
@@ -51,5 +59,5 @@ talosctl gen config "$CLUSTER_NAME" "$CLUSTER_ENDPOINT" \
 talosctl machineconfig patch \
     "$OUTPUT_NODES_DIR/${NODE}.raw.yaml" \
     -o "$OUTPUT_NODES_DIR/${NODE}.yaml" \
-    "${patchesArray[@]}" \
-    --patch "$(cat $NODE_PATCH | envsubst "$VALID_VARS")"
+    --patch "$(cat $NODE_PATCH | envsubst "$VALID_VARS")" \
+    "${patchesArray[@]}"
