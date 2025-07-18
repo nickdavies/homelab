@@ -8,4 +8,5 @@ resources:
 - external-dns/ks.yaml
 - gateway/ks.yaml
 - metallb
+- multus/ks.yaml
 - namespace.yaml
