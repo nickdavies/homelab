@@ -45,7 +45,7 @@ spec:
       endpointURL: https://s3.internal.${SECRET_DOMAIN}
       # serverName needs to be incremented
       # when recovering from a previous cluster
-      serverName: &currentCluster postgres17-v1
+      serverName: &currentCluster postgres17-v2
       s3Credentials:
         accessKeyId:
           name: cloudnative-pg-secret
@@ -54,10 +54,10 @@ spec:
           name: cloudnative-pg-secret
           key: aws-secret-access-key
   bootstrap:
-    # recovery:
-    #   source: &previousCluster postgres17-v1
-  # externalClusters:
-  #   - name: *previousCluster
-  #     barmanObjectStore:
-  #       <<: *barmanObjectStore
-  #       serverName: *previousCluster
+    recovery:
+      source: &previousCluster postgres17-v1
+  externalClusters:
+    - name: *previousCluster
+      barmanObjectStore:
+        <<: *barmanObjectStore
+        serverName: *previousCluster
