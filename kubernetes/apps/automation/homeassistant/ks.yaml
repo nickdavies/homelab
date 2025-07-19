@@ -10,6 +10,7 @@ spec:
     - name: homeassistant-static-configs
     - name: homelab-data
     - name: external-secrets
+    - name: multus-config
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
