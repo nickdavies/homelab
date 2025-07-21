@@ -2,10 +2,18 @@
 
 set -euo pipefail
 
+FILE="$1"
+
 # Check if customizations.yaml exists
-if [[ ! -f "customizations.yaml" ]]; then
-    echo "Error: customizations.yaml file not found in current directory"
+if [[ ! -f "$FILE" ]]; then
+    echo "Error: $FILE file not found in current directory"
     exit 1
 fi
 
-curl -X POST --data-binary @customizations.yaml https://factory.talos.dev/schematics
+OUTPUT=$(curl -X POST --data-binary @customizations.yaml https://factory.talos.dev/schematics)
+echo $OUTPUT
+
+ID="$(echo $OUTPUT | yq '.id')"
+
+echo "https://factory.talos.dev/image/${ID}/<VERSION>/metal-amd64.iso"
+echo "https://factory.talos.dev/image/${ID}/<VERSION>/metal-arm64.raw.xz"
