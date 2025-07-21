@@ -30,6 +30,10 @@ spec:
   values:
     priorityClassName: system-cluster-critical
     csi:
+      pluginTolerations:
+        - key: "homelab/special-node"
+          operator: "Exists"
+          effect: "NoSchedule"
       cephFSKernelMountOptions: ms_mode=prefer-crc
       enableLiveness: true
       csiRBDPluginResource: |
