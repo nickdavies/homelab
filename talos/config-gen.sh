@@ -26,13 +26,24 @@ fi
 set -a; source $NODE_ENV; set +a
 
 PATCHES=$(find ./patches | grep -e '.ya\?ml' | sed 's/^\.\///' | sort)
+PATCHES_CONTROL_PLANE=""
+if [ -d "./patches-control-plane" ]; then
+    PATCHES_CONTROL_PLANE=$(find ./patches-control-plane | grep -e '.ya\?ml' | sed 's/^\.\///' | sort || true)
+fi
+PATCHES_WORKERS=""
+if [ -d "./patches-workers" ]; then
+    PATCHES_WORKERS=$(find ./patches-workers | grep -e '.ya\?ml' | sed 's/^\.\///' | sort || true)
+fi
 OUTPUT_PATCHES_DIR="./output/rendered/patches"
-OUTPUT_NODES_DIR="output/rendered/nodes"
+OUTPUT_PATCHES_CONTROL_PLANE_DIR="./output/rendered/patches-control-plane"
+OUTPUT_PATCHES_WORKERS_DIR="./output/rendered/patches-workers"
+OUTPUT_NODE_DIR="output/rendered/nodes/$NODE"
 
-rm -f "$OUTPUT_NODES_DIR/${NODE}.raw.yaml"
-rm -f "$OUTPUT_NODES_DIR/${NODE}.yaml"
-mkdir -p "$OUTPUT_NODES_DIR"
+rm -rf "$OUTPUT_NODE_DIR"
+mkdir -p "$OUTPUT_NODE_DIR"
 mkdir -p "$OUTPUT_PATCHES_DIR"
+mkdir -p "$OUTPUT_PATCHES_CONTROL_PLANE_DIR"
+mkdir -p "$OUTPUT_PATCHES_WORKERS_DIR"
 
 VALID_VARS=$(cat talosenv $NODE_ENV | grep -v "^\s*$" | sed 's/\([^=]*\)=.*/${\1}/')
 
@@ -40,24 +51,32 @@ patchesArray=()
 for PATCH in $PATCHES; do
     mkdir -p "$OUTPUT_PATCHES_DIR/$(dirname $PATCH)"
     cat "$PATCH" | envsubst "$VALID_VARS" > "$OUTPUT_PATCHES_DIR/$PATCH"
-    patchesArray+=(--patch @"$OUTPUT_PATCHES_DIR/$PATCH")
+    patchesArray+=(--config-patch @"$OUTPUT_PATCHES_DIR/$PATCH")
 done
 
-# First generate a base config without any of the patches.
-# This lets us scope down to only generating the controlplane at this point
-# without having talosctl gen try and generate both (which may be incompatible with
-# certain patches)
+patchesControlPlaneArray=()
+for PATCH in $PATCHES_CONTROL_PLANE; do
+    mkdir -p "$OUTPUT_PATCHES_CONTROL_PLANE_DIR/$(dirname $PATCH)"
+    cat "$PATCH" | envsubst "$VALID_VARS" > "$OUTPUT_PATCHES_CONTROL_PLANE_DIR/$PATCH"
+    patchesControlPlaneArray+=(--config-patch-control-plane @"$OUTPUT_PATCHES_CONTROL_PLANE_DIR/$PATCH")
+done
+
+patchesWorkersArray=()
+for PATCH in $PATCHES_WORKERS; do
+    mkdir -p "$OUTPUT_PATCHES_WORKERS_DIR/$(dirname $PATCH)"
+    cat "$PATCH" | envsubst "$VALID_VARS" > "$OUTPUT_PATCHES_WORKERS_DIR/$PATCH"
+    patchesWorkersArray+=(--config-patch-worker @"$OUTPUT_PATCHES_WORKERS_DIR/$PATCH")
+done
+
+# Generate both controlplane and worker configs with all patches applied
 talosctl gen config "$CLUSTER_NAME" "$CLUSTER_ENDPOINT" \
     --with-secrets "$SECRETS_DIR/talos.yaml" \
     --with-examples=false \
     --with-docs=false \
     --install-disk "" \
-    --output-types="controlplane" \
-    --output "$OUTPUT_NODES_DIR/${NODE}.raw.yaml" \
-
-# Next we apply all our patches on top to make the final config
-talosctl machineconfig patch \
-    "$OUTPUT_NODES_DIR/${NODE}.raw.yaml" \
-    -o "$OUTPUT_NODES_DIR/${NODE}.yaml" \
-    --patch "$(cat $NODE_PATCH | envsubst "$VALID_VARS")" \
-    "${patchesArray[@]}"
+    --output-types="controlplane,worker" \
+    --output "$OUTPUT_NODE_DIR" \
+    --config-patch "$(cat $NODE_PATCH | envsubst "$VALID_VARS")" \
+    "${patchesArray[@]}" \
+    "${patchesControlPlaneArray[@]}" \
+    "${patchesWorkersArray[@]}"

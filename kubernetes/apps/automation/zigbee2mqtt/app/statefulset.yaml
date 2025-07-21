@@ -17,6 +17,11 @@ spec:
         app.kubernetes.io/version: "2.5.1"
         app: *app
     spec:
+      tolerations:
+        - key: "homelab/special-node"
+          operator: "Equal"
+          value: "laundry-pi"
+          effect: "NoSchedule"
       containers:
         - name: zigbee2mqtt
           image: "koenkk/zigbee2mqtt:2.5.1"

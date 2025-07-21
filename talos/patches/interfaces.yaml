@@ -13,8 +13,6 @@ machine:
             gateway: 192.168.254.1
           - network: 192.168.254.0/24
             gateway: 192.168.254.1
-        vip:
-          ip: ${VIP}
         vlans:
           # Trusted network
           - vlanId: 10
