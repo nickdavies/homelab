@@ -1,0 +1,14 @@
+---
+machine:
+  network:
+    hostname: k8s-node-4
+  install:
+    diskSelector:
+      serial: "0x87c3c193"
+  kubelet:
+    extraConfig:
+      registerNode: true
+      registerWithTaints:
+        - effect: NoSchedule
+          key: homelab/special-node
+          value: laundry-pi
