@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: overlayfs-config
+data:
+  overlayfs-config.toml: |
+    allowed_masked_files = [
+      "scripts.yaml",
+      "scenes.yaml"
+    ]
+
+    [options]
+      show_dmesg = true
+      success_file = "/mnt/rw-vol/merged/.success-marker"
+    [upper_dir]
+      volume = "/mnt/rw-vol"
+      upper_subdir = "upper"
+      work_subdir = "work"
+      merged_subdir = "merged"
+
+    [[lower_dirs]]
+      volume = "/mnt/static-config"
+      subdir = "head"
+
+    [[lower_dirs]]
+      volume = "/mnt/dynamic-config"
+      subdir = "dynamic"
+      sync_mode = { constant = "/sync/dynamic-config" }
+
+    [[lower_dirs]]
+      volume = "/mnt/secret-config"
+      subdir = "secrets"
+      sync_mode = { constant = "/sync/secret-config" }

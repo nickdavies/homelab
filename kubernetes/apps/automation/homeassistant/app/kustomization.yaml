@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ./deployment.yaml
   - ./pg-secrets.yaml
+  - ./overlayfs-config.yaml
   - ./route.yaml
   - ./secret-configs.yaml
   - ./service.yaml
