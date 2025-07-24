@@ -1,5 +1,6 @@
 homeassistant:
   enabled: true
+  legacy_action_sensor: true
 frontend:
   enabled: true
   port: 8080
