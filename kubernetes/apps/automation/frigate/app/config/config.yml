@@ -66,6 +66,14 @@ record:
 detect:
   enabled: True
 
+review:
+  alerts:
+    labels:
+      - person
+  detections:
+    labels:
+      - person
+
 cameras:
   doorbell:
     ffmpeg:
@@ -80,7 +88,6 @@ cameras:
         - person
         - face
         - dog
-        - package
     motion:
       mask:
         - 0.341,0.019,0.644,0.018,0.645,0.049,0.342,0.049
