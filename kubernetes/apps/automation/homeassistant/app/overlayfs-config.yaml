@@ -21,6 +21,7 @@ data:
     [[lower_dirs]]
       volume = "/mnt/static-config"
       subdir = "head"
+      sync_mode = { constant = "/sync/static-config" }
 
     [[lower_dirs]]
       volume = "/mnt/dynamic-config"
