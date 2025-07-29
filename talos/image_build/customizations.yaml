@@ -3,4 +3,6 @@ customization:
     - net.ifnames=0
   systemExtensions:
     officialExtensions:
+      - siderolabs/gasket-driver
+      - siderolabs/i915
       - siderolabs/intel-ucode

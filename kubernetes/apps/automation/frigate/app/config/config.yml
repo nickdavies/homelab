@@ -1,0 +1,104 @@
+mqtt:
+  host: mosquitto.automation.svc.cluster.local
+  port: 1883
+  user: '{FRIGATE_MQTT_USERNAME}'
+  password: '{FRIGATE_MQTT_PASSWORD}'
+  topic_prefix: frigate
+
+database:
+  path: /config/frigate.db
+
+detectors:
+  coral:
+    type: edgetpu
+    device: usb
+
+face_recognition:
+  enabled: true
+
+auth:
+  enabled: False
+  trusted_proxies:
+    - 10.69.0.0/16
+    - 10.0.80.0/28
+
+ffmpeg:
+  hwaccel_args: preset-intel-qsv-h264
+
+live:
+  height: 720
+  quality: 1
+
+birdseye:
+  enabled: True
+  mode: objects
+
+go2rtc:
+  streams:
+    doorbell_main:
+      - rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_DOORBELL_IP}:554/h264Preview_01_main
+    doorbell_sub:
+      - rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_DOORBELL_IP}:554/h264Preview_01_sub
+objects:
+  track:
+    - person
+    - face
+    - car
+    - waste_bin
+    - dog
+
+record:
+  enabled: true
+  retain:
+    days: 7
+    mode: all
+  detections:
+    retain:
+      days: 10
+      mode: active_objects
+  alerts:
+    pre_capture: 5
+    post_capture: 5
+    retain:
+      days: 14
+      mode: active_objects
+
+detect:
+  enabled: True
+
+review:
+  alerts:
+    labels:
+      - person
+  detections:
+    labels:
+      - person
+
+cameras:
+  doorbell:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/doorbell_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+            - detect
+    objects:
+      track:
+        - person
+        - face
+        - dog
+    motion:
+      mask:
+        - 0.341,0.019,0.644,0.018,0.645,0.049,0.342,0.049
+    snapshots:
+      enabled: True
+      timestamp: False
+      bounding_box: True
+      crop: False
+    lpr:
+      enabled: False  # too low quality to pick up license plates
+    mqtt:
+      enabled: True
+      timestamp: False
+      crop: True
