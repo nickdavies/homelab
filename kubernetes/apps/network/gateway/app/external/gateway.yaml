@@ -11,6 +11,7 @@ metadata:
   name: external
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
+    external-dns.alpha.kubernetes.io/target: "external.${SECRET_PUBLIC_DOMAIN}"
   labels:
     "homelab/gateway-type": external
 spec:
@@ -24,7 +25,7 @@ spec:
     - name: https
       protocol: HTTPS
       port: 443
-      hostname: "external.${SECRET_PUBLIC_DOMAIN}"
+      hostname: "*.${SECRET_PUBLIC_DOMAIN}"
       tls:
         mode: Terminate
         certificateRefs:
