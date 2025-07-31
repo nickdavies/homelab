@@ -4,4 +4,5 @@ resources:
 - generic-device-plugin
 - intel-device-plugin/ks.yaml
 - node-feature-discovery/ks.yaml
+- reloader/ks.yaml
 - kube-web-view
