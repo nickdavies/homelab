@@ -11,5 +11,8 @@ configMapGenerator:
   - name: zigbee2mqtt-configmap
     files:
       - configuration.yaml=./config/zigbee2mqtt.yaml
+  - name: zigbee2mqtt-cleanup-script
+    files:
+      - cleanup-devices.py=./config/cleanup-devices.py
 generatorOptions:
   disableNameSuffixHash: true
