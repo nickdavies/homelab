@@ -13,6 +13,7 @@ spec:
       labels:
         app: *app
       annotations:
+        reloader.stakater.com/auto: "true"
         kubectl.kubernetes.io/default-container: app
         k8s.v1.cni.cncf.io/networks: |
           [
