@@ -28,6 +28,11 @@ spec:
     keepHistory: false
   values:
     worker:
+      tolerations:
+        - operator: "Exists"
+          effect: "NoExecute"
+        - operator: "Exists"
+          effect: "NoSchedule"
       config:
         core:
           sources: ["custom", "pci", "usb"]
