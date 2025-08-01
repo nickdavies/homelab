@@ -17,3 +17,4 @@ resources:
   - piraeus.yaml
   - prometheus-community.yaml
   - rook-ceph.yaml
+  - stakater.yaml
