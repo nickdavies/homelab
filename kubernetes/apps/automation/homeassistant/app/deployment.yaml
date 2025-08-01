@@ -41,8 +41,6 @@ spec:
           items:
             - key: zigbee_all_lights.yaml
               path: dynamic/lovelace/generated/all_lights.yaml
-            - key: zigbee_light_groups.yaml
-              path: dynamic/mqtt_lights/zigbee_groups.yaml
       - name: secret-config-vol
         secret:
           secretName: hass-secret-configs
