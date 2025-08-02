@@ -14,6 +14,7 @@ spec:
         app: *app
       annotations:
         reloader.stakater.com/auto: "true"
+        configmap.reloader.stakater.com/reload: "home-assistant-static-config-version"
         kubectl.kubernetes.io/default-container: app
         k8s.v1.cni.cncf.io/networks: |
           [
