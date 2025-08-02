@@ -1,0 +1,25 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: &app git-sync-reloader-adapter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: *app
+  template:
+    metadata:
+      labels:
+        app: *app
+    spec:
+      serviceAccountName: git-sync-reloader-adapter
+      containers:
+      - name: webhook-adapter
+        image: nickdavies1/git-sync-reloader-adapter:main
+        args: 
+        - "--port=8080"
+        - "--addr=0.0.0.0"
+        - "automation/home-assistant-static-config-version"
+        ports:
+        - containerPort: 8080

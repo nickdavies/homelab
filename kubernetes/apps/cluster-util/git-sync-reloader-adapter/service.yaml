@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: git-sync-reloader-adapter
+spec:
+  selector:
+    app: git-sync-reloader-adapter
+  ports:
+  - port: 8080
+    targetPort: 8080
