@@ -38,6 +38,7 @@ spec:
             - --max-failures=3
             - --ssh-key-file=/etc/git-secret/identity
             - --ssh-known-hosts-file=/etc/git-secret/known_hosts
+            - --webhook-url=http://git-sync-reloader-adapter.kube-system.svc.cluster.local:8080/webhook/automation/home-assistant-static-config-version
             - -v=5
           volumeMounts:
             - name: content
