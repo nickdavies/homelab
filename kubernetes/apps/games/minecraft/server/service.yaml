@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: ${SERVER_DNS}.internal.${SECRET_DOMAIN}
+  name: minecraft-${SERVER_NAME}
+spec:
+  type: LoadBalancer
+  ports:
+    - name: server
+      port: 25565
+      targetPort: 25565
+    - name: rcon
+      port: 25575
+      targetPort: 25575
+  selector:
+    app: minecraft-${SERVER_NAME}
