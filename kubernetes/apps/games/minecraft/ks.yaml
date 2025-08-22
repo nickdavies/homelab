@@ -1,0 +1,33 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app minecraft-main
+  namespace: flux-system
+spec:
+  targetNamespace: games
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/games/minecraft/server
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: false
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
+  dependsOn:
+    - name: external-secrets
+    - name: volsync
+  postBuild:
+    substitute:
+      SERVER_DNS: minecraft
+      SERVER_NAME: nick-britta-2025-08
+      # Minecraft settings
+      MC_VERSION: "1.21.8"
+      MC_DIFFICULTY: "hard"
+      # volsync related values
+      APP: minecraft-nick-britta-2025-08
+      VOLSYNC_CAPACITY: 50Gi
+      VOLSYNC_SCHEDULE: 0 */6 * * * # Backup only every 6 hours

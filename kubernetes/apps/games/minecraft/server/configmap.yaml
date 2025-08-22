@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minecraft-${SERVER_NAME}-server-config
+  labels:
+    role: service-config
+    app: minecraft-${SERVER_NAME}
+data:
+  EULA: "TRUE"
+  MOTD: "running world: ${SERVER_NAME}!"
+  MODE: "survival"
+  VERSION: "${MC_VERSION}"
+  DIFFICULTY: "${MC_DIFFICULTY}"
+  SPAWN_PROTECTION: "0"
+  PVP: "false"
+  RCON_CMDS_STARTUP: |-
+    /gamerule doFireTick false
+    /gamerule playersSleepingPercentage 100
+    /gamerule blockExplosionDropDecay false

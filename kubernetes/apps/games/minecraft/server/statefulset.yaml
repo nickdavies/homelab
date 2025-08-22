@@ -1,0 +1,59 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: minecraft-${SERVER_NAME}
+  name: minecraft-${SERVER_NAME}
+spec:
+  replicas: 1
+  serviceName: minecraft-${SERVER_NAME}
+  selector:
+    matchLabels:
+      app: minecraft-${SERVER_NAME}
+  template:
+    metadata:
+      annotations:
+        reloader.stakater.com/auto: "true"
+      labels:
+        app: minecraft-${SERVER_NAME}
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
+      volumes:
+        - name: world-data-vol
+          persistentVolumeClaim:
+            # We could just put $APP here but if SERVER_NAME and APP aren't in sync
+            # then we wouldn't match the right server data (PV) up with the right configs
+            # and DNS etc.
+            #
+            # This way if they aren't in sync this volume either won't exist or will be in use.
+            claimName: minecraft-${SERVER_NAME}
+      containers:
+        - name: mc
+          image: itzg/minecraft-server
+          envFrom:
+            - configMapRef:
+                name: minecraft-${SERVER_NAME}-server-config
+            - secretRef:
+                name: minecraft-${SERVER_NAME}-secret
+          volumeMounts:
+            - mountPath: /data
+              name: world-data-vol
+          readinessProbe:
+            exec:
+              command:
+                - mc-monitor
+                - status
+                - --host
+                - localhost
+                - --port
+                - "25565"
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            failureThreshold: 18
