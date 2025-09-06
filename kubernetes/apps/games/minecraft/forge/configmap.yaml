@@ -1,0 +1,25 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minecraft-${SERVER_NAME}-server-config
+  labels:
+    role: service-config
+    app: minecraft-${SERVER_NAME}
+data:
+  EULA: "TRUE"
+  MODPACK_PLATFORM: AUTO_CURSEFORGE
+  MOTD: "running world: ${SERVER_NAME} - ${MC_MODPACK_NAME}!"
+  MODE: "survival"
+  DIFFICULTY: "${MC_DIFFICULTY}"
+  MEMORY: "${MC_MEMORY_GB}G"
+  CF_MODPACK_ZIP: "/modpacks/${MC_MODPACK_NAME}.zip"
+  CF_SLUG: "${MC_MODPACK_NAME}"
+  CF_EXCLUDE_INCLUDE_FILE: "${MC_CF_EXCLUDE_INCLUDE_FILE}"
+  # CF_FORCE_SYNCHRONIZE: "true"
+  SPAWN_PROTECTION: "0"
+  PVP: "false"
+  RCON_CMDS_STARTUP: |-
+    /gamerule doFireTick false
+    /gamerule playersSleepingPercentage 100
+    /gamerule blockExplosionDropDecay false
