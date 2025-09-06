@@ -6,7 +6,7 @@ metadata:
     app: minecraft-${SERVER_NAME}
   name: minecraft-${SERVER_NAME}
 spec:
-  replicas: 1
+  replicas: ${REPLICAS}
   serviceName: minecraft-${SERVER_NAME}
   selector:
     matchLabels:

@@ -8,7 +8,7 @@ spec:
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
-  path: ./kubernetes/apps/games/minecraft/server
+  path: ./kubernetes/apps/games/minecraft/vanilla
   prune: true
   sourceRef:
     kind: GitRepository
@@ -22,6 +22,7 @@ spec:
     - name: volsync
   postBuild:
     substitute:
+      REPLICAS: 0
       SERVER_DNS: minecraft
       SERVER_NAME: nick-britta-2025-08
       # Minecraft settings
