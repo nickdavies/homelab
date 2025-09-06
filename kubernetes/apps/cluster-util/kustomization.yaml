@@ -6,3 +6,4 @@ resources:
 - node-feature-discovery/ks.yaml
 - reloader/ks.yaml
 - kube-web-view
+- git-sync-reloader-adapter
