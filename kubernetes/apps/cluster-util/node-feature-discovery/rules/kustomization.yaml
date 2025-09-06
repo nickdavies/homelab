@@ -5,3 +5,4 @@ namespace: kube-system
 resources:
 - ./coral-device.yaml
 - ./intel-gpu.yaml
+- ./rtl-sdr-device.yaml

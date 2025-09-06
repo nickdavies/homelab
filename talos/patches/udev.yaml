@@ -1,0 +1,5 @@
+---
+machine:
+  udev:
+    rules:
+      - SUBSYSTEM=="usb", ATTR{idVendor}=="0bda", ATTR{idProduct}=="2838", ATTR{serial}=="00000001", SYMLINK+="rtl-sdr-1"
