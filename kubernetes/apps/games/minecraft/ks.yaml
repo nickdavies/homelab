@@ -28,7 +28,7 @@ spec:
       # Minecraft settings
       MC_VERSION: "1.20.1"
       MC_DIFFICULTY: "normal"
-      MC_MODPACK_NAME: "nick+britta-1.20.1-better_combat_v3"
+      MC_MODPACK_NAME: "nick+britta-1.20.1-better_combat_v4"
       MC_CF_EXCLUDE_INCLUDE_FILE: "/modpacks/cf-exclude-include.json"
       MC_MEMORY_GB: "4"
       # volsync related values
