@@ -1,0 +1,72 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app minecraft-forge
+  namespace: flux-system
+spec:
+  targetNamespace: games
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/games/minecraft/forge
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: false
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
+  dependsOn:
+    - name: external-secrets
+    - name: volsync
+  postBuild:
+    substitute:
+      REPLICAS: "1"
+      SERVER_DNS: minecraft-forge
+      SERVER_NAME: forge-v1
+      # Minecraft settings
+      MC_VERSION: "1.20.1"
+      MC_DIFFICULTY: "normal"
+      MC_MODPACK_NAME: "nick+britta-1.20.1-better_combat_v4"
+      MC_CF_EXCLUDE_INCLUDE_FILE: "/modpacks/cf-exclude-include.json"
+      MC_MEMORY_GB: "4"
+      # volsync related values
+      APP: minecraft-forge-v1
+      VOLSYNC_CAPACITY: 50Gi
+      VOLSYNC_SCHEDULE: 0 */6 * * * # Backup only every 6 hours
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app minecraft-main
+  namespace: flux-system
+spec:
+  targetNamespace: games
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/games/minecraft/vanilla
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: false
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
+  dependsOn:
+    - name: external-secrets
+    - name: volsync
+  postBuild:
+    substitute:
+      REPLICAS: "0"
+      SERVER_DNS: minecraft
+      SERVER_NAME: nick-britta-2025-08
+      # Minecraft settings
+      MC_VERSION: "1.21.8"
+      MC_DIFFICULTY: "hard"
+      # volsync related values
+      APP: minecraft-nick-britta-2025-08
+      VOLSYNC_CAPACITY: 50Gi
+      VOLSYNC_SCHEDULE: 0 */6 * * * # Backup only every 6 hours

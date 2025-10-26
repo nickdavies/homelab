@@ -19,4 +19,14 @@ metadata:
 spec:
   avoidBuggyIPs: true
   addresses:
-  - 192.168.254.128/25
+  - 192.168.254.100-192.168.254.199
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: static-pool
+spec:
+  avoidBuggyIPs: true
+  addresses:
+  - 192.168.254.200-192.168.254.254
+  autoAssign: false
