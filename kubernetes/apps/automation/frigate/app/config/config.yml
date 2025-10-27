@@ -86,10 +86,17 @@ review:
   alerts:
     labels:
       - person
+      - car
+      - motorcycle
+      - cat
   detections:
     labels:
       - person
-
+      - bicycle
+      - car
+      - motorcycle
+      - cat
+      - dog
 cameras:
   doorbell:
     ffmpeg:
