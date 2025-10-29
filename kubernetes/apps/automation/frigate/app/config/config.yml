@@ -1,3 +1,6 @@
+model:
+  path: plus://e08864ec08832bd52c6037984ce72f1c
+
 mqtt:
   host: mosquitto.automation.svc.cluster.local
   port: 1883
@@ -14,6 +17,9 @@ detectors:
     device: usb
 
 face_recognition:
+  enabled: true
+
+lpr:
   enabled: true
 
 auth:
@@ -89,14 +95,31 @@ review:
       - car
       - motorcycle
       - cat
+      - package
+      - face
+      - licence_plate
   detections:
     labels:
-      - person
+      - amazon
+      - bear
       - bicycle
+      - bird
       - car
-      - motorcycle
       - cat
+      - cow
+      - deer
+      - dhl
       - dog
+      - face
+      - fedex
+      - horse
+      - license_plate
+      - motorcycle
+      - package
+      - person
+      - sheep
+      - ups
+      - usps
 cameras:
   doorbell:
     ffmpeg:
@@ -114,6 +137,7 @@ cameras:
         - person
         - face
         - dog
+        - package
     motion:
       mask:
         - 0.341,0.019,0.644,0.018,0.645,0.049,0.342,0.049
@@ -123,7 +147,7 @@ cameras:
       bounding_box: True
       crop: False
     lpr:
-      enabled: False  # too low quality to pick up license plates
+      enabled: False  # No road here
     mqtt:
       enabled: True
       timestamp: False
@@ -150,10 +174,18 @@ cameras:
     objects:
       track:
         - person
+        - face
         - bicycle
         - car
         - motorcycle
-        # - license_plate
+        - license_plate
+        - package
+        - amazon
+        - usps
+        - ups
+        - fedex
+        - dhl
+        - deer
         - cat
         - dog
     snapshots:
@@ -162,7 +194,7 @@ cameras:
       bounding_box: True
       crop: False
     lpr:
-      enabled: False
+      enabled: true
     mqtt:
       enabled: True
       timestamp: False
@@ -199,10 +231,11 @@ cameras:
     objects:
       track:
         - person
+        - face
         - bicycle
         - car
         - motorcycle
-        # - license_plate
+        - license_plate
         - cat
         - dog
         - bird
@@ -210,6 +243,7 @@ cameras:
         - bear
         - sheep
         - cow
+        - deer
     snapshots:
       enabled: True
       timestamp: False
@@ -262,6 +296,7 @@ cameras:
         - bear
         - sheep
         - cow
+        - deer
     snapshots:
       enabled: True
       timestamp: False
