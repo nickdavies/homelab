@@ -1,5 +1,5 @@
 model:
-  path: plus://e08864ec08832bd52c6037984ce72f1c
+  path: plus://9becd28c97c39b6cd0e2b9182841638a
 
 mqtt:
   host: mosquitto.automation.svc.cluster.local
