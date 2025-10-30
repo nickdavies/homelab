@@ -187,6 +187,10 @@ cameras:
         - deer
         - cat
         - dog
+      filters:
+        car:
+          # attempt to filter out cars on the road but not in the dirveway
+          min_area: 1500
     snapshots:
       enabled: True
       timestamp: False
