@@ -65,11 +65,31 @@ go2rtc:
 
 objects:
   track:
-    - person
-    - face
+    - amazon
+    - bear
+    - bicycle
+    - bird
     - car
-    - waste_bin
+    - cat
+    - cow
+    - deer
+    - dhl
     - dog
+    - face
+    - fedex
+    - horse
+    - license_plate
+    - motorcycle
+    - package
+    - person
+    - ups
+    - usps
+    - waste_bin
+  filters:
+    cat:
+      threshold: 0.75
+    car:
+      threshold: 0.8
 
 record:
   enabled: true
@@ -119,7 +139,6 @@ review:
       - motorcycle
       - package
       - person
-      - sheep
       - ups
       - usps
 cameras:
@@ -137,6 +156,13 @@ cameras:
         - face
         - dog
         - package
+    review:
+      alerts:
+        labels:
+          - person
+          - cat
+          - package
+          - face
     motion:
       mask:
         - 0.341,0.019,0.644,0.018,0.645,0.049,0.342,0.049
@@ -170,23 +196,13 @@ cameras:
     detect:
       width: 896
       height: 512
+    review:
+      alerts:
+        labels:
+          - person
+          - car
+          - motorcycle
     objects:
-      track:
-        - person
-        - face
-        - bicycle
-        - car
-        - motorcycle
-        - license_plate
-        - package
-        - amazon
-        - usps
-        - ups
-        - fedex
-        - dhl
-        - deer
-        - cat
-        - dog
       filters:
         car:
           # attempt to filter out cars on the road but not in the dirveway
@@ -236,22 +252,17 @@ cameras:
     detect:
       width: 896
       height: 512
+    review:
+      alerts:
+        labels:
+          - person
+          - car
+          - motorcycle
     objects:
-      track:
-        - person
-        - face
-        - bicycle
-        - car
-        - motorcycle
-        - license_plate
-        - cat
-        - dog
-        - bird
-        - horse
-        - bear
-        - sheep
-        - cow
-        - deer
+      filters:
+        car:
+          # attempt to filter out cars on the road but not in the dirveway
+          min_area: 1000
     snapshots:
       enabled: True
       timestamp: False
@@ -297,20 +308,17 @@ cameras:
     detect:
       width: 896
       height: 512
+    review:
+      alerts:
+        labels:
+          - person
+          - car
+          - motorcycle
     objects:
-      track:
-        - person
-        - bicycle
-        - car
-        - motorcycle
-        - cat
-        - dog
-        - bird
-        - horse
-        - bear
-        - sheep
-        - cow
-        - deer
+      filters:
+        car:
+          # attempt to filter out cars on the road in the distance
+          min_area: 1000
     snapshots:
       enabled: True
       timestamp: False
