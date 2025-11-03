@@ -1,3 +1,6 @@
+model:
+  path: plus://9becd28c97c39b6cd0e2b9182841638a
+
 mqtt:
   host: mosquitto.automation.svc.cluster.local
   port: 1883
@@ -16,6 +19,9 @@ detectors:
 face_recognition:
   enabled: true
 
+lpr:
+  enabled: true
+
 auth:
   enabled: False
   trusted_proxies:
@@ -24,6 +30,8 @@ auth:
 
 ffmpeg:
   hwaccel_args: preset-intel-qsv-h264
+  output_args:
+    record: preset-record-generic-audio-copy
 
 live:
   height: 720
@@ -39,13 +47,49 @@ go2rtc:
       - rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_DOORBELL_IP}:554/h264Preview_01_main
     doorbell_sub:
       - rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_DOORBELL_IP}:554/h264Preview_01_sub
+
+    driveway_wide_sub:
+      - rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_DRIVEWAY_IP}:554/Preview_01_sub
+    driveway_zoom_sub:
+      - rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_DRIVEWAY_IP}:554/Preview_02_sub
+
+    bay_window_wide_sub:
+      - rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_BAY_WINDOW_IP}:554/Preview_01_sub
+    bay_window_zoom_sub:
+      - rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_BAY_WINDOW_IP}:554/Preview_02_sub
+
+    mountain_side_wide_sub:
+      - rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_MOUNTAIN_SIDE_IP}:554/Preview_01_sub
+    mountain_side_zoom_sub:
+      - rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_MOUNTAIN_SIDE_IP}:554/Preview_02_sub
+
 objects:
   track:
-    - person
-    - face
+    - amazon
+    - bear
+    - bicycle
+    - bird
     - car
-    - waste_bin
+    - cat
+    - cow
+    - deer
+    - dhl
     - dog
+    - face
+    - fedex
+    - horse
+    - license_plate
+    - motorcycle
+    - package
+    - person
+    - ups
+    - usps
+    - waste_bin
+  filters:
+    cat:
+      threshold: 0.75
+    car:
+      threshold: 0.8
 
 record:
   enabled: true
@@ -70,15 +114,38 @@ review:
   alerts:
     labels:
       - person
+      - car
+      - motorcycle
+      - cat
+      - package
+      - face
+      - licence_plate
   detections:
     labels:
+      - amazon
+      - bear
+      - bicycle
+      - bird
+      - car
+      - cat
+      - cow
+      - deer
+      - dhl
+      - dog
+      - face
+      - fedex
+      - horse
+      - license_plate
+      - motorcycle
+      - package
       - person
-
+      - ups
+      - usps
 cameras:
   doorbell:
     ffmpeg:
       inputs:
-        - path: rtsp://127.0.0.1:8554/doorbell_sub
+        - path: rtsp://127.0.0.1:8554/doorbell_main
           input_args: preset-rtsp-restream
           roles:
             - record
@@ -88,17 +155,198 @@ cameras:
         - person
         - face
         - dog
+        - package
+    review:
+      alerts:
+        labels:
+          - person
+          - cat
+          - package
+          - face
     motion:
       mask:
-        - 0.341,0.019,0.644,0.018,0.645,0.049,0.342,0.049
+        - 0.341,0.019,0.644,0.018,0.645,0.049,0.342,0.049 # Timestamp
     snapshots:
       enabled: True
       timestamp: False
       bounding_box: True
       crop: False
     lpr:
-      enabled: False  # too low quality to pick up license plates
+      enabled: False  # No road here
     mqtt:
       enabled: True
       timestamp: False
       crop: True
+
+  driveway_wide:
+    ffmpeg:
+      inputs:
+        - path: rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_DRIVEWAY_IP}:554/Preview_01_main
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+            - audio
+        - path: rtsp://127.0.0.1:8554/driveway_wide_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+    motion:
+      mask:
+        - 0.291,0.011,0.708,0.013,0.708,0.074,0.291,0.075
+        - 0.249,0.222,0.322,0.176,0.322,0,0.001,0.002,0.001,0.459 # Left neighbours
+    detect:
+      width: 896
+      height: 512
+    review:
+      alerts:
+        labels:
+          - person
+          - car
+          - motorcycle
+    objects:
+      mask:
+        - 0.249,0.222,0.322,0.176,0.322,0,0.001,0.002,0.001,0.459 # Left neighbours
+        - 0.831,0.366,0.907,0.366,0.907,0.488,0.83,0.472 # stupid rock
+      filters:
+        car:
+          # attempt to filter out cars on the road but not in the driveway
+          min_area: 1500
+          mask: 0.185,0.182,0.63,0.144,0.634,0,0.182,0 # roadway
+    snapshots:
+      enabled: True
+      timestamp: False
+      bounding_box: True
+      crop: False
+    lpr:
+      enabled: true
+    mqtt:
+      enabled: True
+      timestamp: False
+      crop: True
+
+  driveway_zoom:
+    detect:
+      enabled: false
+    ffmpeg:
+      inputs:
+        - path: rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_DRIVEWAY_IP}:554/h264Preview_02_main
+          hwaccel_args: preset-intel-qsv-h265
+          roles:
+            - record
+            - audio
+        - path: rtsp://127.0.0.1:8554/driveway_zoom_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+
+  bay_window_wide:
+    ffmpeg:
+      inputs:
+        - path: rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_BAY_WINDOW_IP}:554/Preview_01_main
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+            - audio
+        - path: rtsp://127.0.0.1:8554/bay_window_wide_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+    motion:
+      mask:
+        - 0.291,0.011,0.708,0.013,0.708,0.074,0.291,0.075
+    detect:
+      width: 896
+      height: 512
+    review:
+      alerts:
+        labels:
+          - person
+          - car
+          - motorcycle
+    objects:
+      filters:
+        car:
+          # attempt to filter out cars on the road but not in the dirveway
+          min_area: 1000
+    snapshots:
+      enabled: True
+      timestamp: False
+      bounding_box: True
+      crop: False
+    lpr:
+      enabled: False
+    mqtt:
+      enabled: True
+      timestamp: False
+      crop: True
+
+  bay_window_zoom:
+    detect:
+      enabled: false
+    ffmpeg:
+      inputs:
+        - path: rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_BAY_WINDOW_IP}:554/h264Preview_02_main
+          hwaccel_args: preset-intel-qsv-h265
+          roles:
+            - record
+            - audio
+        - path: rtsp://127.0.0.1:8554/bay_window_zoom_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+
+  mountain_side_wide:
+    ffmpeg:
+      inputs:
+        - path: rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_MOUNTAIN_SIDE_IP}:554/Preview_01_main
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+            - audio
+        - path: rtsp://127.0.0.1:8554/mountain_side_wide_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+    motion:
+      mask:
+        - 0.291,0.011,0.708,0.013,0.708,0.074,0.291,0.075
+    detect:
+      width: 896
+      height: 512
+    review:
+      alerts:
+        labels:
+          - person
+          - car
+          - motorcycle
+    objects:
+      filters:
+        car:
+          # attempt to filter out cars on the road in the distance
+          min_area: 1000
+    snapshots:
+      enabled: True
+      timestamp: False
+      bounding_box: True
+      crop: False
+    lpr:
+      enabled: False # there is no road here
+    mqtt:
+      enabled: True
+      timestamp: False
+      crop: True
+
+  mountain_side_zoom:
+    detect:
+      enabled: false
+    ffmpeg:
+      inputs:
+        - path: rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_MOUNTAIN_SIDE_IP}:554/h264Preview_02_main
+          hwaccel_args: preset-intel-qsv-h265
+          roles:
+            - record
+            - audio
+        - path: rtsp://127.0.0.1:8554/mountain_side_zoom_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
