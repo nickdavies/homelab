@@ -165,7 +165,7 @@ cameras:
           - face
     motion:
       mask:
-        - 0.341,0.019,0.644,0.018,0.645,0.049,0.342,0.049
+        - 0.341,0.019,0.644,0.018,0.645,0.049,0.342,0.049 # Timestamp
     snapshots:
       enabled: True
       timestamp: False
@@ -193,6 +193,7 @@ cameras:
     motion:
       mask:
         - 0.291,0.011,0.708,0.013,0.708,0.074,0.291,0.075
+        - 0.249,0.222,0.322,0.176,0.322,0,0.001,0.002,0.001,0.459 # Left neighbours
     detect:
       width: 896
       height: 512
@@ -203,10 +204,14 @@ cameras:
           - car
           - motorcycle
     objects:
+      mask:
+        - 0.249,0.222,0.322,0.176,0.322,0,0.001,0.002,0.001,0.459 # Left neighbours
+        - 0.831,0.366,0.907,0.366,0.907,0.488,0.83,0.472 # stupid rock
       filters:
         car:
-          # attempt to filter out cars on the road but not in the dirveway
+          # attempt to filter out cars on the road but not in the driveway
           min_area: 1500
+          mask: 0.185,0.182,0.63,0.144,0.634,0,0.182,0 # roadway
     snapshots:
       enabled: True
       timestamp: False
