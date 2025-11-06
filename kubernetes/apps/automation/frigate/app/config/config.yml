@@ -206,7 +206,7 @@ cameras:
     objects:
       mask:
         - 0.249,0.222,0.322,0.176,0.322,0,0.001,0.002,0.001,0.459 # Left neighbours
-        - 0.831,0.366,0.907,0.366,0.907,0.488,0.83,0.472 # stupid rock
+        - 0.816,0.335,0.923,0.343,0.93,0.535,0.81,0.52 # stupid rock
       filters:
         car:
           # attempt to filter out cars on the road but not in the driveway
