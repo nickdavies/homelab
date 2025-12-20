@@ -22,7 +22,7 @@ spec:
     - name: volsync
   postBuild:
     substitute:
-      REPLICAS: "1"
+      REPLICAS: "0"
       SERVER_DNS: minecraft-forge
       SERVER_NAME: forge-v1
       # Minecraft settings
