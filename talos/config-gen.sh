@@ -74,6 +74,8 @@ talosctl gen config "$CLUSTER_NAME" "$CLUSTER_ENDPOINT" \
     --with-examples=false \
     --with-docs=false \
     --install-disk "" \
+    --talos-version="${TALOS_VERSION}" \
+    --kubernetes-version="${KUBE_VERSION}" \
     --output-types="controlplane,worker" \
     --output "$OUTPUT_NODE_DIR" \
     --config-patch "$(cat $NODE_PATCH | envsubst "$VALID_VARS")" \

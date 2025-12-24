@@ -1,3 +1,5 @@
 talos/output
+talos/image_build/ipxe
+talos/image_build/talos.ipxe
 flux/bootstrap/secrets
 venv

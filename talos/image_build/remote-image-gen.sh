@@ -18,3 +18,4 @@ ID="$(echo $OUTPUT | yq '.id' -r)"
 
 echo "https://factory.talos.dev/image/${ID}/${VERSION}/metal-amd64.iso"
 echo "https://factory.talos.dev/image/${ID}/${VERSION}/metal-arm64.raw.xz"
+echo "https://pxe.factory.talos.dev/pxe/${ID}/${VERSION}/metal-amd64"
