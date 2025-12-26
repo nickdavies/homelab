@@ -5,7 +5,7 @@ machine:
   install:
     diskSelector:
       size: '>= 256GB'
-      wwid: "naa.57c354826af9cba0"
+      wwid: "naa.57c354826f7ae90f"
     # diskSelector:
     #   size: '>= 256GB'
     #   type: nvme
