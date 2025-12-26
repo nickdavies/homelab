@@ -27,7 +27,32 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: &app cloudnative-pg-cluster-v17
+  name: &app cloudnative-pg-barman-cloud
+  namespace: flux-system
+spec:
+  targetNamespace: database
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  dependsOn:
+    - name: cert-manager
+    - name: cloudnative-pg
+    - name: minio
+  path: ./kubernetes/apps/database/cloudnative-pg/barman-cloud
+  interval: 1h
+  prune: true
+  retryInterval: 2m
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  timeout: 5m
+  wait: true
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app cloudnative-pg-cluster
   namespace: flux-system
 spec:
   targetNamespace: database
@@ -37,7 +62,7 @@ spec:
   dependsOn:
     - name: cloudnative-pg
     - name: external-secrets
-  path: ./kubernetes/apps/database/cloudnative-pg/cluster-v17
+  path: ./kubernetes/apps/database/cloudnative-pg/cluster
   prune: true
   sourceRef:
     kind: GitRepository
