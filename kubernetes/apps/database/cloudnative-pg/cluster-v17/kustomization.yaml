@@ -6,4 +6,3 @@ namespace: database
 resources:
   - ./cluster.yaml
   - ./scheduledbackup.yaml
-  - ./service.yaml
