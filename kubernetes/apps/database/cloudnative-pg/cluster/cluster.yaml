@@ -44,6 +44,9 @@ spec:
       parameters: &parameters
         barmanObjectName: minio
         serverName: postgres
+  bootstrap:
+    recovery:
+      source: source
   externalClusters:
     - name: source
       plugin:
