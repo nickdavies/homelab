@@ -1,5 +1,9 @@
 model:
-  path: plus://9becd28c97c39b6cd0e2b9182841638a
+  # yolov9t 320x320 2025.3
+  path: plus://a688a8f1733544be72cf4a13dce6d582
+  width: 320
+  height: 320
+
 
 mqtt:
   host: mosquitto.automation.svc.cluster.local
@@ -12,9 +16,9 @@ database:
   path: /config/frigate.db
 
 detectors:
-  coral:
-    type: edgetpu
-    device: usb
+  ov_1:
+    type: openvino
+    device: GPU
 
 face_recognition:
   enabled: true

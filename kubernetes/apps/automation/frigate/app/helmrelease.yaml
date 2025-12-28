@@ -70,8 +70,9 @@ spec:
               requests:
                 cpu: 1581m
                 memory: 4Gi
-              limits:
                 gpu.intel.com/i915: "1"
+              limits:
+                gpu.intel.com/i915: "2"
                 memory: 8Gi
         pod:
           nodeSelector:
