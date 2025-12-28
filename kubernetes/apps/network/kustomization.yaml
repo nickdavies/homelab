@@ -10,3 +10,4 @@ resources:
 - metallb
 - multus/ks.yaml
 - namespace.yaml
+- smtp-relay/ks.yaml
