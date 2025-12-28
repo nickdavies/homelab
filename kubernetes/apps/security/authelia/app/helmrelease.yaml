@@ -1,0 +1,137 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app authelia
+spec:
+  interval: 15m
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+    namespace: flux-system
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: -1
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  uninstall:
+    keepHistory: false
+  values:
+    defaultPodOptions:
+      securityContext:
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+    controllers:
+      authelia:
+        replicas: 2
+        strategy: RollingUpdate
+        annotations:
+          reloader.stakater.com/auto: 'true'
+        initContainers:
+          01-init-db:
+            image:
+              repository: ghcr.io/home-operations/postgres-init
+              tag: 18.1.0@sha256:866f15038ed5185a2b8118821f470bb7ca0df8c4231b8e277446e681ebb1ed84
+              pullPolicy: IfNotPresent
+            envFrom: &envFrom
+              - secretRef:
+                  name: authelia-secret
+        containers:
+          app:
+            image:
+              repository: ghcr.io/authelia/authelia
+              tag: 4.39.15@sha256:d23ee3c721d465b4749cc58541cda4aebe5aa6f19d7b5ce0afebb44ebee69591
+            envFrom: *envFrom
+            env:
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_ADDITIONAL_GROUPS_DN: ou=groups
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_ADDITIONAL_USERS_DN: ou=people
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_BASE_DN: dc=home,dc=arpa
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_ATTRIBUTES_DISPLAY_NAME: displayName
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_GROUPS_FILTER: (member={dn})
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_ATTRIBUTES_GROUP_NAME: cn
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_IMPLEMENTATION: custom
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_ATTRIBUTES_MAIL: mail
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_START_TLS: 'false'
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_TIMEOUT: 5s
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_ADDRESS: ldap://lldap.security.svc.cluster.local:389
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_USER: uid=admin,ou=people,dc=home,dc=arpa
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_ATTRIBUTES_USERNAME: uid
+              AUTHELIA_AUTHENTICATION_BACKEND_LDAP_USERS_FILTER: (&({username_attribute}={input})(objectClass=person))
+              AUTHELIA_AUTHENTICATION_BACKEND_PASSWORD_RESET_DISABLE: 'true'
+              AUTHELIA_AUTHENTICATION_BACKEND_REFRESH_INTERVAL: 1m
+              AUTHELIA_DUO_API_DISABLE: 'true'
+              AUTHELIA_LOG_LEVEL: debug
+              AUTHELIA_NOTIFIER_DISABLE_STARTUP_CHECK: 'true'
+              AUTHELIA_NOTIFIER_SMTP_DISABLE_REQUIRE_TLS: 'true'
+              AUTHELIA_NOTIFIER_SMTP_ADDRESS: smtp.internal.${SECRET_DOMAIN}:25
+              AUTHELIA_NOTIFIER_SMTP_SENDER: Authelia <authelia@${SECRET_DOMAIN}>
+              AUTHELIA_SERVER_DISABLE_HEALTHCHECK: 'true'
+              AUTHELIA_SERVER_PORT: &port 80
+              AUTHELIA_TELEMETRY_METRICS_ADDRESS: tcp://0.0.0.0:8080
+              AUTHELIA_TELEMETRY_METRICS_ENABLED: 'true'
+              AUTHELIA_THEME: dark
+              AUTHELIA_TOTP_ISSUER: authelia.com
+              AUTHELIA_WEBAUTHN_DISABLE: 'false'
+              AUTHELIA_WEBAUTHN_ENABLE_PASSKEY_LOGIN: 'true'
+              AUTHELIA_WEBAUTHN_EXPERIMENTAL_ENABLE_PASSKEY_UV_TWO_FACTORS: 'true'
+              SECRET_DOMAIN: internal.${SECRET_DOMAIN}
+              SECRET_PUBLIC_DOMAIN: ${SECRET_PUBLIC_DOMAIN}
+            resources:
+              requests:
+                cpu: 5m
+                memory: 10Mi
+              limits:
+                memory: 200Mi
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/health
+                    port: *port
+                  initialDelaySeconds: 0
+                  periodSeconds: 10
+                  timeoutSeconds: 1
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: false
+            args: [--config, /config/configuration.yml, --config.experimental.filters, expand-env]
+    service:
+      app:
+        controller: authelia
+        ports:
+          http:
+            port: *port
+          metrics:
+            enabled: true
+            port: 8080
+    persistence:
+      config:
+        enabled: true
+        type: configMap
+        name: authelia-configmap
+        globalMounts:
+          - path: /config/configuration.yml
+            subPath: configuration.yml
+            readOnly: false
+    enableServiceLinks: false
+    serviceMonitor:
+      app:
+        enabled: true
+        serviceName: authelia
+        endpoints:
+          - port: metrics
+            scheme: http
+            path: /metrics
+            interval: 1m
+            scrapeTimeout: 10s
