@@ -1,8 +1,8 @@
 model:
-  # yolov9t 320x320 2025.3
-  path: plus://a688a8f1733544be72cf4a13dce6d582
-  width: 320
-  height: 320
+  # yolov9s 640x640 2025.3
+  path: plus://75eafa2f3843347dd8e431c1763a0fb8
+  width: 640
+  height: 640
 
 
 mqtt:
