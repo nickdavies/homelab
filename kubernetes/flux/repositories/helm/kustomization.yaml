@@ -5,7 +5,6 @@ resources:
   - 1password-connect.yaml
   - intel.yaml
   - node-feature-discovery.yaml
-  - angelnu.yaml
   - backube.yaml
   - bjw-s.yaml
   - cloudnative-pg.yaml
