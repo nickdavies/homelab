@@ -1,0 +1,8 @@
+---
+machine:
+  network:
+    hostname: k8s-node-6
+  install:
+    diskSelector:
+      size: '>= 256GB'
+      wwid: "nvme.10ec-4132303235303730334e33353132473030333837-53504343204d2e32205043496520535344-00000001"
