@@ -25,6 +25,17 @@ fi
 
 set -a; source $NODE_ENV; set +a
 
+# Validate NODE_TYPE is set and is one of the allowed values
+if [ -z "${NODE_TYPE:-}" ]; then
+    echo "Error: NODE_TYPE must be set in $NODE_ENV"
+    exit 1
+fi
+
+if [ "$NODE_TYPE" != "controlplane" ] && [ "$NODE_TYPE" != "worker" ]; then
+    echo "Error: NODE_TYPE must be either 'controlplane' or 'worker', got: '$NODE_TYPE'"
+    exit 1
+fi
+
 PATCHES=$(find ./patches | grep -e '.ya\?ml' | sed 's/^\.\///' | sort)
 PATCHES_CONTROL_PLANE=""
 if [ -d "./patches-control-plane" ]; then
@@ -68,7 +79,7 @@ for PATCH in $PATCHES_WORKERS; do
     patchesWorkersArray+=(--config-patch-worker @"$OUTPUT_PATCHES_WORKERS_DIR/$PATCH")
 done
 
-# Generate both controlplane and worker configs with all patches applied
+# Generate config for the specified node type with all patches applied
 talosctl gen config "$CLUSTER_NAME" "$CLUSTER_ENDPOINT" \
     --with-secrets "$SECRETS_DIR/talos.yaml" \
     --with-examples=false \
@@ -76,8 +87,8 @@ talosctl gen config "$CLUSTER_NAME" "$CLUSTER_ENDPOINT" \
     --install-disk "" \
     --talos-version="${TALOS_VERSION}" \
     --kubernetes-version="${KUBE_VERSION}" \
-    --output-types="controlplane,worker" \
-    --output "$OUTPUT_NODE_DIR" \
+    --output-types="${NODE_TYPE}" \
+    --output "$OUTPUT_NODE_DIR/${NODE_TYPE}.yaml" \
     --config-patch "$(cat $NODE_PATCH | envsubst "$VALID_VARS")" \
     "${patchesArray[@]}" \
     "${patchesControlPlaneArray[@]}" \
