@@ -4,16 +4,18 @@
 
 Upgrades are done using the `upgrade.sh` script. Machines should always be done one at a time.
 
-For example if we want to upgrade to version `v1.10.4` first run:
+For example if we want to upgrade to version `v1.10.4` first update your `talosenv` file in the directory above and run:
 ```
-./remote-image-gen.sh customizations.yaml "v1.10.4"
+source ../talosenv
+./remote-image-gen.sh pi_customizations.yaml "${TALOS_VERSION}"
+./remote-image-gen.sh customizations.yaml "${TALOS_VERSION}"
 ```
 
-This will generate you a id if you don't have it already (eg `2babf6fe3a996452becf9635e9b9d9a380e8a7ece5190b17db365dae427ed807`).
+This will generate you an id if you don't have it already for each machine type (eg `2babf6fe3a996452becf9635e9b9d9a380e8a7ece5190b17db365dae427ed807`).
 
 Then you can pass this into `upgrade.sh` for example:
 ```
-./upgrade.sh 2babf6fe3a996452becf9635e9b9d9a380e8a7ece5190b17db365dae427ed807 "v1.10.4" 192.168.254.11
+./upgrade.sh 2babf6fe3a996452becf9635e9b9d9a380e8a7ece5190b17db365dae427ed807 "${TALOS_VERSION}" 192.168.254.11
 ```
 
 ## Resetting
