@@ -280,7 +280,7 @@ spec:
         prometheus:
           # renovate: depName="Prometheus"
           gnetId: 19105
-          revision: 3
+          revision: 8
           datasource: Prometheus
       unifi:
         unifi-insights:
