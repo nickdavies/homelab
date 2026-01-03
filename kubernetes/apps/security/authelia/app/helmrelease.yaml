@@ -82,7 +82,7 @@ spec:
               AUTHELIA_WEBAUTHN_DISABLE: 'false'
               AUTHELIA_WEBAUTHN_ENABLE_PASSKEY_LOGIN: 'true'
               AUTHELIA_WEBAUTHN_EXPERIMENTAL_ENABLE_PASSKEY_UV_TWO_FACTORS: 'true'
-              SECRET_DOMAIN: internal.${SECRET_DOMAIN}
+              SECRET_DOMAIN: ${SECRET_DOMAIN}
               SECRET_PUBLIC_DOMAIN: ${SECRET_PUBLIC_DOMAIN}
             resources:
               requests:
