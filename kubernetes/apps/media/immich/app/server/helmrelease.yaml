@@ -57,6 +57,9 @@ spec:
             image:
               repository: ghcr.io/immich-app/immich-server
               tag: v2.4.1
+            env:
+              - name: IMMICH_CONFIG_FILE
+                value: /config/config.json
             envFrom:
               - secretRef:
                   name: immich-secret
@@ -69,6 +72,12 @@ spec:
           http:
             port: 2283
     persistence:
+      config:
+        type: secret
+        name: immich-config-secret
+        globalMounts:
+          - path: /config/
+            readOnly: true
       library:
         type: nfs
         server: ${SECRET_NFS_DOMAIN}

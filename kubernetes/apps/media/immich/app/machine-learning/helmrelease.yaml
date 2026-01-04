@@ -32,8 +32,7 @@ spec:
       main:
         strategy: RollingUpdate
         annotations:
-          secret.reloader.stakater.com/reload: immich-secret
-          configmap.reloader.stakater.com/reload: immich-configmap
+          secret.reloader.stakater.com/auto: 'true'
         pod:
           enableServiceLinks: false
           securityContext:
@@ -53,6 +52,9 @@ spec:
             image:
               repository: ghcr.io/immich-app/immich-machine-learning
               tag: v1.131.2
+            env:
+              - name: IMMICH_CONFIG_FILE
+                value: /config/config.json
             envFrom:
               - secretRef:
                   name: immich-secret
@@ -65,6 +67,12 @@ spec:
           http:
             port: 3003
     persistence:
+      config:
+        type: secret
+        name: immich-config-secret
+        globalMounts:
+          - path: /config/
+            readOnly: true
       library:
         type: nfs
         server: ${SECRET_NFS_DOMAIN}
