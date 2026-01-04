@@ -52,6 +52,8 @@ identity_providers:
         pre_configured_consent_duration: 1y
         scopes: ["openid", "profile", "email"]
         redirect_uris:
+          - 'https://photos.${SECRET_PUBLIC_DOMAIN}/auth/login'
+          - 'https://photos.${SECRET_PUBLIC_DOMAIN}/user-settings'
           - 'https://photos.internal.${SECRET_DOMAIN}/auth/login'
           - 'https://photos.internal.${SECRET_DOMAIN}/user-settings'
           - 'app.immich:///oauth-callback'
