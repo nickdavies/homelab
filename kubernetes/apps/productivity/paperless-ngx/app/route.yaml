@@ -1,0 +1,44 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: paperless-internal
+spec:
+  hostnames:
+    - "paperless.internal.${SECRET_DOMAIN}"
+  parentRefs:
+    - name: internal
+      namespace: network
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: paperless-ngx
+          port: 80
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: authelia-policy
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: paperless-internal
+  extAuth:
+    headersToExtAuth:
+      - 'accept'
+      - 'cookie'
+      - 'authorization'
+      - 'header-authorization'
+      - 'x-forwarded-proto'
+    failOpen: false
+    http:
+      backendRefs:
+        - name: 'authelia'
+          namespace: 'security'
+          port: 80
+      path: '/api/authz/ext-authz/'
+      headersToBackend:
+        - Remote-User
+        - Remote-Groups
+        - Remote-Name
+        - Remote-Email
