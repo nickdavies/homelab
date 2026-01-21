@@ -42,6 +42,11 @@ identity_providers:
         rules:
           - policy: 'two_factor'
             subject: 'group:sensitive_docs'
+      budgets:
+        default_policy: 'deny'
+        rules:
+          - policy: 'two_factor'
+            subject: 'group:budgets'
     cors:
       endpoints: ["authorization", "token", "revocation", "introspection"]
       allowed_origins_from_client_redirect_uris: true
@@ -84,6 +89,27 @@ identity_providers:
           - 'profile'
           - 'email'
           - 'groups'
+        response_types:
+          - 'code'
+        grant_types:
+          - 'authorization_code'
+        access_token_signed_response_alg: 'none'
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_basic'
+      - client_id: 'actual-budget'
+        client_name: 'Actual Budget'
+        client_secret: "${ACTUAL_OAUTH_CLIENT_SECRET_HASH}"
+        public: false
+        authorization_policy: 'budgets'
+        require_pkce: false
+        pkce_challenge_method: ''
+        redirect_uris:
+          - 'https://actual.internal.${SECRET_DOMAIN}/openid/callback'
+        scopes:
+          - 'openid'
+          - 'profile'
+          - 'groups'
+          - 'email'
         response_types:
           - 'code'
         grant_types:
