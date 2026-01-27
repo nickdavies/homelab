@@ -71,6 +71,7 @@ spec:
               PAPERLESS_TRUSTED_PROXIES: 10.96.0.0/16
               PAPERLESS_CONSUMER_DELETE_DUPLICATES: true
               PAPERLESS_CONSUMER_RECURSIVE: true
+              PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS: true
               PAPERLESS_OCR_LANGUAGE: eng
               PAPERLESS_APPS: allauth.socialaccount.providers.openid_connect
               PAPERLESS_SOCIAL_AUTO_SIGNUP: true
@@ -98,6 +99,6 @@ spec:
       downloads:
         type: nfs
         server: ${SECRET_NFS_DOMAIN}
-        path: /volume1/k8s/paperless
+        path: /volume1/paperless-consume/
         globalMounts:
           - path: /library
