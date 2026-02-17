@@ -36,7 +36,6 @@ if [ -z "$FLUX_REPO_URL" ]; then
     exit 1
 fi
 
-OP_CREDENTIALS=$(cat $OP_CREDENTIALS_FILE | base64 | tr '/+' '_-' | tr -d '=' | tr -d '\n')
 OP_TOKEN=$(cat $OP_TOKEN_FILE)
 
 export KUBECONFIG="$SECRETS_DIR/kubeconfig"
@@ -57,7 +56,7 @@ flux create secret git homelab-auth \
     | kubectl apply -f -
 
 kubectl create secret generic onepassword-connect-credentials \
-    --from-literal="1password-credentials.json=$OP_CREDENTIALS" \
+    --from-file="1password-credentials.json=$OP_CREDENTIALS_FILE" \
     -n external-secrets \
     --dry-run=client \
     -o yaml | kubectl apply -f -
