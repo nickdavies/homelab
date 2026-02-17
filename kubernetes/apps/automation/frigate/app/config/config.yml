@@ -165,7 +165,6 @@ cameras:
         labels:
           - person
           - cat
-          - package
           - face
     motion:
       mask:
