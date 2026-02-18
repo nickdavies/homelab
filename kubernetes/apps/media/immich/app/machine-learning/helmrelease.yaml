@@ -51,7 +51,7 @@ spec:
           main:
             image:
               repository: ghcr.io/immich-app/immich-machine-learning
-              tag: v1.131.2
+              tag: v1.144.1
             env:
               - name: IMMICH_CONFIG_FILE
                 value: /config/config.json
