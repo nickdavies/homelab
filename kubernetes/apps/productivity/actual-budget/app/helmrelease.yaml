@@ -37,7 +37,7 @@ spec:
               ACTUAL_SERVER_FILES: /data/server-files
               ACTUAL_USER_FILES: /data/user-files
               ACTUAL_LOGIN_METHOD: openid
-              ACTUAL_ALLOWED_LOGIN_METHODS: openid
+              ACTUAL_ALLOWED_LOGIN_METHODS: openid,password
               ACTUAL_OPENID_DISCOVERY_URL: https://auth.${SECRET_PUBLIC_DOMAIN}
               ACTUAL_OPENID_CLIENT_ID: actual-budget
               ACTUAL_OPENID_SERVER_HOSTNAME: https://actual.internal.${SECRET_DOMAIN}
