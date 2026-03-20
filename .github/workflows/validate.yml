@@ -80,13 +80,13 @@ jobs:
         run: make validate-kubeconform
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Job 3: flux-local — full Flux reconciliation simulation with Helm rendering
+  # Job 3: flux-local — Flux reconciliation graph structure validation
   #   - Walks the repo as kustomize-controller would
-  #   - Renders every HelmRelease via helm template
-  #   - Catches bad chart names, wrong values, rendering failures
+  #   - Verifies Kustomization paths, sourceRefs, and dependsOn consistency
+  #   - Helm rendering is skipped (requires runtime secrets not in the repo)
   # ─────────────────────────────────────────────────────────────────────────────
   validate-flux-local:
-    name: Helm rendering (flux-local)
+    name: Flux graph validation (flux-local)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

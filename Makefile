@@ -88,14 +88,16 @@ flux-schemas:
 		| tar zxf - -C $(FLUX_SCHEMA_DIR)/
 	@echo "  Done. Use: make validate-kubeconform FLUX_SCHEMA_DIR=$(FLUX_SCHEMA_DIR)"
 
-# Full Flux reconciliation simulation including Helm chart rendering.
-# Catches broken HelmRelease charts, bad values, and missing dependencies.
-# Requires: flux-local (pip install flux-local), helm
+# Flux reconciliation graph validation (structure only, no Helm rendering).
+# Walks the Flux Kustomization graph and verifies paths, sourceRefs, and dependsOn
+# are all consistent. Helm chart rendering is skipped because it requires
+# cluster-config-secret (populated by ExternalSecrets at runtime, not in the repo).
+# Requires: flux-local (pip install flux-local), helm, kustomize, flux CLI
 validate-flux-local:
 	@command -v flux-local >/dev/null 2>&1 || { \
 		echo "ERROR: flux-local not found."; \
 		echo "Install: pip install flux-local"; \
 		exit 1; \
 	}
-	@echo "==> [flux-local] Simulating full Flux reconciliation with Helm rendering..."
-	@flux-local test --enable-helm --path kubernetes/flux/ --sources homelab
+	@echo "==> [flux-local] Validating Flux reconciliation graph structure..."
+	@flux-local test --path kubernetes/flux/ --sources homelab
