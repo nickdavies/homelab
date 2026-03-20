@@ -7,8 +7,8 @@ spec:
   selector:
     matchLabels:
       app: &app zigbee2mqtt
-  strategy:
-    type: Recreate
+  updateStrategy:
+    type: RollingUpdate
   template:
     metadata:
       annotations:
