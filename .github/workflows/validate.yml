@@ -104,5 +104,10 @@ jobs:
       - name: Install kustomize
         uses: imranismail/setup-kustomize@v2
 
+      - name: Install flux CLI
+        run: |
+          curl -s https://fluxcd.io/install.sh | bash
+          flux version --client
+
       - name: Flux reconciliation simulation
         run: make validate-flux-local
