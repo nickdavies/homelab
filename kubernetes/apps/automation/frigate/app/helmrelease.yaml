@@ -115,7 +115,7 @@ spec:
           - path: /dev/bus/usb
       media:
         type: nfs
-        server: ${SECRET_NFS_DOMAIN}
+        server: ${SECRET_NFS_DOMAIN:-nfs.local}
         path: /volume1/k8s/frigate
         globalMounts:
           - path: /media

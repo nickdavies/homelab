@@ -98,7 +98,7 @@ spec:
               - path: /data
       downloads:
         type: nfs
-        server: ${SECRET_NFS_DOMAIN}
+        server: ${SECRET_NFS_DOMAIN:-nfs.local}
         path: /volume1/paperless-consume/
         globalMounts:
           - path: /library
