@@ -1,8 +1,14 @@
-.PHONY: validate validate-yaml validate-kustomize validate-refs validate-kustomize-full
+.PHONY: validate validate-yaml validate-kustomize validate-refs validate-kustomize-full \
+        validate-kubeconform validate-flux-local validate-all flux-schemas
 
 # Run all local validations (no extra tools required beyond python3 + PyYAML)
 validate: validate-yaml validate-kustomize validate-refs
 	@echo "\nAll validations passed!"
+
+# Run all validations including schema checking and Helm rendering
+# Requires: kustomize, kubeconform, flux-local (pip install flux-local)
+validate-all: validate validate-kustomize-full validate-kubeconform validate-flux-local
+	@echo "\nAll validations passed (including schema and Helm rendering)!"
 
 # 1. YAML syntax check
 validate-yaml:
@@ -35,3 +41,58 @@ validate-kustomize-full:
 	}
 	@echo "==> Running full kustomize build..."
 	@python3 scripts/validate-flux.py kustomize-full
+
+# Schema validation via kubeconform against all kustomize-built manifests.
+# Uses the Datree CRDs catalog for Flux and other CRD schemas.
+# Requires: kustomize, kubeconform (https://github.com/yannh/kubeconform)
+# Optional: run 'make flux-schemas' first to use local schemas instead.
+FLUX_SCHEMA_DIR ?= /tmp/flux-crd-schemas
+CRD_CATALOG_URL = https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+
+validate-kubeconform:
+	@command -v kustomize >/dev/null 2>&1 || { echo "ERROR: kustomize not found"; exit 1; }
+	@command -v kubeconform >/dev/null 2>&1 || { \
+		echo "ERROR: kubeconform not found."; \
+		echo "Install: https://github.com/yannh/kubeconform#installation"; \
+		exit 1; \
+	}
+	@echo "==> [kubeconform] Schema-validating all kustomize builds..."
+	@if [ -d "$(FLUX_SCHEMA_DIR)" ]; then \
+		SCHEMA_EXTRA="$(FLUX_SCHEMA_DIR)/{{.ResourceKind}}_{{.Group}}.json"; \
+	else \
+		SCHEMA_EXTRA="$(CRD_CATALOG_URL)"; \
+	fi; \
+	failed=0; built=0; skipped=0; \
+	for dir in $$(find kubernetes/ -name kustomization.yaml -exec dirname {} \; | sort -u); do \
+		out=$$(kustomize build "$$dir" 2>/dev/null) || { skipped=$$((skipped+1)); continue; }; \
+		built=$$((built+1)); \
+		echo "$$out" | kubeconform \
+			-strict \
+			-summary \
+			-ignore-missing-schemas \
+			-schema-location default \
+			-schema-location "$$SCHEMA_EXTRA" \
+			|| failed=$$((failed+1)); \
+	done; \
+	echo "  Built: $$built dirs, Skipped (kustomize errors): $$skipped dirs"; \
+	[ $$failed -eq 0 ]
+
+# Download Flux CRD schemas locally for offline kubeconform validation.
+flux-schemas:
+	@mkdir -p $(FLUX_SCHEMA_DIR)
+	@echo "==> Downloading Flux CRD schemas to $(FLUX_SCHEMA_DIR)..."
+	@curl -sL https://github.com/fluxcd/flux2/releases/latest/download/crd-schemas.tar.gz \
+		| tar zxf - -C $(FLUX_SCHEMA_DIR)/
+	@echo "  Done. Use: make validate-kubeconform FLUX_SCHEMA_DIR=$(FLUX_SCHEMA_DIR)"
+
+# Full Flux reconciliation simulation including Helm chart rendering.
+# Catches broken HelmRelease charts, bad values, and missing dependencies.
+# Requires: flux-local (pip install flux-local), helm
+validate-flux-local:
+	@command -v flux-local >/dev/null 2>&1 || { \
+		echo "ERROR: flux-local not found."; \
+		echo "Install: pip install flux-local"; \
+		exit 1; \
+	}
+	@echo "==> [flux-local] Simulating full Flux reconciliation with Helm rendering..."
+	@flux-local test --enable-helm --path kubernetes/
