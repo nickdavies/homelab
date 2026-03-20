@@ -98,4 +98,4 @@ validate-flux-local:
 		exit 1; \
 	}
 	@echo "==> [flux-local] Simulating full Flux reconciliation with Helm rendering..."
-	@flux-local test --enable-helm --path kubernetes/ --sources homelab
+	@flux-local test --enable-helm --path kubernetes/flux/ --sources homelab
