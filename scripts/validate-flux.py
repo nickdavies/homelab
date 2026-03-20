@@ -404,6 +404,35 @@ def _has_flux_var(obj: object) -> bool:
     return False
 
 
+import re as _re
+
+_DIGIT_ONLY = _re.compile(r'^\d+$')
+
+
+def _make_kubeconform_dumper() -> type:
+    """SafeDumper that double-quotes digit-only strings.
+
+    Without this, PyYAML emits strings like '0380' unquoted.  Go yaml.v2
+    (used internally by kubeconform) then parses unquoted '0380' as integer
+    380 via decimal fallback after a failed octal parse — causing spurious
+    "got number, want string" schema failures (e.g. NodeFeatureRule PCI
+    class codes such as "0300"/"0380").
+    """
+    class _Dumper(yaml.SafeDumper):
+        pass
+
+    def _str_representer(dumper: yaml.SafeDumper, data: str) -> yaml.ScalarNode:
+        if _DIGIT_ONLY.match(data):
+            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
+        return yaml.SafeDumper.represent_str(dumper, data)  # type: ignore[attr-defined]
+
+    _Dumper.add_representer(str, _str_representer)
+    return _Dumper
+
+
+_KUBECONFORM_DUMPER = _make_kubeconform_dumper()
+
+
 def filter_flux_vars_stdin() -> None:
     """Read multi-doc YAML from stdin and write only documents that contain
     no Flux postBuild substitution variables (${...}) to stdout.
@@ -412,6 +441,9 @@ def filter_flux_vars_stdin() -> None:
     resources with unresolved variables fail kubeconform's pattern validators
     (hostname patterns, quantity patterns, cron patterns) by design — they are
     valid manifests whose variables are substituted at runtime by Flux.
+
+    The custom dumper also double-quotes digit-only strings to prevent YAML 1.1
+    parsers (Go yaml.v2) from misinterpreting bare digit strings as integers.
     """
     content = sys.stdin.read()
     try:
@@ -422,7 +454,7 @@ def filter_flux_vars_stdin() -> None:
     except yaml.YAMLError:
         docs = []
     if docs:
-        sys.stdout.write(yaml.dump_all(docs, default_flow_style=False))
+        sys.stdout.write(yaml.dump_all(docs, Dumper=_KUBECONFORM_DUMPER, default_flow_style=False))
 
 
 if __name__ == "__main__":
