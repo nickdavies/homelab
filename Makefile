@@ -57,6 +57,7 @@ validate-kubeconform:
 		exit 1; \
 	}
 	@echo "==> [kubeconform] Schema-validating all kustomize builds..."
+	@echo "    (Docs with unresolved Flux substitution vars are skipped; see scripts/validate-flux.py filter-vars)"
 	@if [ -d "$(FLUX_SCHEMA_DIR)" ]; then \
 		SCHEMA_EXTRA="$(FLUX_SCHEMA_DIR)/{{.ResourceKind}}_{{.Group}}.json"; \
 	else \
@@ -66,7 +67,9 @@ validate-kubeconform:
 	for dir in $$(find kubernetes/ -name kustomization.yaml -exec dirname {} \; | sort -u); do \
 		out=$$(kustomize build "$$dir" 2>/dev/null) || { skipped=$$((skipped+1)); continue; }; \
 		built=$$((built+1)); \
-		echo "$$out" | kubeconform \
+		filtered=$$(echo "$$out" | python3 scripts/validate-flux.py filter-vars); \
+		[ -n "$$filtered" ] || continue; \
+		echo "$$filtered" | kubeconform \
 			-strict \
 			-summary \
 			-ignore-missing-schemas \
@@ -95,4 +98,4 @@ validate-flux-local:
 		exit 1; \
 	}
 	@echo "==> [flux-local] Simulating full Flux reconciliation with Helm rendering..."
-	@flux-local test --enable-helm --path kubernetes/
+	@flux-local test --enable-helm --path kubernetes/ --sources homelab

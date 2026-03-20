@@ -387,12 +387,60 @@ STAGES = {
     "kustomize-full": ("Running full kustomize build", validate_kustomize_build),
 }
 
+
+# ---------------------------------------------------------------------------
+# filter-vars: stdin filter for kubeconform pre-processing
+# ---------------------------------------------------------------------------
+
+def _has_flux_var(obj: object) -> bool:
+    """Return True if any string value in the object contains a Flux
+    postBuild substitution variable like ${APP} or ${SECRET_DOMAIN}."""
+    if isinstance(obj, str):
+        return "${" in obj
+    if isinstance(obj, dict):
+        return any(_has_flux_var(v) for v in obj.values())
+    if isinstance(obj, list):
+        return any(_has_flux_var(item) for item in obj)
+    return False
+
+
+def filter_flux_vars_stdin() -> None:
+    """Read multi-doc YAML from stdin and write only documents that contain
+    no Flux postBuild substitution variables (${...}) to stdout.
+
+    Used as a pre-filter before piping kustomize build output to kubeconform:
+    resources with unresolved variables fail kubeconform's pattern validators
+    (hostname patterns, quantity patterns, cron patterns) by design — they are
+    valid manifests whose variables are substituted at runtime by Flux.
+    """
+    content = sys.stdin.read()
+    try:
+        docs = [
+            d for d in yaml.load_all(content, Loader=LOADER)
+            if isinstance(d, dict) and not _has_flux_var(d)
+        ]
+    except yaml.YAMLError:
+        docs = []
+    if docs:
+        sys.stdout.write(yaml.dump_all(docs, default_flow_style=False))
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] not in STAGES:
+    if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
 
     mode = sys.argv[1]
+
+    # filter-vars is a stdin→stdout filter, not a normal validation stage
+    if mode == "filter-vars":
+        filter_flux_vars_stdin()
+        sys.exit(0)
+
+    if mode not in STAGES:
+        print(__doc__)
+        sys.exit(1)
+
     label, fn = STAGES[mode]
     print(f"{label}...")
     fn()
