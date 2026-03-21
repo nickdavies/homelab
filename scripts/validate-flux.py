@@ -8,6 +8,7 @@ Usage:
   validate-flux.py kustomize-full   - Run kustomize build (requires kustomize)
 """
 
+import argparse
 import os
 import sys
 import glob
@@ -63,17 +64,22 @@ def rel(path: Path) -> str:
 # ---------------------------------------------------------------------------
 
 def load_docs(path: Path) -> list[dict]:
-    """Load all YAML documents from a file, silently skipping parse errors."""
+    """Load all YAML documents from a file, silently skipping parse errors.
+
+    Parse errors are intentionally swallowed here because load_docs is used
+    by the cross-reference and kustomize checks, which operate on already-valid
+    files. YAML syntax errors are reported separately by validate_yaml_syntax(),
+    so callers of load_docs can assume that broken files simply return no docs.
+    """
     try:
         with open(path) as f:
             return [d for d in yaml.load_all(f.read(), Loader=LOADER) if isinstance(d, dict)]
-    except Exception:
+    except yaml.YAMLError:
         return []
 
 
 def all_yaml_files(base: Path = KUBERNETES_DIR) -> Iterator[Path]:
-    for p in base.rglob("*.yaml"):
-        yield p
+    yield from base.rglob("*.yaml")
 
 
 # ---------------------------------------------------------------------------
@@ -458,22 +464,21 @@ def filter_flux_vars_stdin() -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(__doc__)
-        sys.exit(1)
-
-    mode = sys.argv[1]
+    all_modes = list(STAGES.keys()) + ["filter-vars"]
+    parser = argparse.ArgumentParser(description="Local Flux/Kustomize validation script.")
+    parser.add_argument(
+        "mode",
+        choices=all_modes,
+        help="Validation stage to run. Use 'filter-vars' as a stdin→stdout pre-filter for kubeconform.",
+    )
+    args = parser.parse_args()
 
     # filter-vars is a stdin→stdout filter, not a normal validation stage
-    if mode == "filter-vars":
+    if args.mode == "filter-vars":
         filter_flux_vars_stdin()
         sys.exit(0)
 
-    if mode not in STAGES:
-        print(__doc__)
-        sys.exit(1)
-
-    label, fn = STAGES[mode]
+    label, fn = STAGES[args.mode]
     print(f"{label}...")
     fn()
 
