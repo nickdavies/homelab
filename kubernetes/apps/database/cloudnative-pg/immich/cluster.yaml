@@ -44,7 +44,7 @@ spec:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters: &parameters
-        barmanObjectName: minio-immich
+        barmanObjectName: garage-immich
         serverName: immich-v1
 #   bootstrap:
 #     recovery:

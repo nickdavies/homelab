@@ -3,12 +3,12 @@
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
-  name: minio
+  name: garage
 spec:
   retentionPolicy: 7d
   configuration:
     destinationPath: s3://cloudnative-pg/
-    endpointURL: https://s3.internal.${SECRET_DOMAIN}
+    endpointURL: http://garage.storage.svc.cluster.local:3900
     s3Credentials:
       accessKeyId:
         name: cloudnative-pg-secret
