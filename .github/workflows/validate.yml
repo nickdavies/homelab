@@ -1,0 +1,113 @@
+name: Validate
+
+on:
+  pull_request:
+    paths:
+      - "kubernetes/**"
+      - "scripts/**"
+      - "Makefile"
+      - ".github/workflows/validate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "kubernetes/**"
+      - "scripts/**"
+
+# Cancel in-progress runs for the same PR/branch when a new commit is pushed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 1: Python-based checks (fast, no extra tooling)
+  #   - YAML syntax
+  #   - Kustomization resource references
+  #   - Flux cross-references (HelmRelease sources, dependsOn, spec.path, secrets)
+  # ─────────────────────────────────────────────────────────────────────────────
+  validate-python:
+    name: Flux cross-reference checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: YAML syntax
+        run: make validate-yaml
+
+      - name: Kustomization resource references
+        run: make validate-kustomize
+
+      - name: Flux cross-references
+        run: make validate-refs
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 2: kustomize build + kubeconform schema validation
+  #   - Every kustomization.yaml is built and its output schema-validated
+  #   - Catches wrong field names/types in both standard K8s and Flux CRDs
+  # ─────────────────────────────────────────────────────────────────────────────
+  validate-kubeconform:
+    name: Schema validation (kubeconform)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Install kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Install kubeconform
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            | tar xz
+          sudo mv kubeconform /usr/local/bin/
+          kubeconform -v
+
+      - name: Schema validation
+        run: make validate-kubeconform
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 3: flux-local — Flux reconciliation graph structure validation
+  #   - Walks the repo as kustomize-controller would
+  #   - Verifies Kustomization paths, sourceRefs, and dependsOn consistency
+  #   - Helm rendering is skipped (requires runtime secrets not in the repo)
+  # ─────────────────────────────────────────────────────────────────────────────
+  validate-flux-local:
+    name: Flux graph validation (flux-local)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install flux-local
+        run: pip install flux-local
+
+      - name: Install helm
+        uses: azure/setup-helm@v4
+
+      - name: Install kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Install flux CLI
+        run: |
+          curl -s https://fluxcd.io/install.sh | bash
+          flux version --client
+
+      - name: Flux reconciliation simulation
+        run: make validate-flux-local
