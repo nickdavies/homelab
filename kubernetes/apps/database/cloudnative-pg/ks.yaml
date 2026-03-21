@@ -37,7 +37,7 @@ spec:
   dependsOn:
     - name: cert-manager
     - name: cloudnative-pg
-    - name: minio
+    - name: garage
   path: ./kubernetes/apps/database/cloudnative-pg/barman-cloud
   interval: 1h
   prune: true
