@@ -34,6 +34,11 @@ spec:
               - local-file
               - --path
               - /data/state.json
+            env:
+              BASE_URL: https://ai.internal.${SECRET_DOMAIN}
+              APPROVAL_MODE: readwrite
+              OIDC_ISSUER_URL: https://auth.internal.${SECRET_DOMAIN}
+              OIDC_CLIENT_ID: claude-notify-personal
             envFrom:
               - secretRef:
                   name: claude-notify-personal-secret
