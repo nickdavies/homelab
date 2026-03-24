@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app claude-notify-personal
+spec:
+  interval: 15m
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+    namespace: flux-system
+  install:
+    createNamespace: true
+    remediation:
+      retries: 5
+  upgrade:
+    remediation:
+      retries: 5
+      strategy: rollback
+  values:
+    controllers:
+      claude-notify-personal:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: ghcr.io/nickdavies/claude-notify
+              tag: main
+            args:
+              - serve
+              - pushover
+              - local-file
+              - --path
+              - /data/state.json
+            env:
+              BASE_URL: https://ai.internal.${SECRET_DOMAIN}
+              APPROVAL_MODE: readwrite
+              OIDC_ISSUER_URL: https://auth.internal.${SECRET_DOMAIN}
+              OIDC_CLIENT_ID: claude-notify-personal
+            envFrom:
+              - secretRef:
+                  name: claude-notify-personal-secret
+            resources:
+              requests:
+                cpu: 10m
+                memory: 64Mi
+              limits:
+                memory: 128Mi
+    service:
+      app:
+        controller: *app
+        ports:
+          http:
+            port: 8080
+    persistence:
+      data:
+        enabled: true
+        existingClaim: *app
+        advancedMounts:
+          claude-notify-personal:
+            app:
+              - path: /data
