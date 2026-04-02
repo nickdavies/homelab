@@ -1,0 +1,61 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nut-relay
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nut-relay
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nut-relay
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: nut-relay
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: nut-relay
+          image: instantlinux/nut-upsd:latest
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+          ports:
+            - containerPort: 3493
+              protocol: TCP
+          volumeMounts:
+            - name: nut-config
+              mountPath: /etc/nut/nut.conf
+              subPath: nut.conf
+            - name: nut-config
+              mountPath: /etc/nut/ups.conf
+              subPath: ups.conf
+            - name: nut-config
+              mountPath: /etc/nut/upsd.conf
+              subPath: upsd.conf
+            - name: nut-config
+              mountPath: /etc/nut/upsd.users
+              subPath: upsd.users
+      volumes:
+        - name: nut-config
+          configMap:
+            name: nut-relay-config
