@@ -1,11 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+- namespace.yaml
 - generic-device-plugin
 - descheduler/ks.yaml
 - intel-device-plugin/ks.yaml
 - node-feature-discovery/ks.yaml
 - reloader/ks.yaml
-- kube-web-view
+- kube-web-view/ks.yaml
 - git-sync-reloader-adapter
 - nut-relay/ks.yaml
