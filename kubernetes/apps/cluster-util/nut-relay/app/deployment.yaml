@@ -35,6 +35,10 @@ spec:
       containers:
         - name: nut-relay
           image: instantlinux/nut-upsd:latest
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
           ports:
             - containerPort: 3493
               protocol: TCP
