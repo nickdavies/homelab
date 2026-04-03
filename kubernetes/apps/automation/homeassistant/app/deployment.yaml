@@ -19,6 +19,7 @@ spec:
         k8s.v1.cni.cncf.io/networks: |
           [
             {"name": "multus-iot", "namespace": "network", "ips": ["192.168.20.9/24"]},
+            {"name": "multus-mgmt", "namespace": "network", "ips": ["192.168.254.9/24"]},
             {"name": "multus-not", "namespace": "network", "ips": ["192.168.30.9/24"]}
           ]
     spec:
