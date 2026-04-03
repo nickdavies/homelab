@@ -113,4 +113,5 @@ manifest-diff:
 		exit 1; \
 	}
 	@flux-local diff kustomization --path kubernetes/flux/ --sources homelab \
-		--branch-orig $(DIFF_BRANCH) --skip-secrets --limit-bytes 65536
+		--branch-orig $(DIFF_BRANCH) --skip-secrets --skip-invalid-kustomization-paths \
+		--limit-bytes 65536
