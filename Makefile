@@ -106,6 +106,7 @@ validate-flux-local:
 # Shows what would actually change in the cluster for a set of commits.
 # Requires: flux-local, helm, kustomize, flux CLI
 DIFF_BRANCH ?= HEAD
+FLUX_LOCAL_EXTRA_ARGS ?=
 manifest-diff:
 	@command -v flux-local >/dev/null 2>&1 || { \
 		echo "ERROR: flux-local not found."; \
@@ -113,4 +114,5 @@ manifest-diff:
 		exit 1; \
 	}
 	@flux-local diff kustomization --path kubernetes/ --sources homelab \
-		--branch-orig $(DIFF_BRANCH) --skip-secrets --limit-bytes 65536
+		--branch-orig $(DIFF_BRANCH) --skip-secrets --limit-bytes 65536 \
+		$(FLUX_LOCAL_EXTRA_ARGS)

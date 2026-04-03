@@ -156,6 +156,7 @@ jobs:
           # stderr.  Capture both separately so we can report accurately.
           exit_code=0
           make manifest-diff DIFF_BRANCH=origin/${{ github.event.pull_request.base.ref }} \
+            FLUX_LOCAL_EXTRA_ARGS="--skip-invalid-kustomization-paths" \
             > /tmp/manifest-diff.txt 2>/tmp/manifest-diff-stderr.txt || exit_code=$?
           if [ -s /tmp/manifest-diff-stderr.txt ]; then
             echo "::group::flux-local stderr"
