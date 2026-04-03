@@ -1,0 +1,58 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: frigate
+spec:
+  groups:
+    - name: frigate
+      rules:
+        - alert: FrigateDown
+          expr: absent(frigate_service_uptime_seconds) == 1
+          for: 50m
+          labels:
+            severity: critical
+          annotations:
+            summary: Frigate is unreachable
+            description: frigate_service_uptime_seconds has been absent for more than 50 minutes.
+        - alert: FrigateDown
+          expr: deriv(frigate_service_uptime_seconds[15m]) == 0
+          for: 50m
+          labels:
+            severity: critical
+          annotations:
+            summary: Frigate uptime is not increasing
+            description: frigate_service_uptime_seconds has not increased for more than 50 minutes — Frigate may be hung.
+        - alert: FrigateCameraMissing
+          expr: absent(frigate_camera_fps{camera_name="doorbell"}) == 1
+          for: 1h
+          labels:
+            severity: critical
+          annotations:
+            summary: Frigate camera missing — doorbell
+            description: No metrics received from doorbell camera for more than 1 hour. Frigate may be in safe mode.
+        - alert: FrigateCameraMissing
+          expr: absent(frigate_camera_fps{camera_name="driveway_wide"}) == 1
+          for: 1h
+          labels:
+            severity: critical
+          annotations:
+            summary: Frigate camera missing — driveway_wide
+            description: No metrics received from driveway_wide camera for more than 1 hour. Frigate may be in safe mode.
+        - alert: FrigateCameraMissing
+          expr: absent(frigate_camera_fps{camera_name="bay_window_wide"}) == 1
+          for: 1h
+          labels:
+            severity: critical
+          annotations:
+            summary: Frigate camera missing — bay_window_wide
+            description: No metrics received from bay_window_wide camera for more than 1 hour. Frigate may be in safe mode.
+        - alert: FrigateCameraMissing
+          expr: absent(frigate_camera_fps{camera_name="mountain_side_wide"}) == 1
+          for: 1h
+          labels:
+            severity: critical
+          annotations:
+            summary: Frigate camera missing — mountain_side_wide
+            description: No metrics received from mountain_side_wide camera for more than 1 hour. Frigate may be in safe mode.

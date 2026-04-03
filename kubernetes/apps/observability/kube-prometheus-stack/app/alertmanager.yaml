@@ -32,6 +32,15 @@ spec:
         - name: severity
           value: warning
           matchType: =
+    - equal: ["namespace"]
+      sourceMatch:
+        - name: alertname
+          value: FrigateDown
+          matchType: =
+      targetMatch:
+        - name: alertname
+          value: FrigateCameraMissing
+          matchType: =
   receivers:
     - name: "null"
     - name: pushover
