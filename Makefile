@@ -1,5 +1,5 @@
 .PHONY: validate validate-yaml validate-kustomize validate-refs validate-kustomize-full \
-        validate-kubeconform validate-flux-local validate-all flux-schemas
+        validate-kubeconform validate-flux-local validate-all flux-schemas manifest-diff
 
 # Run all local validations (no extra tools required beyond python3 + PyYAML)
 validate: validate-yaml validate-kustomize validate-refs
@@ -100,4 +100,19 @@ validate-flux-local:
 		exit 1; \
 	}
 	@echo "==> [flux-local] Validating Flux reconciliation graph structure..."
-	@flux-local test --path kubernetes/flux/ --sources homelab
+	@flux-local test --path kubernetes/ --sources homelab
+
+# Rendered manifest diff against a branch (default: current branch HEAD).
+# Shows what would actually change in the cluster for a set of commits.
+# Requires: flux-local, helm, kustomize, flux CLI
+DIFF_BRANCH ?= HEAD
+FLUX_LOCAL_EXTRA_ARGS ?=
+manifest-diff:
+	@command -v flux-local >/dev/null 2>&1 || { \
+		echo "ERROR: flux-local not found."; \
+		echo "Install: pip install flux-local"; \
+		exit 1; \
+	}
+	@flux-local diff kustomization --path kubernetes/ --sources homelab \
+		--branch-orig $(DIFF_BRANCH) --skip-secrets --limit-bytes 65536 \
+		$(FLUX_LOCAL_EXTRA_ARGS)

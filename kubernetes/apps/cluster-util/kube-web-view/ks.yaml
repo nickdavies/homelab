@@ -5,7 +5,7 @@ metadata:
   name: &app kube-web-view
   namespace: flux-system
 spec:
-  targetNamespace: kube-web-view
+  targetNamespace: cluster-util
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app

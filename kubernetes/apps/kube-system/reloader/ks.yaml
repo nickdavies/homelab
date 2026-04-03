@@ -1,22 +1,20 @@
 ---
-# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: &app descheduler
+  name: &app reloader
   namespace: flux-system
 spec:
   targetNamespace: kube-system
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
-  interval: 1h
-  path: ./kubernetes/apps/cluster-util/descheduler/app
+  path: ./kubernetes/apps/kube-system/reloader/app
   prune: true
-  retryInterval: 2m
   sourceRef:
     kind: GitRepository
     name: homelab
-    namespace: flux-system
-  timeout: 5m
   wait: false
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m

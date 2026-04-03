@@ -9,7 +9,7 @@ spec:
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
-  path: ./kubernetes/apps/cluster-util/node-feature-discovery/app
+  path: ./kubernetes/apps/kube-system/node-feature-discovery/app
   prune: true
   sourceRef:
     kind: GitRepository
@@ -28,7 +28,7 @@ spec:
   targetNamespace: kube-system
   dependsOn:
     - name: node-feature-discovery
-  path: ./kubernetes/apps/cluster-util/node-feature-discovery/rules
+  path: ./kubernetes/apps/kube-system/node-feature-discovery/rules
   prune: true
   sourceRef:
     kind: GitRepository
