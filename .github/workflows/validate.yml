@@ -152,9 +152,16 @@ jobs:
       - name: Generate manifest diff
         id: diff
         run: |
-          diff_output=$(make manifest-diff DIFF_BRANCH=origin/${{ github.event.pull_request.base.ref }} 2>&1) || true
-          # Write to file to preserve newlines
-          echo "$diff_output" > /tmp/manifest-diff.txt
+          # Capture only stdout (the actual diff). Stderr (flux-local warnings
+          # about missing SubstituteReferences, dependsOn targets outside the
+          # app tree, etc.) goes to the CI log for debugging.
+          make manifest-diff DIFF_BRANCH=origin/${{ github.event.pull_request.base.ref }} \
+            > /tmp/manifest-diff.txt 2>/tmp/manifest-diff-warnings.txt || true
+          if [ -s /tmp/manifest-diff-warnings.txt ]; then
+            echo "::group::flux-local warnings (informational)"
+            cat /tmp/manifest-diff-warnings.txt
+            echo "::endgroup::"
+          fi
 
       - name: Post PR comment
         env:
@@ -162,7 +169,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           diff_output=$(cat /tmp/manifest-diff.txt)
-          if [ -z "$diff_output" ] || echo "$diff_output" | grep -q "^$"; then
+          if [ -z "$(echo "$diff_output" | tr -d '[:space:]')" ]; then
             body="### Manifest Diff"$'\n\n'"No manifest changes detected. :white_check_mark:"
           else
             # Truncate if too long for a GH comment (max ~65536 chars)
