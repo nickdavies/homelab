@@ -100,7 +100,7 @@ validate-flux-local:
 		exit 1; \
 	}
 	@echo "==> [flux-local] Validating Flux reconciliation graph structure..."
-	@flux-local test --path kubernetes/flux/ --sources homelab
+	@flux-local test --path kubernetes/ --sources homelab
 
 # Rendered manifest diff against a branch (default: current branch HEAD).
 # Shows what would actually change in the cluster for a set of commits.
@@ -112,6 +112,6 @@ manifest-diff:
 		echo "Install: pip install flux-local"; \
 		exit 1; \
 	}
-	@flux-local diff kustomization --path kubernetes/flux/ --sources homelab \
+	@flux-local diff kustomization --path kubernetes/ --sources homelab \
 		--branch-orig $(DIFF_BRANCH) --skip-secrets --skip-invalid-kustomization-paths \
 		--limit-bytes 65536
