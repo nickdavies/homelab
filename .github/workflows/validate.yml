@@ -152,16 +152,17 @@ jobs:
       - name: Generate manifest diff
         id: diff
         run: |
-          # Capture only stdout (the actual diff). Stderr (flux-local warnings
-          # about missing SubstituteReferences, dependsOn targets outside the
-          # app tree, etc.) goes to the CI log for debugging.
+          # flux-local diff sends the actual diff to stdout and warnings to
+          # stderr.  Capture both separately so we can report accurately.
+          exit_code=0
           make manifest-diff DIFF_BRANCH=origin/${{ github.event.pull_request.base.ref }} \
-            > /tmp/manifest-diff.txt 2>/tmp/manifest-diff-warnings.txt || true
-          if [ -s /tmp/manifest-diff-warnings.txt ]; then
-            echo "::group::flux-local warnings (informational)"
-            cat /tmp/manifest-diff-warnings.txt
+            > /tmp/manifest-diff.txt 2>/tmp/manifest-diff-stderr.txt || exit_code=$?
+          if [ -s /tmp/manifest-diff-stderr.txt ]; then
+            echo "::group::flux-local stderr"
+            cat /tmp/manifest-diff-stderr.txt
             echo "::endgroup::"
           fi
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
 
       - name: Post PR comment
         env:
@@ -169,14 +170,37 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           diff_output=$(cat /tmp/manifest-diff.txt)
-          if [ -z "$(echo "$diff_output" | tr -d '[:space:]')" ]; then
-            body="### Manifest Diff"$'\n\n'"No manifest changes detected. :white_check_mark:"
-          else
+          stderr_output=$(cat /tmp/manifest-diff-stderr.txt)
+          exit_code=${{ steps.diff.outputs.exit_code }}
+
+          has_diff=false
+          if [ -n "$(echo "$diff_output" | tr -d '[:space:]')" ]; then
+            has_diff=true
+          fi
+
+          # Filter stderr to only lines that look like actual diff content
+          # (flux-local may output diff to stderr instead of stdout)
+          diff_from_stderr=""
+          if [ "$has_diff" = "false" ] && [ -n "$stderr_output" ]; then
+            # Extract lines that look like diff output (---, +++, @@, +/- lines)
+            # or are part of the diff context
+            diff_from_stderr=$(echo "$stderr_output" | grep -v "^Kustomization " | grep -v "^Unable to find " | grep -v "^flux-local error:" | grep -v "^make:" | grep -v "^make\[" | sed '/^$/d' || true)
+            if [ -n "$(echo "$diff_from_stderr" | tr -d '[:space:]')" ]; then
+              diff_output="$diff_from_stderr"
+              has_diff=true
+            fi
+          fi
+
+          if [ "$has_diff" = "true" ]; then
             # Truncate if too long for a GH comment (max ~65536 chars)
             if [ ${#diff_output} -gt 60000 ]; then
               diff_output="${diff_output:0:60000}"$'\n\n'"... (truncated)"
             fi
             body="### Manifest Diff"$'\n\n'"<details>"$'\n'"<summary>Click to expand diff</summary>"$'\n\n'"\`\`\`diff"$'\n'"${diff_output}"$'\n'"\`\`\`"$'\n\n'"</details>"
+          elif [ "$exit_code" != "0" ]; then
+            body="### Manifest Diff"$'\n\n'":warning: Diff generation encountered errors. Check the [CI logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+          else
+            body="### Manifest Diff"$'\n\n'"No manifest changes detected. :white_check_mark:"
           fi
           # Update existing comment or create new one
           gh pr comment "$PR_NUMBER" --body "$body" --edit-last 2>/dev/null \
