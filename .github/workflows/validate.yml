@@ -111,3 +111,66 @@ jobs:
 
       - name: Flux reconciliation simulation
         run: make validate-flux-local
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 4: Manifest diff — rendered manifest comparison against base branch
+  #   - Runs flux-local diff to compare the PR's rendered output against base
+  #   - Posts the diff (or "no changes") as a PR comment for easy review
+  #   - Informational only (does not block merge)
+  # ─────────────────────────────────────────────────────────────────────────────
+  manifest-diff:
+    name: Manifest diff
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.14"
+
+      - name: Install flux-local
+        run: pip install flux-local
+
+      - name: Install helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+
+      - name: Install kustomize
+        uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2
+
+      - name: Install flux CLI
+        run: |
+          curl -s https://fluxcd.io/install.sh | bash
+          flux version --client
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+
+      - name: Generate manifest diff
+        id: diff
+        run: |
+          diff_output=$(make manifest-diff DIFF_BRANCH=origin/${{ github.event.pull_request.base.ref }} 2>&1) || true
+          # Write to file to preserve newlines
+          echo "$diff_output" > /tmp/manifest-diff.txt
+
+      - name: Post PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          diff_output=$(cat /tmp/manifest-diff.txt)
+          if [ -z "$diff_output" ] || echo "$diff_output" | grep -q "^$"; then
+            body="### Manifest Diff"$'\n\n'"No manifest changes detected. :white_check_mark:"
+          else
+            # Truncate if too long for a GH comment (max ~65536 chars)
+            if [ ${#diff_output} -gt 60000 ]; then
+              diff_output="${diff_output:0:60000}"$'\n\n'"... (truncated)"
+            fi
+            body="### Manifest Diff"$'\n\n'"<details>"$'\n'"<summary>Click to expand diff</summary>"$'\n\n'"\`\`\`diff"$'\n'"${diff_output}"$'\n'"\`\`\`"$'\n\n'"</details>"
+          fi
+          # Update existing comment or create new one
+          gh pr comment "$PR_NUMBER" --body "$body" --edit-last 2>/dev/null \
+            || gh pr comment "$PR_NUMBER" --body "$body"
