@@ -97,9 +97,10 @@ objects:
 
 record:
   enabled: true
-  retain:
+  continuous:
     days: 7
-    mode: all
+  motion:
+    days: 7
   detections:
     retain:
       days: 10
