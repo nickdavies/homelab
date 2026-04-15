@@ -67,7 +67,7 @@ jobs:
         run: pip install pyyaml
 
       - name: Install kustomize
-        uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2
+        uses: imranismail/setup-kustomize@53f941b41dca13ed61874bbc6b4b6e1562877530 # v3
 
       - name: Install kubeconform
         run: |
@@ -102,7 +102,7 @@ jobs:
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
 
       - name: Install kustomize
-        uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2
+        uses: imranismail/setup-kustomize@53f941b41dca13ed61874bbc6b4b6e1562877530 # v3
 
       - name: Install flux CLI
         run: |
@@ -139,7 +139,7 @@ jobs:
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
 
       - name: Install kustomize
-        uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2
+        uses: imranismail/setup-kustomize@53f941b41dca13ed61874bbc6b4b6e1562877530 # v3
 
       - name: Install flux CLI
         run: |
