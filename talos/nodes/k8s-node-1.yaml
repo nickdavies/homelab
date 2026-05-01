@@ -1,12 +1,11 @@
 ---
 machine:
-  network:
-    hostname: k8s-node-1
   install:
     diskSelector:
       size: '>= 256GB'
       wwid: "naa.5000000000006557"
-    # diskSelector:
-    #   size: '>= 256GB'
-    #   type: nvme
-    #   serial: "QBF186W014813P110W"
+---
+apiVersion: v1alpha1
+kind: HostnameConfig
+auto: off
+hostname: k8s-node-1
