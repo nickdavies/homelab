@@ -27,7 +27,7 @@ spec:
           app:
             image:
               repository: ghcr.io/nickdavies/claude-notify
-              tag: main@sha256:791462f078e5562f71c35791e67e019af4cec4c0d7cb5d181b36a34a378fcf6d
+              tag: main@sha256:067480b317c1c9bdbc01eeb26d338ffdc4a3c0fc1b2591936d1a92b53e09dcf3
             args:
               - serve
               - pushover
