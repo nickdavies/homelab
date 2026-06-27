@@ -12,6 +12,7 @@ resources:
   - external-secrets.yaml
   - grafana.yaml
   - jetstack.yaml
+  - k8s-gateway.yaml
   - openebs.yaml
   - piraeus.yaml
   - prometheus-community.yaml

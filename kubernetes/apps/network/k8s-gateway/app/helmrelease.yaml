@@ -1,0 +1,44 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app k8s-gateway
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: k8s-gateway
+      version: 3.7.1
+      sourceRef:
+        kind: HelmRepository
+        name: k8s-gateway
+        namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  uninstall:
+    keepHistory: false
+  values:
+    # Maintained image from the k8s-gateway org (the old quay.io/oriedge repo is dead).
+    image:
+      tag: 1.8.0
+    # Authoritative zone served locally from cluster state (no internet dependency).
+    domain: "internal.${SECRET_DOMAIN}"
+    ttl: 60
+    replicaCount: 2
+    # Resolve Gateway API routes (-> parent Gateway LB IP) and annotated
+    # LoadBalancer Services (-> their own LB IP, e.g. mqtt/smtp/influx-direct/minecraft).
+    watchedResources:
+      - HTTPRoute
+      - TLSRoute
+      - Service
+    service:
+      type: LoadBalancer
+      loadBalancerIP: 192.168.254.200
+      # Serve DNS over TCP as well as UDP (truncated/large responses).
+      useTcp: true

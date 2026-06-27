@@ -16,6 +16,19 @@ upstreams:
       - "8.8.4.4"
       - "1.1.1.1"
 
+# Used to resolve upstream/blocklist hostnames without relying on the
+# container's system resolver (does not depend on the conditional zone).
+bootstrapDns:
+  - upstream: tcp+udp:1.1.1.1
+  - upstream: tcp+udp:8.8.8.8
+
+# Resolve the internal zone locally via k8s-gateway so internal services keep
+# working when the internet is down. Everything else uses the upstreams above.
+conditional:
+  fallbackUpstream: false
+  mapping:
+    internal.${SECRET_DOMAIN}: tcp+udp:192.168.254.200
+
 blocking:
   denylists:
     ads:
