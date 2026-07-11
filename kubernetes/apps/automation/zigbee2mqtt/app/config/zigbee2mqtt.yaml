@@ -22,4 +22,4 @@ advanced:
   log_directory: /var/log/zigbee2mqtt
   log_output:
     - console
-version: 4
+version: 5
