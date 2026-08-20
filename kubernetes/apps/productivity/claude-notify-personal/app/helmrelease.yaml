@@ -27,7 +27,7 @@ spec:
           app:
             image:
               repository: ghcr.io/nickdavies/agent-hub
-              tag: main@sha256:0266d4921b8ec7ee8f670fa8f4a8fa912efe17f64347618486adc11371d57b07
+              tag: main@sha256:fa8272825264ccfb6bea92ae371f1ce31615bf26a5b5601e9d07dd424c9545c8
             args:
               - serve
               - pushover
