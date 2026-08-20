@@ -31,6 +31,7 @@ spec:
         cronjob:
           concurrencyPolicy: Forbid
           schedule: '@hourly'
+          ttlSecondsAfterFinished: 259200 # 3 days
         containers:
           app:
             image:
