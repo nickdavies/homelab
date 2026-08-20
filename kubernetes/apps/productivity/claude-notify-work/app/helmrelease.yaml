@@ -26,8 +26,8 @@ spec:
         containers:
           app:
             image:
-              repository: ghcr.io/nickdavies/claude-notify
-              tag: main@sha256:067480b317c1c9bdbc01eeb26d338ffdc4a3c0fc1b2591936d1a92b53e09dcf3
+              repository: ghcr.io/nickdavies/agent-hub
+              tag: main@sha256:0266d4921b8ec7ee8f670fa8f4a8fa912efe17f64347618486adc11371d57b07
             args:
               - serve
               - pushover
