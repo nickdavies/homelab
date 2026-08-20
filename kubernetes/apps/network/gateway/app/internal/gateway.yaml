@@ -56,3 +56,26 @@ spec:
           selector:
             matchLabels:
               internal-gateway-access: "true"
+    # Gateway API treats `*.` as a suffix match, so the listener above already
+    # routes two-label names like work.ai.internal. TLS does not: an X.509
+    # wildcard covers exactly one label (RFC 6125), so internal-tls cannot
+    # certify them and the handshake fails while the route reports Accepted.
+    # Envoy selects the most specific SNI match, so these names terminate here.
+    #
+    # allowedRoutes MUST stay identical to the listener above: attachment is
+    # evaluated per listener, and a route excluded from this one would silently
+    # fall back to *.internal and its non-matching certificate.
+    - name: https-ai
+      protocol: HTTPS
+      port: 443
+      hostname: "*.ai.internal.${SECRET_DOMAIN}"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: ai-internal-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              internal-gateway-access: "true"
