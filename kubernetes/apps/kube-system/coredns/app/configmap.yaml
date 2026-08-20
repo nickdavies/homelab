@@ -1,0 +1,51 @@
+---
+# Talos creates this ConfigMap at cluster bootstrap and never touches it again
+# (its manifest controller is create-only), so Flux can own it safely.
+#
+# Everything below the internal zone stanza is Talos' stock Corefile, unchanged.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns
+  namespace: kube-system
+data:
+  Corefile: |
+    # Pods resolve *.internal.${SECRET_DOMAIN} via k8s-gateway, which is
+    # authoritative for the zone and answers from cluster state. Without this,
+    # these names fall through to `forward . /etc/resolv.conf` -> the node
+    # nameservers (1.1.1.1) -> NXDOMAIN, since the records are no longer
+    # published to Cloudflare. Mirrors blocky's conditional mapping, which
+    # covers LAN clients only.
+    internal.${SECRET_DOMAIN}:53 {
+        errors
+        cache 30
+        forward . 192.168.254.200
+    }
+
+    .:53 {
+        errors
+        health {
+            lameduck 5s
+        }
+        ready
+        log . {
+            class error
+        }
+        prometheus :9153
+
+        kubernetes cluster.local in-addr.arpa ip6.arpa {
+            pods insecure
+            fallthrough in-addr.arpa ip6.arpa
+            ttl 30
+        }
+        forward . /etc/resolv.conf {
+           max_concurrent 1000
+        }
+        cache 30 {
+           disable success cluster.local
+           disable denial cluster.local
+        }
+        loop
+        reload
+        loadbalance
+    }
