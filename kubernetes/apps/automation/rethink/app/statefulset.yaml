@@ -1,0 +1,89 @@
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: rethink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: &app rethink
+  serviceName: rethink
+  template:
+    metadata:
+      annotations:
+        reloader.stakater.com/auto: "true"
+        # The ThinQ listeners bind to this macvlan address only. The
+        # unauthenticated management interface binds "rethink-0" instead --
+        # kubelet writes "<cluster pod IP> rethink-0" into the pod's /etc/hosts,
+        # so Node resolves it to the cluster interface and the management port
+        # is never listening on the appliance VLAN. Depends on replicas being 1,
+        # which fixes the pod name.
+        k8s.v1.cni.cncf.io/networks: |
+          [
+            {"name": "multus-not", "namespace": "network", "ips": ["${RETHINK_IP}/24"]}
+          ]
+      labels:
+        app.kubernetes.io/instance: "rethink"
+        app.kubernetes.io/name: "rethink"
+        app: *app
+    spec:
+      # Default ClusterFirst is deliberate. It resolves mosquitto's cluster DNS
+      # name, and CoreDNS forwards everything else to the node's resolv.conf
+      # (1.1.1.1), not to blocky -- so the blocky customDNS entry that points
+      # common.lgthinq.com at this pod does not apply here, and bridge mode can
+      # still reach the real LG cloud.
+      containers:
+        - name: rethink
+          # Upstream publishes no release tags -- `dev` is the only one -- so
+          # this is pinned by digest and Renovate tracks digest changes.
+          image: ghcr.io/anszom/rethink:dev@sha256:8d5bf02a032b7919bc7b4ed489894e578779b52bfc897252130c5ffb5b47dc70
+          imagePullPolicy: IfNotPresent
+          # Stock entrypoint: our config is mounted over /app/data/config.json,
+          # and the image only copies its baked-in default when that path is
+          # absent. Nothing is generated or rewritten at runtime.
+          env:
+            - name: TZ
+              value: ${TIMEZONE}
+          ports:
+            - containerPort: 44401
+              name: management
+              protocol: TCP
+          # Binds 443 and 8883, so it needs to keep the ability to bind
+          # privileged ports. The upstream image already runs as root.
+          securityContext:
+            capabilities:
+              add: ["NET_BIND_SERVICE"]
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /
+              port: management
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+          resources:
+            requests:
+              cpu: 25m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            # ca.key, ca.cert and ./state resolve relative to the config file's
+            # directory, so they land here and persist. Losing this volume means
+            # re-provisioning every appliance.
+            - mountPath: /app/data
+              name: data-vol
+            # Overlays a single file inside the volume above.
+            - mountPath: /app/data/config.json
+              name: config-vol
+              subPath: config.json
+              readOnly: true
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: data-vol
+          persistentVolumeClaim:
+            claimName: rethink
+        - name: config-vol
+          secret:
+            secretName: rethink-secret

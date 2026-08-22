@@ -29,6 +29,20 @@ conditional:
   mapping:
     internal.${SECRET_DOMAIN}: tcp+udp:192.168.254.200
 
+# De-cloud the LG appliances: point them at rethink instead of LG. Both names
+# are needed -- common.lgthinq.com is the bootstrap address the appliance ships
+# with, and rethink.lan is the hostname rethink advertises and issues its
+# self-signed cert for (it refuses a bare IP).
+#
+# customDNS is evaluated ahead of the conditional mapping above, and cluster
+# workloads resolve via CoreDNS -> the node's 1.1.1.1, not through blocky, so
+# this does not black-hole rethink's own path to LG during bridge mode.
+customDNS:
+  customTTL: 1h
+  mapping:
+    common.lgthinq.com: ${RETHINK_IP}
+    rethink.lan: ${RETHINK_IP}
+
 blocking:
   denylists:
     ads:

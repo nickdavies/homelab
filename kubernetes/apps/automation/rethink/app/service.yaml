@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rethink
+  labels:
+    app.kubernetes.io/instance: "rethink"
+    app.kubernetes.io/name: "rethink"
+spec:
+  type: ClusterIP
+  selector:
+    app: rethink
+  ports:
+    # Management interface only. The ThinQ listeners (443/8883/46030/47878) are
+    # deliberately not exposed here -- appliances reach them on the macvlan
+    # address directly, and routing them through the gateway would break the
+    # TLS handshake against rethink's self-generated CA.
+    - name: management
+      port: 44401
+      targetPort: management
+      protocol: TCP

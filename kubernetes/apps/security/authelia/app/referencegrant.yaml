@@ -1,0 +1,18 @@
+---
+# Allows Envoy Gateway SecurityPolicy resources in other namespaces to use
+# Authelia as an ext-authz backend. Cross-namespace backendRefs require the
+# referenced namespace to opt in, and a ReferenceGrant must live here rather
+# than alongside the policy that needs it.
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: authelia-extauth
+spec:
+  from:
+    - group: gateway.envoyproxy.io
+      kind: SecurityPolicy
+      namespace: automation
+  to:
+    - group: ""
+      kind: Service
+      name: authelia
