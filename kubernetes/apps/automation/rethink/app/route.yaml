@@ -1,0 +1,26 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rethink
+spec:
+  hostnames:
+    - "rethink.internal.${SECRET_DOMAIN}"
+  parentRefs:
+    - name: internal
+      namespace: network
+      # Pinned to the TLS listener on purpose. Without sectionName a route also
+      # attaches to the gateway's plaintext :80 listener, which has no hostname
+      # and so matches everything. That would serve rethink's admin UI in the
+      # clear -- and worse, expose the shared Authelia session cookie for all of
+      # *.internal.${SECRET_DOMAIN}, since it is same_site lax and not
+      # https-only. Other apps in this repo are unpinned; this one holds an
+      # unauthenticated admin interface, so it is not worth matching them.
+      sectionName: https
+  rules:
+    - backendRefs:
+        # Backend port only. Clients hit https://rethink.internal.${SECRET_DOMAIN}
+        # on 443; Envoy terminates TLS and proxies here.
+        - kind: Service
+          name: rethink
+          port: 44401

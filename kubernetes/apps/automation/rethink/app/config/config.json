@@ -1,0 +1,48 @@
+// Rendered into a Secret by externalsecret.yaml (the MQTT credentials come from
+// 1Password) and mounted read-only over /app/data/config.json. The image's
+// entrypoint only copies its baked-in default when that file is absent, so this
+// is the config rethink runs with -- nothing is rewritten on disk at startup.
+//
+// ca.key, ca.cert and ./state all resolve relative to THIS file's directory,
+// which is why it sits on the PVC path rather than somewhere read-only.
+{
+  "hostname": "rethink.lan",
+
+  "homeassistant": {
+    "mqtt_url": "mqtt://mosquitto.automation.svc.cluster.local:1883",
+    "discovery_prefix": "homeassistant",
+    "rethink_prefix": "rethink",
+    "mqtt_user": "{{ .RETHINK_USER }}",
+    "mqtt_pass": "{{ .RETHINK_PASS }}"
+  },
+
+  "ca_key_file": "ca.key",
+  "ca_cert_file": "ca.cert",
+
+  "https_port": { "bind": 443, "advertise": 443, "address": "${RETHINK_IP}" },
+  "mqtts_port": { "bind": 8883, "advertise": 8883, "address": "${RETHINK_IP}" },
+  "thinq1_https_port": { "bind": 46030, "advertise": 46030, "address": "${RETHINK_IP}" },
+  "thinq1_port": { "bind": 47878, "advertise": 47878, "address": "${RETHINK_IP}" },
+
+  "mqtt_port": { "bind": 1884, "advertise": 1884, "address": "127.0.0.1" },
+
+  "management_port": { "bind": 44401, "advertise": 44401, "address": "rethink-0" },
+
+  "bridge": { "storage_path": "./state" },
+
+  // Device lifecycle topics (connected/close/offline/reconnect) are the ones
+  // that show an appliance actually attaching, so they matter more than most.
+  // MGMT is deliberately off: the liveness probe hits / every 30s and drowns
+  // everything else.
+  "log": [
+    "status",
+    "incoming",
+    "HTTPS",
+    "publish",
+    "connected",
+    "close",
+    "offline",
+    "reconnect",
+    "bridge"
+  ]
+}

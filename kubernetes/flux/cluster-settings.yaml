@@ -5,3 +5,8 @@ metadata:
   namespace: flux-system
 data:
   TIMEZONE: "America/Denver"
+  # rethink's macvlan address on the NoT VLAN (eth0.30). Lives here rather than
+  # in the app because blocky has to resolve the LG hostnames to it, and the two
+  # must not drift. Free slot between home-assistant (.9) and the Talos nodes
+  # (.11-.17); gateway is .1. Must stay excluded from the VLAN's DHCP pool.
+  RETHINK_IP: "192.168.30.10"

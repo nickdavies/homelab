@@ -1,0 +1,46 @@
+---
+# rethink's management interface has no authentication of its own, so the only
+# thing standing in front of it is this policy. Authelia's existing
+# access_control rule for *.internal.${SECRET_DOMAIN} (one_factor, group:admin)
+# already covers the hostname, so no Authelia config change is needed.
+#
+# This is the first ext-authz consumer in the cluster -- every other Authelia
+# integration (grafana, immich, paperless, actual-budget, claude-notify) speaks
+# OIDC natively. The paired ReferenceGrant lives with the authelia app, because
+# a ReferenceGrant must sit in the namespace being referenced.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: rethink-authelia
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: rethink
+  extAuth:
+    # Envoy sends only a small default header set to the auth service. Without
+    # x-forwarded-proto Authelia reconstructs the target as http:// (the scheme
+    # of its own plaintext listener) and rejects every request with
+    # "Target URL ... has an insecure scheme 'http'" -> HTTP 400, before any
+    # auth is attempted. This list is Authelia's documented one.
+    headersToExtAuth:
+      - accept
+      - cookie
+      - location
+      - authorization
+      - proxy-authorization
+      - x-forwarded-proto
+    # Never let an Authelia outage silently expose the admin UI.
+    failOpen: false
+    http:
+      backendRefs:
+        - kind: Service
+          name: authelia
+          namespace: security
+          port: 80
+      path: /api/authz/ext-authz/
+      headersToBackend:
+        - "remote-user"
+        - "remote-groups"
+        - "remote-email"
+        - "remote-name"
