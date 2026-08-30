@@ -2,7 +2,7 @@
 machine:
   install:
     diskSelector:
-      serial: "0x87c3c193"
+      serial: "0x55fd5f62"
   kubelet:
     extraConfig:
       registerNode: true
