@@ -2,43 +2,41 @@
 
 set -euo pipefail
 
-OUTPUT_DIR="./output/"
-SECRETS_DIR="./$OUTPUT_DIR/secrets/"
-MARKER_FILE="./$OUTPUT_DIR/.marker"
+# Resolved before the cd below, so the re-exec further down can name this script.
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+cd "$(dirname "$0")"
 
 set -a; source talosenv; set +a
 
-OP_CREDENTIALS_FILE="$SECRETS_DIR/1password-credentials.json"
-OP_TOKEN_FILE="$SECRETS_DIR/1password_access_token"
-FLUX_KEY_FILE="$SECRETS_DIR/deploy_key.key"
+# Bootstrap-only secrets. These are needed exactly once per cluster rebuild, to
+# give Flux and External Secrets enough to start reconciling; everything after
+# that comes out of 1Password via the Connect operator.
+#
+# The kubeconfig here is the break-glass cluster-admin one rather than an OIDC
+# login, because at this point in a rebuild there is no Authelia to log in to.
+OP_KUBECONFIG_REF="${OP_KUBECONFIG_REF:-op://Homelab/talos/kubeconfig}"
+OP_FLUX_KEY_REF="${OP_FLUX_KEY_REF:-op://Homelab/flux_deploy_key_v1/privatekey}"
+OP_CONNECT_CREDS_REF="${OP_CONNECT_CREDS_REF:-op://Homelab/1password-connect/1password-credentials.json}"
+OP_CONNECT_TOKEN_REF="${OP_CONNECT_TOKEN_REF:-op://Homelab/1password-connect/access_token}"
 
-if [ ! -f "$MARKER_FILE" ]; then
-    echo "Secrets appear not to be mounted please run load-secrets.sh first"
+if [ -z "${FLUX_REPO_URL:-}" ]; then
+    echo "FLUX_REPO_URL unset, make sure this is configured in talosenv" >&2
     exit 1
 fi
 
-if [ ! -f "$OP_CREDENTIALS_FILE" ]; then
-    echo "1password connect credentials expected at $OP_CREDENTIALS_FILE but was not found"
-    exit 1
-fi
-if [ ! -f "$OP_TOKEN_FILE" ]; then
-    echo "1password connect token expected at $OP_TOKEN_FILE but was not found"
-    exit 1
-fi
-
-if [ ! -f "$FLUX_KEY_FILE" ]; then
-    echo "Flux private key expected at $FLUX_KEY_FILE but was not found"
-    exit 1
+# kubectl --from-file, flux --private-key-file and KUBECONFIG all take paths, so
+# each secret is handed over as /dev/fd/<n> by talos-session and never written
+# down. Skipped when already running under a wrapper.
+if [ -z "${BOOTSTRAP_KUBECONFIG:-}" ]; then
+    exec talos-session exec \
+        --secret "BOOTSTRAP_KUBECONFIG=$OP_KUBECONFIG_REF" \
+        --secret "BOOTSTRAP_FLUX_KEY=$OP_FLUX_KEY_REF" \
+        --secret "BOOTSTRAP_OP_CREDS=$OP_CONNECT_CREDS_REF" \
+        --secret "BOOTSTRAP_OP_TOKEN=$OP_CONNECT_TOKEN_REF" \
+        -- "$SELF" "$@"
 fi
 
-if [ -z "$FLUX_REPO_URL" ]; then
-    echo "FLUX_REPO_URL unset make sure this is configured in talosenv"
-    exit 1
-fi
-
-OP_TOKEN=$(cat $OP_TOKEN_FILE)
-
-export KUBECONFIG="$SECRETS_DIR/kubeconfig"
+export KUBECONFIG="$BOOTSTRAP_KUBECONFIG"
 
 echo "Waiting for kubeAPI to be up"
 timeout 10m bash -c "until kubectl version >/dev/null 2>&1; do sleep 1; done"
@@ -52,17 +50,17 @@ kubectl wait --for=create namespaces/flux-system --timeout 10m
 flux create secret git homelab-auth \
     --export \
     --url "$FLUX_REPO_URL" \
-    --private-key-file $FLUX_KEY_FILE \
+    --private-key-file "$BOOTSTRAP_FLUX_KEY" \
     | kubectl apply -f -
 
 kubectl create secret generic onepassword-connect-credentials \
-    --from-file="1password-credentials.json=$OP_CREDENTIALS_FILE" \
+    --from-file="1password-credentials.json=$BOOTSTRAP_OP_CREDS" \
     -n external-secrets \
     --dry-run=client \
     -o yaml | kubectl apply -f -
 
 kubectl create secret generic onepassword-connect-token \
-    --from-literal="token=$OP_TOKEN" \
+    --from-literal="token=$(cat "$BOOTSTRAP_OP_TOKEN")" \
     -n external-secrets \
     --dry-run=client \
     -o yaml \
