@@ -110,6 +110,7 @@ for NODE in "$@"; do
             --with-docs=false \
             --install-disk "" \
             --talos-version="${TALOS_VERSION}" \
+            --install-image="ghcr.io/siderolabs/installer:${TALOS_VERSION}" \
             --kubernetes-version="${KUBE_VERSION}" \
             --output-types="${NODE_TYPE}" \
             --output "$NODE_DIR/${NODE_TYPE}.yaml" \
