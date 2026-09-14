@@ -10,6 +10,11 @@ cd "$(dirname "$0")"
 # on disk: talos-session exposes it on a file descriptor as $TALOS_SECRETS.
 TALOS_SECRETS_REF="${TALOS_SECRETS_REF:-op://Homelab/talos/secrets.yaml}"
 
+# The apiserver's OIDC issuer URL needs the internal domain, which is kept out
+# of git like every other value in cluster-config. Fetched the same way and
+# substituted into the patches as ${SECRET_DOMAIN}.
+CLUSTER_DOMAIN_REF="${CLUSTER_DOMAIN_REF:-op://homelab-k8s/cluster-config/DOMAIN}"
+
 usage() {
     echo "Usage: $(basename "$0") <node> [node...]" >&2
     echo >&2
@@ -40,8 +45,15 @@ done
 # wrapper, so a larger batch can cover this script with a single unlock:
 #   talos-session exec --secret TALOS_SECRETS=<ref> -- ./maintenance.sh
 if [ -z "${TALOS_SECRETS:-}" ]; then
-    exec talos-session exec --secret "TALOS_SECRETS=$TALOS_SECRETS_REF" -- "$SELF" "$@"
+    exec talos-session exec \
+        --secret "TALOS_SECRETS=$TALOS_SECRETS_REF" \
+        --secret "CLUSTER_DOMAIN_FILE=$CLUSTER_DOMAIN_REF" \
+        -- "$SELF" "$@"
 fi
+
+# envsubst needs this as a variable, not a path.
+export SECRET_DOMAIN
+SECRET_DOMAIN="$(cat "$CLUSTER_DOMAIN_FILE")"
 
 # Rendered control-plane configs embed the cluster CA private keys, so they are
 # written to the per-user tmpfs — mode 0700, nosuid, nodev, cleared at logout —
@@ -71,7 +83,7 @@ for NODE in "$@"; do
         rm -rf "$NODE_DIR"
         mkdir -p "$NODE_DIR"
 
-        VALID_VARS=$(cat talosenv "./nodes/$NODE.env" | grep -v "^\s*$" | sed 's/\([^=]*\)=.*/${\1}/')
+        VALID_VARS="$(cat talosenv "./nodes/$NODE.env" | grep -v "^\s*$" | sed 's/\([^=]*\)=.*/${\1}/') \${SECRET_DOMAIN}"
 
         # Patches interpolate per-node variables (PRIMARY_MAC and friends), so
         # they are rendered under the node's own directory rather than into a

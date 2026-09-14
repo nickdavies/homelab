@@ -1,0 +1,33 @@
+---
+# Authelia as an OIDC provider for kubectl, so day-to-day access stops using the
+# system:masters client certificate, which cannot expire and cannot be revoked.
+#
+# These are the legacy --oidc-* flags rather than a structured
+# AuthenticationConfiguration because Talos v1.13 rejects
+# cluster.apiServer.authConfig outright ("unknown keys found during decoding").
+# Revisit if Talos grows support for it.
+#
+# An unreachable issuer is survivable: the apiserver initialises this
+# authenticator in a background poll loop rather than at startup, so Authelia
+# being down costs OIDC logins but leaves certificate auth — and therefore the
+# break-glass kubeconfig — working.
+cluster:
+  apiServer:
+    extraArgs:
+      oidc-issuer-url: https://auth.internal.${SECRET_DOMAIN}
+      oidc-client-id: kubernetes
+      oidc-username-claim: preferred_username
+      oidc-username-prefix: "oidc:"
+      oidc-groups-claim: groups
+      oidc-groups-prefix: "oidc:"
+machine:
+  network:
+    # The apiserver resolves via the node's nameservers (1.1.1.1, see
+    # patches/dns.yaml), but internal.${SECRET_DOMAIN} is served only by
+    # k8s-gateway inside the cluster and external-dns publishes just the public
+    # domain. Pin the name to the internal gateway's MetalLB address so OIDC
+    # discovery does not depend on in-cluster DNS being up.
+    extraHostEntries:
+      - ip: 192.168.254.2
+        aliases:
+          - auth.internal.${SECRET_DOMAIN}
