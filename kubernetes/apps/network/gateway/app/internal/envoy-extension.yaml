@@ -10,3 +10,21 @@ spec:
         name: gateway-internal
         type: LoadBalancer
         loadBalancerIP: 192.168.254.2
+        # The ClusterIP is pinned because the kube-apiserver's OIDC issuer
+        # resolves to it. The apiserver is a Talos static pod on the host
+        # network, and externalTrafficPolicy: Local means kube-proxy blackholes
+        # traffic to the LoadBalancer IP on any node without a local envoy
+        # endpoint -- so the LB address is unreachable from most control-plane
+        # nodes. The ClusterIP routes from anywhere via kube-proxy, and SNI is
+        # unchanged so envoy still serves the right certificate.
+        #
+        # See talos/patches-control-plane/apiserver-oidc.yaml, which hardcodes
+        # this address in machine.network.extraHostEntries. Pinned here so a
+        # cluster rebuild reproduces it rather than silently breaking OIDC
+        # login. Assigning a different value requires recreating the Service,
+        # since spec.clusterIP is immutable.
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              clusterIP: 10.101.242.196

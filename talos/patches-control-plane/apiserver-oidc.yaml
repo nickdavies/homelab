@@ -25,9 +25,21 @@ machine:
     # The apiserver resolves via the node's nameservers (1.1.1.1, see
     # patches/dns.yaml), but internal.${SECRET_DOMAIN} is served only by
     # k8s-gateway inside the cluster and external-dns publishes just the public
-    # domain. Pin the name to the internal gateway's MetalLB address so OIDC
-    # discovery does not depend on in-cluster DNS being up.
+    # domain, so the name has to be pinned here.
+    #
+    # Pointed at the internal gateway's ClusterIP, NOT its LoadBalancer address
+    # (192.168.254.2). The apiserver is a static pod on the host network, and
+    # the gateway Service uses externalTrafficPolicy: Local, so kube-proxy
+    # blackholes traffic to the LB IP on every node that has no local envoy
+    # endpoint -- which is most of them, envoy being a single replica. The
+    # ClusterIP routes from any node via kube-proxy, and SNI is unchanged so
+    # envoy still terminates with the right certificate.
+    #
+    # This address is pinned in
+    # kubernetes/apps/network/gateway/app/internal/envoy-extension.yaml; the two
+    # must not drift. Re-derive with:
+    #   kubectl -n network get svc gateway-internal -o jsonpath='{.spec.clusterIP}'
     extraHostEntries:
-      - ip: 192.168.254.2
+      - ip: 10.101.242.196
         aliases:
           - auth.internal.${SECRET_DOMAIN}
