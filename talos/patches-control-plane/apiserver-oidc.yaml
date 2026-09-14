@@ -1,0 +1,45 @@
+---
+# Authelia as an OIDC provider for kubectl, so day-to-day access stops using the
+# system:masters client certificate, which cannot expire and cannot be revoked.
+#
+# These are the legacy --oidc-* flags rather than a structured
+# AuthenticationConfiguration because Talos v1.13 rejects
+# cluster.apiServer.authConfig outright ("unknown keys found during decoding").
+# Revisit if Talos grows support for it.
+#
+# An unreachable issuer is survivable: the apiserver initialises this
+# authenticator in a background poll loop rather than at startup, so Authelia
+# being down costs OIDC logins but leaves certificate auth — and therefore the
+# break-glass kubeconfig — working.
+cluster:
+  apiServer:
+    extraArgs:
+      oidc-issuer-url: https://auth.internal.${SECRET_DOMAIN}
+      oidc-client-id: kubernetes
+      oidc-username-claim: preferred_username
+      oidc-username-prefix: "oidc:"
+      oidc-groups-claim: groups
+      oidc-groups-prefix: "oidc:"
+machine:
+  network:
+    # The apiserver resolves via the node's nameservers (1.1.1.1, see
+    # patches/dns.yaml), but internal.${SECRET_DOMAIN} is served only by
+    # k8s-gateway inside the cluster and external-dns publishes just the public
+    # domain, so the name has to be pinned here.
+    #
+    # Pointed at the internal gateway's ClusterIP, NOT its LoadBalancer address
+    # (192.168.254.2). The apiserver is a static pod on the host network, and
+    # the gateway Service uses externalTrafficPolicy: Local, so kube-proxy
+    # blackholes traffic to the LB IP on every node that has no local envoy
+    # endpoint -- which is most of them, envoy being a single replica. The
+    # ClusterIP routes from any node via kube-proxy, and SNI is unchanged so
+    # envoy still terminates with the right certificate.
+    #
+    # This address is pinned in
+    # kubernetes/apps/network/gateway/app/internal/envoy-extension.yaml; the two
+    # must not drift. Re-derive with:
+    #   kubectl -n network get svc gateway-internal -o jsonpath='{.spec.clusterIP}'
+    extraHostEntries:
+      - ip: 10.101.242.196
+        aliases:
+          - auth.internal.${SECRET_DOMAIN}
