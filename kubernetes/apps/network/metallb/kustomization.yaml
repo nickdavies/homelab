@@ -1,6 +1,6 @@
 namespace: metallb-system
 
 resources:
-  - github.com/metallb/metallb/config/native?ref=v0.16.0
+  - github.com/metallb/metallb/config/native?ref=v0.16.1
   - pools.yaml
   - advertise.yaml
