@@ -40,9 +40,16 @@ spec:
       - name: dynamic-config-vol
         configMap:
           name: hass-dynamic-configs
+          # Hand-maintained, not derived from the generator's file list: a key
+          # that exists in the ConfigMap but is not listed here is simply not
+          # mounted, while a key listed here that does NOT exist stops the pod
+          # from starting. So this only ever grows after the generator side has
+          # landed and Flux has rebuilt the ConfigMap.
           items:
             - key: zigbee_all_lights.yaml
               path: dynamic/lovelace/generated/all_lights.yaml
+            - key: plants.yaml
+              path: dynamic/generated/plants.yaml
       - name: secret-config-vol
         secret:
           secretName: hass-secret-configs
