@@ -1,0 +1,61 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2beta2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ceph-csi-drivers
+spec:
+  interval: 30m
+  timeout: 15m
+  # Must stay "ceph-csi-drivers": the Driver and OperatorConfig CRs already in
+  # the cluster carry meta.helm.sh/release-name=ceph-csi-drivers, so Helm adopts
+  # them instead of erroring on ownership.
+  releaseName: ceph-csi-drivers
+  chart:
+    spec:
+      chart: ceph-csi-drivers
+      # Track the ceph-csi-operator version the rook-ceph chart bundles.
+      version: 1.0.4
+      sourceRef:
+        kind: HelmRepository
+        name: ceph-csi-operator
+        namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  dependsOn:
+    - name: rook-ceph-operator
+  # Rook's recommended values for this chart
+  # (rook deploy/charts/ceph-csi-drivers/values.yaml). The driver names are the
+  # provisioner names the rook-ceph-cluster StorageClasses reference, and
+  # determine the ServiceAccount names the operator puts on the plugin pods
+  # (rook-ceph.rbd.csi.ceph.com -> rbd-ctrlplugin-sa / rbd-nodeplugin-sa).
+  values:
+    operatorConfig:
+      namespace: rook-ceph
+      driverSpecDefaults:
+        imageSet:
+          name: rook-csi-operator-image-set-configmap
+        nodePlugin:
+          priorityClassName: system-node-critical
+        controllerPlugin:
+          priorityClassName: system-cluster-critical
+    drivers:
+      rbd:
+        enabled: true
+        name: rook-ceph.rbd.csi.ceph.com
+      cephfs:
+        enabled: true
+        name: rook-ceph.cephfs.csi.ceph.com
+      nfs:
+        enabled: false
+        name: rook-ceph.nfs.csi.ceph.com
+      nvmeof:
+        enabled: false
+        name: rook-ceph.nvmeof.csi.ceph.com
