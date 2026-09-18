@@ -29,30 +29,146 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  # Helm adopted the pre-existing Driver and OperatorConfig CRs without writing
+  # to them, and its merge compares manifest-to-manifest rather than
+  # manifest-to-cluster, so it will never reconcile them on its own. Flux's
+  # drift correction server-side applies the release manifest directly, which is
+  # what actually lands spec.*Plugin.serviceAccountName on the Driver CRs. The
+  # values below are therefore written to reproduce the live spec exactly.
+  driftDetection:
+    mode: enabled
   dependsOn:
     - name: rook-ceph-operator
-  # Rook's recommended values for this chart
-  # (rook deploy/charts/ceph-csi-drivers/values.yaml). The driver names are the
-  # provisioner names the rook-ceph-cluster StorageClasses reference, and
-  # determine the ServiceAccount names the operator puts on the plugin pods
-  # (rook-ceph.rbd.csi.ceph.com -> rbd-ctrlplugin-sa / rbd-nodeplugin-sa).
   values:
     operatorConfig:
       namespace: rook-ceph
       driverSpecDefaults:
+        snapshotPolicy: volumeSnapshot
         imageSet:
           name: rook-csi-operator-image-set-configmap
         nodePlugin:
           priorityClassName: system-node-critical
+          tolerations:
+            - effect: NoSchedule
+              key: homelab/special-node
+              operator: Exists
         controllerPlugin:
           priorityClassName: system-cluster-critical
+          hostNetwork: true
+          replicas: 2
+
     drivers:
+      # Driver names are the provisioner names the rook-ceph-cluster
+      # StorageClasses and VolumeSnapshotClasses reference. They must not change.
       rbd:
         enabled: true
         name: rook-ceph.rbd.csi.ceph.com
+        clusterName: rook-ceph
+        enableMetadata: false
+        fsGroupPolicy: File
+        cephFsClientType: kernel
+        # The operator defaults an unset snapshotPolicy to volumeSnapshot, but
+        # this chart always emits the key and defaults it to "none", which drops
+        # the csi-snapshotter sidecar. VolSync snapshots every ceph-block PVC
+        # through the csi-ceph-blockpool VolumeSnapshotClass, so it must be set.
+        snapshotPolicy: volumeSnapshot
+        imageSet:
+          name: rook-csi-operator-image-set-configmap
+        nodePlugin:
+          priorityClassName: system-node-critical
+          kubeletDirPath: /var/lib/kubelet
+          enableSeLinuxHostMount: false
+          updateStrategy:
+            type: RollingUpdate
+          affinity:
+            nodeAffinity: {}
+          tolerations:
+            - effect: NoSchedule
+              key: homelab/special-node
+              operator: Exists
+          resources:
+            plugin:
+              limits: {memory: 1Gi}
+              requests: {cpu: "0", memory: 512Mi}
+            registrar:
+              limits: {memory: 256Mi}
+              requests: {cpu: "0", memory: 128Mi}
+        controllerPlugin:
+          replicas: 2
+          priorityClassName: system-cluster-critical
+          affinity:
+            nodeAffinity: {}
+          resources:
+            attacher:
+              limits: {memory: 256Mi}
+              requests: {cpu: "0", memory: 128Mi}
+            provisioner:
+              limits: {memory: 256Mi}
+              requests: {cpu: "0", memory: 128Mi}
+            resizer:
+              limits: {memory: 256Mi}
+              requests: {cpu: "0", memory: 128Mi}
+            snapshotter:
+              limits: {memory: 256Mi}
+              requests: {cpu: "0", memory: 128Mi}
+            omapGenerator:
+              limits: {memory: 1Gi}
+              requests: {cpu: "0", memory: 512Mi}
+            plugin:
+              limits: {memory: 1Gi}
+              requests: {cpu: "0", memory: 512Mi}
+
       cephfs:
         enabled: true
         name: rook-ceph.cephfs.csi.ceph.com
+        clusterName: rook-ceph
+        enableMetadata: false
+        fsGroupPolicy: File
+        cephFsClientType: kernel
+        snapshotPolicy: volumeGroupSnapshot
+        imageSet:
+          name: rook-csi-operator-image-set-configmap
+        nodePlugin:
+          priorityClassName: system-node-critical
+          kubeletDirPath: /var/lib/kubelet
+          enableSeLinuxHostMount: false
+          updateStrategy:
+            type: RollingUpdate
+          affinity:
+            nodeAffinity: {}
+          tolerations:
+            - effect: NoSchedule
+              key: homelab/special-node
+              operator: Exists
+          resources:
+            plugin:
+              limits: {memory: 1Gi}
+              requests: {cpu: "0", memory: 512Mi}
+            registrar:
+              limits: {memory: 256Mi}
+              requests: {cpu: "0", memory: 128Mi}
+        controllerPlugin:
+          replicas: 2
+          priorityClassName: system-cluster-critical
+          affinity:
+            nodeAffinity: {}
+          resources:
+            attacher:
+              limits: {memory: 256Mi}
+              requests: {cpu: "0", memory: 128Mi}
+            provisioner:
+              limits: {memory: 256Mi}
+              requests: {cpu: "0", memory: 128Mi}
+            resizer:
+              limits: {memory: 256Mi}
+              requests: {cpu: "0", memory: 128Mi}
+            snapshotter:
+              limits: {memory: 256Mi}
+              requests: {cpu: "0", memory: 128Mi}
+            plugin:
+              limits: {memory: 1Gi}
+              requests: {cpu: "0", memory: 512Mi}
+
       nfs:
         enabled: false
         name: rook-ceph.nfs.csi.ceph.com
