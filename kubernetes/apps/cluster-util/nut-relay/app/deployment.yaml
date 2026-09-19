@@ -56,6 +56,28 @@ spec:
           ports:
             - containerPort: 3493
               protocol: TCP
+          # Without this the pod reports healthy whenever the container is up,
+          # because upsmon runs in the foreground and outlives a driver that
+          # never connected. upsc exits non-zero in exactly that case
+          # ("Error: Driver not connected"), so this reports whether the relay
+          # can actually serve UPS data rather than whether a process exists.
+          #
+          # Readiness only, deliberately. The failure this catches is usually
+          # the NAS being unreachable, and restarting the container does not
+          # make it reachable -- a liveness probe would just thrash. Going
+          # NotReady pulls the pod from the Service endpoints, so clients fail
+          # closed instead of talking to a relay with no data.
+          #
+          # No specific variable is queried: which variables a repeated UPS
+          # exposes depends on the remote, and naming one that is absent would
+          # fail the probe permanently.
+          readinessProbe:
+            exec:
+              command: ["/usr/bin/upsc", "ups@localhost:3493"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
           # The image generates upsd.conf, upsd.users and upsmon.conf from these
           # at startup. NAME and MAXAGE are left at their defaults (ups, 15),
           # which is what this relay wants.
