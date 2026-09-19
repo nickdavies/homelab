@@ -40,19 +40,29 @@ spec:
           ports:
             - containerPort: 3493
               protocol: TCP
+          # The image generates upsd.conf, upsd.users and upsmon.conf from these
+          # at startup. NAME and MAXAGE are left at their defaults (ups, 15),
+          # which is what this relay wants.
+          env:
+            - name: API_USER
+              value: monuser
+            - name: SERVER
+              value: secondary
+            - name: API_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nut-relay-secret
+                  key: API_PASSWORD
+          # ups.conf is supplied rather than generated because the repeater
+          # needs repeater_disable_strict_start, which has no env equivalent.
+          # /etc/nut/local is the entrypoint's documented copy-from location;
+          # writing directly to /etc/nut/ups.conf fails as the mount is
+          # read-only. Nesting it one level also keeps it clear of the
+          # entrypoint's `chmod 640 /etc/nut/*`.
           volumeMounts:
             - name: nut-config
-              mountPath: /etc/nut/nut.conf
-              subPath: nut.conf
-            - name: nut-config
-              mountPath: /etc/nut/ups.conf
+              mountPath: /etc/nut/local/ups.conf
               subPath: ups.conf
-            - name: nut-config
-              mountPath: /etc/nut/upsd.conf
-              subPath: upsd.conf
-            - name: nut-config
-              mountPath: /etc/nut/upsd.users
-              subPath: upsd.users
       volumes:
         - name: nut-config
           configMap:
