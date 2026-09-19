@@ -13,8 +13,6 @@ spec:
       labels:
         app.kubernetes.io/name: nut-relay
     spec:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
