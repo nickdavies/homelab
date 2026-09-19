@@ -32,6 +32,15 @@ spec:
             args:
               - --health-probe-bind-address=:8081
               - --metrics-bind-address=:8080
+            # Scopes every informer to this namespace, so the operator needs
+            # only namespaced RBAC. Deliberately not the --watch-current-namespace
+            # flag: that resolves the namespace from a kubeconfig, which a pod
+            # does not have.
+            env:
+              WATCH_NAMESPACE:
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
             probes:
               liveness:
                 enabled: true
