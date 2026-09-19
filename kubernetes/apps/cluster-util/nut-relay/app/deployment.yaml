@@ -5,6 +5,13 @@ metadata:
   name: nut-relay
 spec:
   replicas: 3
+  # Recreate, not RollingUpdate. Three replicas are pinned to exactly three
+  # control-plane nodes under a required anti-affinity, so there is no spare
+  # node to surge onto: a rolling update cannot place a new pod until an old
+  # one leaves, and with maxUnavailable flooring to 0 it will not remove one
+  # until the new pods are available. That deadlocks every update.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: nut-relay
@@ -52,8 +59,13 @@ spec:
           #
           # API_PASSWORD is this relay's *inbound* password: it authenticates
           # clients connecting to our upsd, and the local upsmon connecting to
-          # it over loopback. The outbound leg to the NAS is a separate
-          # credential, supplied through nutauth.conf below.
+          # it over loopback.
+          #
+          # There is deliberately no outbound credential. dummy-ups 2.8.5 has
+          # no way to supply one -- the authconf parameter and nutauth.conf
+          # exist only on NUT master, and setting authconf here is fatal:
+          # "'authconf' is not a valid variable name for this driver". The NAS
+          # gates access by source IP instead (see the affinity block).
           env:
             - name: API_USER
               value: monuser
@@ -74,21 +86,7 @@ spec:
             - name: nut-config
               mountPath: /etc/nut/local/ups.conf
               subPath: ups.conf
-            # Deliberately outside /etc/nut: the entrypoint's
-            # `chmod 640 /etc/nut/*` would hit a read-only mount there and
-            # abort under `sh -e`. nutauth.conf holds a password, so it is
-            # mounted 0400; the driver runs as root via `upsdrvctl -u root`.
-            - name: nut-auth
-              mountPath: /etc/nut-auth
-              readOnly: true
       volumes:
         - name: nut-config
           configMap:
             name: nut-relay-config
-        - name: nut-auth
-          secret:
-            secretName: nut-relay-secret
-            defaultMode: 0400
-            items:
-              - key: nutauth.conf
-                path: nutauth.conf
