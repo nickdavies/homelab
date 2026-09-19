@@ -13,6 +13,12 @@ spec:
       labels:
         app.kubernetes.io/name: nut-relay
     spec:
+      # Pinning to the control-plane nodes is load-bearing, not a placement
+      # preference. The NAS restricts NUT clients by source IP
+      # (ups_acl = .9|.11|.12|.13) and .11/.12/.13 are those three nodes.
+      # Flannel runs with --ip-masq, so pod egress is SNATed to the node IP and
+      # the ACL still matches without hostNetwork. Allow these pods onto a
+      # worker and the NAS will reject them.
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
