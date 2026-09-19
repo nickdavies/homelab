@@ -5,13 +5,16 @@ metadata:
   name: nut-relay
 spec:
   replicas: 3
-  # Recreate, not RollingUpdate. Three replicas are pinned to exactly three
-  # control-plane nodes under a required anti-affinity, so there is no spare
-  # node to surge onto: a rolling update cannot place a new pod until an old
-  # one leaves, and with maxUnavailable flooring to 0 it will not remove one
-  # until the new pods are available. That deadlocks every update.
+  # Three replicas are pinned to exactly three control-plane nodes under a
+  # required anti-affinity, so there is no spare node to surge onto. The
+  # defaults (maxSurge 25%, maxUnavailable 25%) deadlock at this replica
+  # count: maxUnavailable floors to 0, so no old pod is retired, and a surge
+  # pod has nowhere to schedule. Roll one node at a time instead.
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: nut-relay
