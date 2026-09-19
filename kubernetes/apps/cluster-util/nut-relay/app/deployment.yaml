@@ -43,6 +43,13 @@ spec:
           # The image generates upsd.conf, upsd.users and upsmon.conf from these
           # at startup. NAME and MAXAGE are left at their defaults (ups, 15),
           # which is what this relay wants.
+          #
+          # API_PASSWORD is this relay's *inbound* password: it authenticates
+          # clients connecting to our upsd, and the local upsmon connecting to
+          # it over loopback. It is not used to reach the Synology. That leg is
+          # ups.conf's `port = ups@<nas>` and needs no credentials, since NUT
+          # only gates upsmon sessions and administrative commands, not the
+          # variable reads a repeater performs.
           env:
             - name: API_USER
               value: monuser
