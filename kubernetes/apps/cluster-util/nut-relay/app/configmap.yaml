@@ -13,3 +13,4 @@ data:
       port = ups@${SECRET_NAS_IP}
       desc = "Synology UPS relay"
       repeater_disable_strict_start = true
+      authconf = /etc/nut-auth/nutauth.conf

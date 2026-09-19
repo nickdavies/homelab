@@ -46,10 +46,8 @@ spec:
           #
           # API_PASSWORD is this relay's *inbound* password: it authenticates
           # clients connecting to our upsd, and the local upsmon connecting to
-          # it over loopback. It is not used to reach the Synology. That leg is
-          # ups.conf's `port = ups@<nas>` and needs no credentials, since NUT
-          # only gates upsmon sessions and administrative commands, not the
-          # variable reads a repeater performs.
+          # it over loopback. The outbound leg to the NAS is a separate
+          # credential, supplied through nutauth.conf below.
           env:
             - name: API_USER
               value: monuser
@@ -70,7 +68,21 @@ spec:
             - name: nut-config
               mountPath: /etc/nut/local/ups.conf
               subPath: ups.conf
+            # Deliberately outside /etc/nut: the entrypoint's
+            # `chmod 640 /etc/nut/*` would hit a read-only mount there and
+            # abort under `sh -e`. nutauth.conf holds a password, so it is
+            # mounted 0400; the driver runs as root via `upsdrvctl -u root`.
+            - name: nut-auth
+              mountPath: /etc/nut-auth
+              readOnly: true
       volumes:
         - name: nut-config
           configMap:
             name: nut-relay-config
+        - name: nut-auth
+          secret:
+            secretName: nut-relay-secret
+            defaultMode: 0400
+            items:
+              - key: nutauth.conf
+                path: nutauth.conf
