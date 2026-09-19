@@ -125,6 +125,14 @@ spec:
         enableMetadata: false
         fsGroupPolicy: File
         cephFsClientType: kernel
+        # The cluster requires msgr2 (network.connections.requireMsgr2), so the
+        # CSI plugin hands the kernel v2 monitor addresses on port 3300. The
+        # kernel client defaults to legacy msgr1 and cannot speak to a v2 port,
+        # so every fresh CephFS mount fails with "no mds is up / not
+        # authorized" unless ms_mode is set. The rook-ceph chart used to carry
+        # this as cephFSKernelMountOptions; it lives here now.
+        kernelMountOptions:
+          ms_mode: prefer-crc
         snapshotPolicy: volumeGroupSnapshot
         imageSet:
           name: rook-csi-operator-image-set-configmap
