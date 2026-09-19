@@ -4,17 +4,13 @@ kind: ConfigMap
 metadata:
   name: nut-relay-config
 data:
-  nut.conf: |
-    MODE=netserver
+  # Copied to /etc/nut/ups.conf by the image entrypoint. Everything else
+  # (upsd.conf, upsd.users, upsmon.conf) is generated from environment
+  # variables on the deployment.
   ups.conf: |
     [ups]
       driver = dummy-ups
       port = ups@${SECRET_NAS_IP}
       desc = "Synology UPS relay"
       repeater_disable_strict_start = true
-  upsd.conf: |
-    LISTEN 0.0.0.0 3493
-  upsd.users: |
-    [monuser]
-      password = nutrelay
-      upsmon secondary
+      authconf = /etc/nut-auth/nutauth.conf

@@ -13,6 +13,12 @@ spec:
       labels:
         app.kubernetes.io/name: nut-relay
     spec:
+      # Pinning to the control-plane nodes is load-bearing, not a placement
+      # preference. The NAS restricts NUT clients by source IP
+      # (ups_acl = .9|.11|.12|.13) and .11/.12/.13 are those three nodes.
+      # Flannel runs with --ip-masq, so pod egress is SNATed to the node IP and
+      # the ACL still matches without hostNetwork. Allow these pods onto a
+      # worker and the NAS will reject them.
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -40,20 +46,49 @@ spec:
           ports:
             - containerPort: 3493
               protocol: TCP
+          # The image generates upsd.conf, upsd.users and upsmon.conf from these
+          # at startup. NAME and MAXAGE are left at their defaults (ups, 15),
+          # which is what this relay wants.
+          #
+          # API_PASSWORD is this relay's *inbound* password: it authenticates
+          # clients connecting to our upsd, and the local upsmon connecting to
+          # it over loopback. The outbound leg to the NAS is a separate
+          # credential, supplied through nutauth.conf below.
+          env:
+            - name: API_USER
+              value: monuser
+            - name: SERVER
+              value: secondary
+            - name: API_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nut-relay-secret
+                  key: API_PASSWORD
+          # ups.conf is supplied rather than generated because the repeater
+          # needs repeater_disable_strict_start, which has no env equivalent.
+          # /etc/nut/local is the entrypoint's documented copy-from location;
+          # writing directly to /etc/nut/ups.conf fails as the mount is
+          # read-only. Nesting it one level also keeps it clear of the
+          # entrypoint's `chmod 640 /etc/nut/*`.
           volumeMounts:
             - name: nut-config
-              mountPath: /etc/nut/nut.conf
-              subPath: nut.conf
-            - name: nut-config
-              mountPath: /etc/nut/ups.conf
+              mountPath: /etc/nut/local/ups.conf
               subPath: ups.conf
-            - name: nut-config
-              mountPath: /etc/nut/upsd.conf
-              subPath: upsd.conf
-            - name: nut-config
-              mountPath: /etc/nut/upsd.users
-              subPath: upsd.users
+            # Deliberately outside /etc/nut: the entrypoint's
+            # `chmod 640 /etc/nut/*` would hit a read-only mount there and
+            # abort under `sh -e`. nutauth.conf holds a password, so it is
+            # mounted 0400; the driver runs as root via `upsdrvctl -u root`.
+            - name: nut-auth
+              mountPath: /etc/nut-auth
+              readOnly: true
       volumes:
         - name: nut-config
           configMap:
             name: nut-relay-config
+        - name: nut-auth
+          secret:
+            secretName: nut-relay-secret
+            defaultMode: 0400
+            items:
+              - key: nutauth.conf
+                path: nutauth.conf
