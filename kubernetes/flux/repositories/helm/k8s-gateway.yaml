@@ -4,4 +4,5 @@ metadata:
   name: k8s-gateway
 spec:
   interval: 5m
-  url: https://k8s-gateway.github.io/k8s_gateway/
+  # Upstream moved to Codeberg; the GitHub Pages index now 404s.
+  url: https://k8s-gateway.codeberg.page/k8s_gateway/
