@@ -6,6 +6,7 @@ resources:
 - cloudflared/ks.yaml
 - envoy-gateway/ks.yaml
 - external-dns/ks.yaml
+- friends-dns/ks.yaml
 - gateway/ks.yaml
 - k8s-gateway/ks.yaml
 - metallb

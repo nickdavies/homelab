@@ -1,0 +1,153 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app friends-dns
+spec:
+  interval: 15m
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+    namespace: flux-system
+  maxHistory: 2
+  install:
+    remediation:
+      retries: -1
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      friends-dns:
+        # StatefulSet so each pod keeps a stable name, and with it its own
+        # tailnet node (friends-dns-0 / friends-dns-1) and 100.x IP. Both IPs
+        # go in the friends' tailnet DNS settings, so one pod can be down.
+        # OrderedReady rollouts wait for the replaced pod to be back on the
+        # tailnet before touching the other one.
+        type: statefulset
+        replicas: 2
+        annotations:
+          reloader.stakater.com/auto: 'true'
+        serviceAccount:
+          name: *app
+        pod:
+          securityContext:
+            # blocky runs unprivileged but must bind :53 (see config.yaml)
+            sysctls:
+              - name: net.ipv4.ip_unprivileged_port_start
+                value: "0"
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: *app
+        containers:
+          app:
+            image:
+              repository: docker.io/spx01/blocky
+              tag: v0.35.0@sha256:4f165b63db0d76c96ecc47c7a8f57caeedc003a912bdce29abb0e283ce02e16b
+            args:
+              - --config
+              - /etc/blocky/config/config.yaml
+            probes:
+              liveness: &blockyProbes
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: 53
+                  periodSeconds: 10
+                  timeoutSeconds: 1
+                  failureThreshold: 3
+              readiness: *blockyProbes
+              startup:
+                enabled: false
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 256Mi
+          tailscale:
+            image:
+              repository: docker.io/tailscale/tailscale
+              tag: v1.102.4@sha256:2667499ed87ae29218f292556ba062918402dd5e92e93637af14867e4df12dd3
+            env:
+              POD_NAME:
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              TS_HOSTNAME: $(POD_NAME)
+              TS_KUBE_SECRET: $(POD_NAME)-tailscale
+              TS_EXTRA_ARGS: --advertise-tags=tag:friends-dns
+              # Only log in with the OAuth secret when there's no saved state.
+              TS_AUTH_ONCE: "true"
+              # Kernel mode, so blocky sees friends' real 100.x source IPs
+              # (userspace mode proxies everything from 127.0.0.1).
+              TS_USERSPACE: "false"
+              # The pod keeps cluster DNS; blocky has its own upstreams.
+              TS_ACCEPT_DNS: "false"
+              TS_ENABLE_HEALTH_CHECK: "true"
+              TS_LOCAL_ADDR_PORT: 0.0.0.0:9002
+            envFrom:
+              - secretRef:
+                  name: friends-dns-secret
+            probes:
+              liveness:
+                enabled: false
+              # /healthz is ready once the node has its tailnet IPs. Readiness
+              # only, so a Tailscale control-plane blip doesn't restart pods.
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: 9002
+                  periodSeconds: 10
+                  timeoutSeconds: 1
+                  failureThreshold: 3
+              startup:
+                enabled: false
+            securityContext:
+              # Kernel-mode tailscaled needs /dev/net/tun and to manage routes
+              # and firewall rules in the pod's network namespace.
+              privileged: true
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 128Mi
+    # Metrics only. Friends reach blocky over the tailnet, not a LoadBalancer.
+    service:
+      app:
+        controller: friends-dns
+        ports:
+          http:
+            port: 4000
+    serviceMonitor:
+      app:
+        serviceName: *app
+        endpoints:
+          - port: http
+            scheme: http
+            path: /metrics
+            interval: 1m
+            scrapeTimeout: 10s
+    persistence:
+      config:
+        enabled: true
+        type: configMap
+        name: friends-dns-configmap
+        advancedMounts:
+          friends-dns:
+            app:
+              - path: /etc/blocky/config/config.yaml
+                subPath: config.yaml
+                readOnly: true
