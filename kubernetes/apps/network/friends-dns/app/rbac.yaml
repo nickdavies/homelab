@@ -1,0 +1,38 @@
+---
+# containerboot stores each pod's tailnet identity in a Secret so the node
+# (and its 100.x IP, which friends' DNS settings point at) survives restarts.
+# One Secret per StatefulSet pod -- extend resourceNames if replicas change.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: friends-dns
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: friends-dns
+rules:
+  # create can't be scoped by resourceNames
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["friends-dns-0-tailscale", "friends-dns-1-tailscale"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: friends-dns
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: friends-dns
+subjects:
+  - kind: ServiceAccount
+    name: friends-dns
+    namespace: network

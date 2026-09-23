@@ -1,0 +1,58 @@
+# Blocky for friends on the separate friends' tailnet. Deliberately shares
+# nothing with ../../blocky: no conditional zone, no customDNS, nothing that
+# resolves or forwards to the homelab LAN.
+
+ports:
+  # Tailscale's global nameserver setting only takes an IP, so this has to be
+  # 53. The pod sets net.ipv4.ip_unprivileged_port_start=0 so blocky can bind
+  # it without root.
+  dns: 53
+  # Also reachable on the tailnet IP -- the tailnet policy only grants port 53,
+  # which is what keeps friends off the (unauthenticated) API.
+  http: 4000
+
+log:
+  level: info
+  # Friends' queries are theirs -- keep domains out of the pod logs.
+  privacy: true
+
+prometheus:
+  enable: true
+  path: /metrics
+
+# Encrypted upstreams so friends' queries aren't visible to the home ISP.
+# IP + #commonname avoids needing bootstrap DNS to find the upstreams.
+upstreams:
+  groups:
+    default:
+      - tcp-tls:1.1.1.1:853#cloudflare-dns.com
+      - tcp-tls:8.8.8.8:853#dns.google
+      - tcp-tls:9.9.9.9:853#dns.quad9.net
+
+# Used to resolve the denylist URLs.
+bootstrapDns:
+  - upstream: tcp+udp:1.1.1.1
+  - upstream: tcp+udp:8.8.8.8
+
+caching:
+  prefetching: true
+
+# MagicDNS answers PTR queries for tailnet IPs with device names, so metrics
+# and clientGroupsBlock can use names like "alex-iphone" instead of 100.x IPs.
+clientLookup:
+  upstream: 100.100.100.100
+
+blocking:
+  denylists:
+    ads:
+      - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+  # Domains that break things for friends go here, one per line (*.example.com
+  # and /regex/ also work). Allowlists win over the denylist in the same group.
+  allowlists:
+    ads:
+      - |
+        # example.com
+  clientGroupsBlock:
+    default:
+      - ads
+  blockTTL: 1m
