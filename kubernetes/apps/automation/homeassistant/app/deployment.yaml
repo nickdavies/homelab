@@ -43,6 +43,12 @@ spec:
           items:
             - key: zigbee_all_lights.yaml
               path: dynamic/lovelace/generated/all_lights.yaml
+            # The rooms from homelab-data, as the config bridge's areas: a
+            # package, so it lands where `!include_dir_named packages` finds it.
+            # Its basename is the package name, which must not collide with a
+            # package in hass-configs.
+            - key: config_bridge_areas.yaml
+              path: dynamic/packages/generated/config_bridge_areas.yaml
       - name: secret-config-vol
         secret:
           secretName: hass-secret-configs
