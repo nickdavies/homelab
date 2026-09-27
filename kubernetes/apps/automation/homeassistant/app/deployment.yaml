@@ -49,6 +49,10 @@ spec:
             # package in hass-configs.
             - key: config_bridge_areas.yaml
               path: dynamic/packages/generated/config_bridge_areas.yaml
+            # Each zigbee device in its room, as the config bridge's devices: a
+            # package too, under the same rule.
+            - key: config_bridge_devices.yaml
+              path: dynamic/packages/generated/config_bridge_devices.yaml
       - name: secret-config-vol
         secret:
           secretName: hass-secret-configs
