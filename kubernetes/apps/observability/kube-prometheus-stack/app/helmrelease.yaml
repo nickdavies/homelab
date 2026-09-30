@@ -39,6 +39,12 @@ spec:
           component: kube-apiserver
     kubeProxy:
       enabled: false
+    alertmanager:
+      alertmanagerSpec:
+        # The default (OnNamespace) scopes the AlertmanagerConfig's routes to alerts
+        # from its own namespace; this is the cluster-wide routing tree.
+        alertmanagerConfigMatcherStrategy:
+          type: None
     prometheus:
       route:
         main:
