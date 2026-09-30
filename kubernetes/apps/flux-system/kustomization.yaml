@@ -1,0 +1,8 @@
+---
+# Flux itself is installed by flux-operator from the Talos config; this category
+# only holds cluster-apps additions for it. There is deliberately no namespace.yaml:
+# flux-system must never be owned (and so prunable) by cluster-apps.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./monitoring/ks.yaml
