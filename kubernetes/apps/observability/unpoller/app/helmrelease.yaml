@@ -43,7 +43,8 @@ spec:
             env:
               TZ: ${TIMEZONE}
               UP_UNIFI_DEFAULT_ROLE: homelab
-              UP_UNIFI_DEFAULT_URL: https://unifi.internal.${SECRET_DOMAIN}
+              # Direct to the controller: no dependency on internal DNS or the gateway.
+              UP_UNIFI_DEFAULT_URL: https://192.168.254.1
               UP_UNIFI_DEFAULT_VERIFY_SSL: false
               UP_UNIFI_DEFAULT_SAVE_SITES: true
               UP_UNIFI_DEFAULT_SAVE_DPI: true
