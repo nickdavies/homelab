@@ -111,6 +111,25 @@ spec:
             cpu: 0m
           limits:
             memory: 128Mi
+      # https://rook.io/docs/rook/latest/Storage-Configuration/Advanced/cephx-key-rotation/
+      # Bump keyGeneration to rotate daemon keys (mon/mgr/osd/mds/rgw). Rook
+      # picks aes256k for them. CSI keys stay aes: aes256k kernel mounts need
+      # Linux 7.0+.
+      security:
+        cephx:
+          daemon:
+            keyRotationPolicy: KeyGeneration
+            keyGeneration: 2
+      healthCheck:
+        # These stay raised while CSI keys are aes. Unmute once the nodes run
+        # Linux 7.0+ and CSI keys are rotated to aes256k.
+        muteHealthWarning:
+          AUTH_INSECURE_CLIENT_KEY_TYPE:
+            policy: mute
+          AUTH_INSECURE_KEYS_ALLOWED:
+            policy: mute
+          AUTH_INSECURE_KEYS_CREATABLE:
+            policy: mute
       crashCollector:
         disable: false
       dashboard:
