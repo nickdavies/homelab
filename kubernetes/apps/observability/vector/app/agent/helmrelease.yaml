@@ -58,6 +58,12 @@ spec:
             args: ["--config", "/etc/vector/vector.yaml"]
             securityContext:
               privileged: true
+        pod:
+          # Collect from every node, including tainted special-purpose ones (laundry-pi).
+          tolerations:
+            - key: homelab/special-node
+              operator: Exists
+              effect: NoSchedule
     serviceAccount:
       create: true
       name: vector-agent
