@@ -5,7 +5,6 @@ namespace: automation
 resources:
   - ./externalsecret.yaml
   - ./helmrelease.yaml
-  - ./podmonitor.yaml
   - ./prometheusrule.yaml
   - ./route.yaml
   - ../../../../templates/volsync

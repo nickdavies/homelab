@@ -87,6 +87,13 @@ spec:
             port: 8554
           go2rtc:
             port: 1984
+    serviceMonitor:
+      app:
+        serviceName: frigate
+        endpoints:
+          - port: http
+            path: /api/metrics
+            interval: 60s
     persistence:
       config:
         enabled: true
