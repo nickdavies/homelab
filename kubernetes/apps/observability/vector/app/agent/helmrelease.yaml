@@ -76,8 +76,11 @@ spec:
           - path: /etc/vector/vector.yaml
             subPath: vector.yaml
             readOnly: true
+      # Holds the file checkpoints; on an emptyDir every restart re-ships all logs on the node.
       data:
-        type: emptyDir
+        type: hostPath
+        hostPath: /var/lib/vector-agent
+        hostPathType: DirectoryOrCreate
         globalMounts:
           - path: /vector-data-dir
       procfs:
