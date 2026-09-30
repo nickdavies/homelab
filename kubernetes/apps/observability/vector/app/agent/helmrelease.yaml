@@ -64,6 +64,17 @@ spec:
             - key: homelab/special-node
               operator: Exists
               effect: NoSchedule
+    service:
+      app:
+        controller: vector-agent
+        ports:
+          metrics:
+            port: 9090
+    serviceMonitor:
+      app:
+        serviceName: vector-agent
+        endpoints:
+          - port: metrics
     serviceAccount:
       create: true
       name: vector-agent

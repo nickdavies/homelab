@@ -45,6 +45,7 @@ spec:
                   app.kubernetes.io/name: *app
     service:
       app:
+        primary: true
         type: LoadBalancer
         controller: vector-aggregator
         ports:
@@ -56,6 +57,17 @@ spec:
             port: 6010
           syslog:
             port: 6020
+      # Separate ClusterIP service so metrics aren't exposed on the LoadBalancer IP.
+      metrics:
+        controller: vector-aggregator
+        ports:
+          metrics:
+            port: 9090
+    serviceMonitor:
+      app:
+        serviceName: vector-aggregator-metrics
+        endpoints:
+          - port: metrics
     persistence:
       config:
         enabled: true

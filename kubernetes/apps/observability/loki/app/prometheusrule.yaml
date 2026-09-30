@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: loki
+spec:
+  groups:
+    - name: loki
+      rules:
+        - alert: LokiDiscardingLogs
+          expr: sum by (reason) (rate(loki_discarded_samples_total[10m])) > 0
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Loki is rejecting log lines
+            description: Loki has been discarding log lines for 30 minutes (reason {{ $labels.reason }}).

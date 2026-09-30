@@ -5,3 +5,4 @@ kind: Kustomization
 resources:
   - ./agent
   - ./aggregator
+  - ./prometheusrule.yaml
