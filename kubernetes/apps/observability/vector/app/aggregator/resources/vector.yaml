@@ -24,6 +24,9 @@ sources:
     address: 0.0.0.0:6020
     mode: tcp
 
+  vector_metrics:
+    type: internal_metrics
+
 #
 # Transforms
 #
@@ -43,6 +46,11 @@ transforms:
 #
 
 sinks:
+  prometheus:
+    type: prometheus_exporter
+    inputs: ["vector_metrics"]
+    address: 0.0.0.0:9090
+
   journald:
     inputs: ["journald_source"]
     type: loki

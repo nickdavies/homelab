@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: vector
+spec:
+  groups:
+    - name: vector
+      rules:
+        - alert: VectorDroppingEvents
+          expr: sum by (pod, component_id) (rate(vector_component_discarded_events_total{intentional="false"}[10m])) > 0
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Vector is dropping events
+            description: "{{ $labels.pod }} has been dropping events in {{ $labels.component_id }} for 30 minutes."

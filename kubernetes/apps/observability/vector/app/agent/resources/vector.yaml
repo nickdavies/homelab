@@ -16,7 +16,15 @@ sources:
     node_annotation_fields:
       node_labels: ""
 
+  vector_metrics:
+    type: internal_metrics
+
 sinks:
+  prometheus:
+    type: prometheus_exporter
+    inputs: ["vector_metrics"]
+    address: 0.0.0.0:9090
+
   kubernetes:
     type: vector
     compression: true
