@@ -53,6 +53,11 @@ spec:
             # package too, under the same rule.
             - key: config_bridge_devices.yaml
               path: dynamic/packages/generated/config_bridge_devices.yaml
+            # The main floor's plan, served by Home Assistant at
+            # /local/floorplan/main.svg. The overlay merges www/ with the one in
+            # hass-configs, so floorplan/ must not exist there.
+            - key: floorplan_main.svg
+              path: dynamic/www/floorplan/main.svg
       - name: secret-config-vol
         secret:
           secretName: hass-secret-configs
