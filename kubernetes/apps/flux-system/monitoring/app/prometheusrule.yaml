@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: flux
+spec:
+  groups:
+    - name: flux
+      rules:
+        - alert: FluxResourceNotReady
+          expr: max by (exported_namespace, kind, name, reason) (flux_resource_info{ready!="True", suspended="False"}) == 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Flux {{ $labels.kind }} is not ready
+            description: "{{ $labels.kind }} {{ $labels.exported_namespace }}/{{ $labels.name }} has not been Ready for 15 minutes (reason {{ $labels.reason }})."
