@@ -1,0 +1,37 @@
+---
+# Upstream's Helm chart ships these rules; its kustomize bases (used here) don't.
+# gateway-ip-pool is excluded from exhaustion: it is sized exactly to the
+# Gateways and is full by design.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: metallb
+spec:
+  groups:
+    - name: metallb
+      rules:
+        - alert: MetalLBStaleConfig
+          expr: metallb_k8s_client_config_stale_bool == 1
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: MetalLB is running on a stale configuration
+            description: "{{ $labels.pod }} has a stale configuration: the latest config failed to load."
+        - alert: MetalLBConfigNotLoaded
+          expr: metallb_k8s_client_config_loaded_bool == 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: MetalLB configuration not loaded
+            description: "{{ $labels.pod }} has not loaded any configuration."
+        - alert: MetalLBAddressPoolExhausted
+          expr: metallb_allocator_addresses_in_use_total{pool!="gateway-ip-pool"} >= on (pool) metallb_allocator_addresses_total
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: MetalLB address pool exhausted
+            description: "Pool {{ $labels.pool }} has no free addresses; new LoadBalancer services will stay pending."

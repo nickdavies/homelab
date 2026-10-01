@@ -1,7 +1,9 @@
 namespace: metallb-system
 
 resources:
-  - github.com/metallb/metallb/config/native?ref=v0.16.1
+  # native + upstream's Prometheus Operator monitors and the RBAC its HTTPS
+  # metrics endpoint needs to authorize scrapes.
+  - github.com/metallb/metallb/config/prometheus-native?ref=v0.16.1
   - pools.yaml
   - advertise.yaml
-  - monitoring.yaml
+  - prometheusrule.yaml
