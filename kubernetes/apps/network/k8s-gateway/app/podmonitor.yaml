@@ -1,0 +1,14 @@
+---
+# The chart serves :9153 (CoreDNS prometheus plugin) but neither exposes it on the
+# Service nor offers a monitor, so scrape the pods directly.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/podmonitor_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: k8s-gateway
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: k8s-gateway
+  podMetricsEndpoints:
+    - port: metrics
