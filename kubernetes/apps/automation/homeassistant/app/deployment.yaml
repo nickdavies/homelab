@@ -58,6 +58,14 @@ spec:
             # hass-configs, so floorplan/ must not exist there.
             - key: floorplan_main.svg
               path: dynamic/www/floorplan/main.svg
+            # Each room's air temperature and the house median, from
+            # homelab-data: a package, under the same naming rule as above.
+            - key: air_temperature.yaml
+              path: dynamic/packages/generated/air_temperature.yaml
+            # The floor plan card coloured by those temperatures, which
+            # hass-configs' HVAC view `!include`s.
+            - key: floorplan_card_main.yaml
+              path: dynamic/lovelace/generated/floorplan_main.yaml
       - name: secret-config-vol
         secret:
           secretName: hass-secret-configs
