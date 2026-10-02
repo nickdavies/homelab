@@ -58,10 +58,12 @@ spec:
             # hass-configs, so floorplan/ must not exist there.
             - key: floorplan_main.svg
               path: dynamic/www/floorplan/main.svg
-            # The areas on it, which dashboards that draw on the plan read from
-            # beside it, as www/floorplan/main.yaml.
+            # The areas on it, as config: hass-configs `!include`s it from
+            # floorplans/main.yaml wherever a dashboard draws on the plan. The
+            # overlay merges this with hass-configs, so floorplans/ must not
+            # exist there.
             - key: floorplan_areas_main.yaml
-              path: dynamic/www/floorplan/main.yaml
+              path: dynamic/floorplans/main.yaml
             # Each room's air temperature and the house median, from
             # homelab-data: a package, under the same naming rule as above.
             - key: air_temperature.yaml
