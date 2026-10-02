@@ -32,7 +32,7 @@ spec:
     ttl: 60
     replicaCount: 2
     # Resolve Gateway API routes (-> parent Gateway LB IP) and annotated
-    # LoadBalancer Services (-> their own LB IP, e.g. mqtt/smtp/influx-direct/minecraft).
+    # LoadBalancer Services (-> their own LB IP, e.g. mqtt/smtp/minecraft).
     watchedResources:
       - HTTPRoute
       - TLSRoute

@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - ./namespace.yaml
   - ./grafana/ks.yaml
-  - ./influxdb/ks.yaml
+  - ./influxdb2/ks.yaml
   - ./kube-prometheus-stack/ks.yaml
   - ./loki/ks.yaml
   - ./unpoller/ks.yaml
