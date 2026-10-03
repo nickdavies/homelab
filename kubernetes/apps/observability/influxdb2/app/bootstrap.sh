@@ -72,6 +72,9 @@ bucket=$(ensure_bucket "${BUCKET}")
 ensure_v1_user homeassistant "${INFLUXDB_HA_PASSWORD}" write "${bucket}"
 ensure_v1_user grafana "${INFLUXDB_GRAFANA_PASSWORD}" read "${bucket}"
 log "done"
+# The sidecar's readiness probe. A restarted container gets a fresh /tmp, so
+# it is never stale.
+touch /tmp/bootstrap-done
 
 # Idle until the pod stops, exiting promptly when it does.
 trap 'exit 0' TERM INT
