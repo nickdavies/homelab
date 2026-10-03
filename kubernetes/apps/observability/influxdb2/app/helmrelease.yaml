@@ -44,6 +44,9 @@ spec:
             env:
               INFLUXDB_DATA_CACHE_MAX_MEMORY_SIZE: 3G
               TZ: ${TIMEZONE}
+              # The entrypoint's dasel (first-run setup) needs a current user,
+              # and uid 568 has no passwd entry; Go falls back to $USER.
+              USER: influxdb
               # First-run setup, on an empty volume only. The admin login and
               # token come from influxdb2-secret.
               DOCKER_INFLUXDB_INIT_MODE: setup
