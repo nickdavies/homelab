@@ -1,0 +1,39 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1.json
+# Grafana's datasource for the Home Assistant bucket, as a Secret because it
+# carries the read-only v1 user's password. Grafana's datasource sidecar picks
+# up any Secret labelled grafana_datasource, in any namespace.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: influxdb2-grafana-datasource
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: onepassword-connect
+  target:
+    name: influxdb2-grafana-datasource
+    creationPolicy: Owner
+    template:
+      engineVersion: v2
+      metadata:
+        labels:
+          grafana_datasource: "1"
+      data:
+        influxdb-homeassistant.yaml: |
+          apiVersion: 1
+          datasources:
+            - name: Home Assistant
+              type: influxdb
+              uid: influxdb-homeassistant
+              access: proxy
+              url: http://influxdb2.observability.svc.cluster.local:8086
+              user: grafana
+              jsonData:
+                dbName: homeassistant
+                httpMode: POST
+              secureJsonData:
+                password: "{{ .INFLUXDB_GRAFANA_PASSWORD }}"
+  dataFrom:
+    - extract:
+        key: influxdb

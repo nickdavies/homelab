@@ -1,0 +1,127 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app influxdb2
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: app-template
+      version: 3.7.3
+      sourceRef:
+        kind: HelmRepository
+        name: bjw-s
+        namespace: flux-system
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  uninstall:
+    keepHistory: false
+  dependsOn:
+    - name: rook-ceph-cluster
+      namespace: rook-ceph
+    - name: volsync
+      namespace: volsync-system
+  values:
+    controllers:
+      influxdb2:
+        annotations:
+          reloader.stakater.com/auto: 'true'
+        containers:
+          app:
+            image:
+              repository: influxdb
+              tag: 2.9.1
+            env:
+              INFLUXDB_DATA_CACHE_MAX_MEMORY_SIZE: 3G
+              TZ: ${TIMEZONE}
+              # First-run setup, on an empty volume only. The admin login and
+              # token come from influxdb2-secret.
+              DOCKER_INFLUXDB_INIT_MODE: setup
+              DOCKER_INFLUXDB_INIT_ORG: &org homelab
+              # No DOCKER_INFLUXDB_INIT_RETENTION: Home Assistant's bucket
+              # keeps everything.
+              DOCKER_INFLUXDB_INIT_BUCKET: &bucket homeassistant
+            envFrom:
+              - secretRef:
+                  name: &secret influxdb2-secret
+            resources:
+              requests:
+                cpu: 23m
+                memory: 512Mi
+              limits:
+                memory: 1Gi
+            probes:
+              liveness:
+                enabled: false
+              readiness:
+                enabled: false
+              startup:
+                enabled: false
+          # Makes the buckets and v1 users (Home Assistant's, Grafana's) match
+          # the secret at every pod start; see bootstrap.sh.
+          bootstrap:
+            image:
+              repository: influxdb
+              tag: 2.9.1
+            command: [/bin/bash, /app/bootstrap.sh]
+            env:
+              INFLUX_ORG: *org
+              BUCKET: *bucket
+            envFrom:
+              - secretRef:
+                  name: *secret
+            resources:
+              requests:
+                cpu: 5m
+                memory: 32Mi
+              limits:
+                memory: 128Mi
+        pod:
+          securityContext:
+            runAsUser: 568
+            runAsGroup: 568
+            fsGroup: 568
+            fsGroupChangePolicy: OnRootMismatch
+    service:
+      app:
+        controller: influxdb2
+        ports:
+          http:
+            port: 8086
+    persistence:
+      data:
+        enabled: true
+        existingClaim: *app
+        advancedMounts:
+          influxdb2:
+            app:
+              - path: /var/lib/influxdb2
+      # First-run setup writes the CLI's config here, which the image's own
+      # directory doesn't allow a non-root user to do.
+      etc:
+        enabled: true
+        type: emptyDir
+        advancedMounts:
+          influxdb2:
+            app:
+              - path: /etc/influxdb2
+      bootstrap:
+        enabled: true
+        type: configMap
+        name: influxdb2-bootstrap
+        advancedMounts:
+          influxdb2:
+            bootstrap:
+              - path: /app/bootstrap.sh
+                subPath: bootstrap.sh
+                readOnly: true
