@@ -41,8 +41,6 @@ spec:
         configMap:
           name: hass-dynamic-configs
           items:
-            - key: zigbee_all_lights.yaml
-              path: dynamic/lovelace/generated/all_lights.yaml
             # The grid of every light group alone, which hass-configs' Debug
             # dashboard `!include`s as its Lights page.
             - key: zigbee_light_groups.yaml
