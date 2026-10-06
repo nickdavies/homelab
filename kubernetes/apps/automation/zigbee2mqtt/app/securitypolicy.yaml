@@ -1,0 +1,32 @@
+---
+# The Zigbee2MQTT frontend has no auth_token, and it can permit joins, remove
+# devices and flash firmware. Same Authelia ext-authz wiring as
+# automation/rethink/app/securitypolicy.yaml, which explains each field.
+#
+# Home Assistant talks to Zigbee2MQTT over MQTT and never passes through this
+# route.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: zigbee2mqtt-authelia
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: zigbee2mqtt
+  extAuth:
+    headersToExtAuth:
+      - accept
+      - cookie
+      - location
+      - authorization
+      - proxy-authorization
+      - x-forwarded-proto
+    failOpen: false
+    http:
+      backendRefs:
+        - kind: Service
+          name: authelia
+          namespace: security
+          port: 80
+      path: /api/authz/ext-authz/
