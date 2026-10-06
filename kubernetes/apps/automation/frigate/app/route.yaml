@@ -9,19 +9,7 @@ spec:
     - name: internal
       namespace: network
   rules:
-    - matches:
-      - path:
-         type: PathPrefix
-         value: "/go2rtc"
-      backendRefs:
-        - kind: Service
-          name: frigate
-          port: 1984
-    - matches:
-      - path:
-          type: PathPrefix
-          value: "/"
-      backendRefs:
+    - backendRefs:
         - kind: Service
           name: frigate
           port: 5000

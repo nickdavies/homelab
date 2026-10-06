@@ -1,18 +1,16 @@
 ---
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: automation
 resources:
   - ./externalsecret.yaml
+  - ./grafana-datasource.yaml
   - ./helmrelease.yaml
-  - ./prometheusrule.yaml
   - ./route.yaml
-  - ./securitypolicy.yaml
   - ../../../../templates/volsync
 configMapGenerator:
-  - name: frigate-configmap
+  - name: influxdb2-bootstrap
     files:
-      - config.yml=./config/config.yml
+      - ./bootstrap.sh
 generatorOptions:
   disableNameSuffixHash: true
   annotations:

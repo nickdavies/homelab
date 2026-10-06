@@ -12,6 +12,12 @@ spec:
     - group: gateway.envoyproxy.io
       kind: SecurityPolicy
       namespace: automation
+    - group: gateway.envoyproxy.io
+      kind: SecurityPolicy
+      namespace: cluster-util
+    - group: gateway.envoyproxy.io
+      kind: SecurityPolicy
+      namespace: observability
   to:
     - group: ""
       kind: Service

@@ -320,6 +320,15 @@ spec:
         enabled: true
         searchNamespace: ALL
         labelValue: ""
+        # Datasources from labelled Secrets/ConfigMaps (e.g. influxdb2's) are
+        # written by an init container (LIST: write once, then exit), so
+        # Grafana provisions them at startup. This replaces the live sidecar,
+        # whose reload call authenticates with the chart's generated admin
+        # password, which Grafana's database doesn't accept (401), so new
+        # datasources never loaded. A changed datasource applies on Grafana's
+        # next restart.
+        initDatasources: true
+        watchMethod: LIST
     plugins:
       - grafana-clock-panel
       - grafana-piechart-panel

@@ -41,8 +41,10 @@ spec:
         configMap:
           name: hass-dynamic-configs
           items:
-            - key: zigbee_all_lights.yaml
-              path: dynamic/lovelace/generated/all_lights.yaml
+            # The grid of every light group alone, which hass-configs' Debug
+            # dashboard `!include`s as its Lights page.
+            - key: zigbee_light_groups.yaml
+              path: dynamic/lovelace/generated/light_groups.yaml
             # The rooms from homelab-data, as the config bridge's areas: a
             # package, so it lands where `!include_dir_named packages` finds it.
             # Its basename is the package name, which must not collide with a
@@ -58,6 +60,12 @@ spec:
             # hass-configs, so floorplan/ must not exist there.
             - key: floorplan_main.svg
               path: dynamic/www/floorplan/main.svg
+            # The areas on it, as config: hass-configs `!include`s it from
+            # floorplans/main.yaml wherever a dashboard draws on the plan. The
+            # overlay merges this with hass-configs, so floorplans/ must not
+            # exist there.
+            - key: floorplan_areas_main.yaml
+              path: dynamic/floorplans/main.yaml
             # Each room's air temperature and the house median, from
             # homelab-data: a package, under the same naming rule as above.
             - key: air_temperature.yaml

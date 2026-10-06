@@ -74,6 +74,9 @@ spec:
               readOnlyRootFilesystem: true
               capabilities: { drop: [ALL] }
         pod:
+          # The operator is an API client; app-template 5 only mounts the
+          # ServiceAccount token when asked.
+          automountServiceAccountToken: true
           securityContext:
             runAsUser: 65534
             runAsGroup: 65534
