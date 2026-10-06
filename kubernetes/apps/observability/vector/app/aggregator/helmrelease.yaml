@@ -46,7 +46,6 @@ spec:
     service:
       app:
         primary: true
-        type: LoadBalancer
         controller: vector-aggregator
         ports:
           http:
@@ -57,15 +56,11 @@ spec:
             port: 6010
           syslog:
             port: 6020
-      # Separate ClusterIP service so metrics aren't exposed on the LoadBalancer IP.
-      metrics:
-        controller: vector-aggregator
-        ports:
           metrics:
             port: 9090
     serviceMonitor:
       app:
-        serviceName: vector-aggregator-metrics
+        serviceName: vector-aggregator
         endpoints:
           - port: metrics
     persistence:
