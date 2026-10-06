@@ -69,7 +69,15 @@ spec:
               capabilities: { drop: ["ALL"] }
         serviceAccount:
           name: *app
+    # The barman-cloud ServiceAccount comes from rbac.yaml. app-template 5
+    # would otherwise create a same-named one per release and fail the upgrade
+    # on ownership.
+    global:
+      createDefaultServiceAccount: false
     defaultPodOptions:
+      # The plugin is an API client (leader election, CNPG resources), and
+      # app-template 5 only mounts the ServiceAccount token when asked.
+      automountServiceAccountToken: true
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
