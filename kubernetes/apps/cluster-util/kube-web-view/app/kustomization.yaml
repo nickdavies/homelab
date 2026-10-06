@@ -7,3 +7,4 @@ resources:
   - rbac.yaml
   - service.yaml
   - gateway.yaml
+  - securitypolicy.yaml
