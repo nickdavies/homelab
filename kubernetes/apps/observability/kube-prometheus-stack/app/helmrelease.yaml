@@ -46,14 +46,6 @@ spec:
         alertmanagerConfigMatcherStrategy:
           type: None
     prometheus:
-      route:
-        main:
-          enabled: true
-          hostnames:
-            - "prometheus.internal.${SECRET_DOMAIN}"
-          parentRefs:
-            - name: internal
-              namespace: network
       prometheusSpec:
         replicas: 2
         replicaExternalLabelName: __replica__
@@ -63,7 +55,6 @@ spec:
         podMonitorSelectorNilUsesHelmValues: false
         probeSelectorNilUsesHelmValues: false
         scrapeConfigSelectorNilUsesHelmValues: false
-        enableAdminAPI: true
         walCompression: true
         enableFeatures:
           - memory-snapshot-on-shutdown
