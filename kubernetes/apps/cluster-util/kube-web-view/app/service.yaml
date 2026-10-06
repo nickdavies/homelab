@@ -7,7 +7,6 @@ metadata:
 spec:
   selector:
     application: kube-web-view
-  type: LoadBalancer
   ports:
   - port: 80
     protocol: TCP
