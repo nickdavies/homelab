@@ -1,0 +1,105 @@
+name: Frigate config
+
+# Renovate bumps the Frigate image without knowing anything about the config
+# file that image will be handed, and a ConfigMap mount is read-only so Frigate
+# cannot migrate the config itself.  0.18.0 landed that way: the mask format
+# changed, the pod could not rewrite the file, and it came up in safe mode.
+# This job hands the config in the branch to the image in the branch.
+
+on:
+  pull_request:
+    paths:
+      - "kubernetes/apps/automation/frigate/**"
+      - ".github/ci-fixtures/frigate/**"
+      - ".github/workflows/frigate-config.yaml"
+  push:
+    branches:
+      - main
+    paths:
+      - "kubernetes/apps/automation/frigate/**"
+      - ".github/ci-fixtures/frigate/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CONFIG: kubernetes/apps/automation/frigate/app/config/config.yml
+  HELMRELEASE: kubernetes/apps/automation/frigate/app/helmrelease.yaml
+  FIXTURES: .github/ci-fixtures/frigate
+
+jobs:
+  validate-config:
+    name: Validate config against the image in this branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.14"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Resolve the image from the HelmRelease
+        id: image
+        run: |
+          set -euo pipefail
+          ref=$(python3 - <<'PY'
+          import os, yaml
+          hr = yaml.safe_load(open(os.environ["HELMRELEASE"]))
+          image = hr["spec"]["values"]["controllers"]["frigate"]["containers"]["app"]["image"]
+          print(f"{image['repository']}:{image['tag']}")
+          PY
+          )
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "Validating against $ref"
+
+      - name: Validate config
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+        run: |
+          set -euo pipefail
+
+          # model.path is a plus:// reference, which Frigate resolves by calling
+          # the Frigate+ API unless the model is already in its cache.  Mounting
+          # a stub cache keeps this job offline and keyless; the stub is keyed by
+          # model id, so changing models needs a new one.
+          model_id=$(python3 - <<'PY'
+          import os, yaml
+          print(yaml.safe_load(open(os.environ["CONFIG"]))["model"]["path"].removeprefix("plus://"))
+          PY
+          )
+          if [ ! -f "$FIXTURES/model_cache/$model_id.json" ]; then
+            echo "::error::No Frigate+ stub for model $model_id. Add $FIXTURES/model_cache/$model_id and $model_id.json — see $FIXTURES/README.md"
+            exit 1
+          fi
+
+          # The real values live in 1Password; Frigate only needs the names to
+          # resolve so it can expand the {VAR} placeholders in the config.
+          env_args=()
+          while read -r var; do
+            env_args+=(-e "$var=ci-placeholder")
+          done < <(grep -ohE '\{FRIGATE_[A-Z0-9_]+\}' "$CONFIG" | tr -d '{}' | sort -u)
+
+          # /config is a writable tmpfs with config.yml bind-mounted read-only —
+          # the same shape as the pod, where the ConfigMap is read-only but
+          # Frigate still writes model_cache and frigate.db alongside it.  The
+          # read-only config.yml is the point: it stops Frigate from migrating a
+          # stale config in place and reporting success for something the
+          # cluster cannot reproduce.
+          docker run --rm --network none "${env_args[@]}" \
+            --tmpfs /config:rw \
+            --mount "type=bind,src=$PWD/$CONFIG,dst=/config/config.yml,ro" \
+            --mount "type=bind,src=$PWD/$FIXTURES/model_cache,dst=/config/model_cache,ro" \
+            --entrypoint python3 "$IMAGE" \
+            -m frigate --validate-config 2>&1 | tee "$RUNNER_TEMP/validate.log"
+
+          # Frigate exits 0 on a rejected config: it prints the errors, loads a
+          # built-in safe-mode config instead, and then reports *that* as valid.
+          # The banner is the only thing that distinguishes the two outcomes.
+          if grep -q "Your config file is not valid" "$RUNNER_TEMP/validate.log"; then
+            echo "::error::$IMAGE rejected $CONFIG"
+            exit 1
+          fi
