@@ -1,0 +1,31 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: volsync
+spec:
+  groups:
+    - name: volsync
+      rules:
+        - alert: VolSyncDown
+          expr: absent(up{job="volsync-metrics"} == 1)
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: VolSync is not being scraped
+            description: The VolSync controller has not been scraped for 15 minutes, so backup staleness is not being evaluated.
+        # VolSync sets out_of_sync once the last completed sync is more than
+        # two cron ticks old, i.e. a whole schedule interval was missed. That
+        # makes it schedule-relative staleness: hourly and daily sources need
+        # no per-source threshold. A new source syncs immediately, so `for`
+        # covers its first run.
+        - alert: VolSyncBackupStale
+          expr: volsync_volume_out_of_sync{role="source"} == 1
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: VolSync backup is stale
+            description: "{{ $labels.obj_namespace }}/{{ $labels.obj_name }} has not completed a backup within its schedule interval."
