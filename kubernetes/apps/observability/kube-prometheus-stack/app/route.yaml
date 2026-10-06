@@ -1,0 +1,18 @@
+---
+# Hand-written rather than the chart's prometheus.route, so the name that
+# securitypolicy.yaml targets doesn't depend on the chart's naming scheme.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: prometheus
+spec:
+  hostnames:
+    - "prometheus.internal.${SECRET_DOMAIN}"
+  parentRefs:
+    - name: internal
+      namespace: network
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: kube-prometheus-stack-prometheus
+          port: 9090
