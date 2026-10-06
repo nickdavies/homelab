@@ -53,10 +53,7 @@ spec:
                 memory: 50Mi
     service:
       app:
-        type: LoadBalancer
         controller: smtp-relay
-        annotations:
-          external-dns.alpha.kubernetes.io/hostname: smtp.internal.${SECRET_DOMAIN}
         ports:
           http:
             port: 25

@@ -71,8 +71,11 @@ spec:
               AUTHELIA_LOG_LEVEL: debug
               AUTHELIA_NOTIFIER_DISABLE_STARTUP_CHECK: 'true'
               AUTHELIA_NOTIFIER_SMTP_DISABLE_REQUIRE_TLS: 'true'
-              AUTHELIA_NOTIFIER_SMTP_ADDRESS: smtp.internal.${SECRET_DOMAIN}:25
+              AUTHELIA_NOTIFIER_SMTP_ADDRESS: smtp-relay.network.svc.cluster.local:25
               AUTHELIA_NOTIFIER_SMTP_SENDER: Authelia <authelia@${SECRET_DOMAIN}>
+              # The relay's certificate only names smtp.internal, and that name
+              # doesn't resolve: the relay is a ClusterIP Service.
+              AUTHELIA_NOTIFIER_SMTP_TLS_SERVER_NAME: smtp.internal.${SECRET_DOMAIN}
               AUTHELIA_SERVER_DISABLE_HEALTHCHECK: 'true'
               AUTHELIA_SERVER_PORT: &port 80
               AUTHELIA_TELEMETRY_METRICS_ADDRESS: tcp://0.0.0.0:8080
