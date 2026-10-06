@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ./externalsecret.yaml
   - ./route.yaml
+  - ./securitypolicy.yaml
   - ./service.yaml
   - ./statefulset.yaml
   - ../../../../templates/volsync
