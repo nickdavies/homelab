@@ -21,15 +21,17 @@ spec:
       kind: EnvoyProxy
       name: internal
   listeners:
+    # Plaintext exists only to redirect to https. Restricting it to this
+    # namespace keeps every app route off it: a route with no sectionName
+    # attaches to every listener that admits it, so a selector here would put
+    # apps back on :80 -- and a route's specific hostname would take precedence
+    # over the hostname-less redirect.
     - name: http
       protocol: HTTP
       port: 80
       allowedRoutes:
         namespaces:
-          from: Selector
-          selector:
-            matchLabels:
-              internal-gateway-access: "true"
+          from: Same
     - name: unifi-passthrough
       protocol: TLS
       port: 443
