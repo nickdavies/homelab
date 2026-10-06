@@ -42,6 +42,9 @@ spec:
         serviceAccount:
           identifier: *app
     defaultPodOptions:
+      # multus reads its ServiceAccount token to reach the API server, and
+      # app-template 5 only mounts the token when asked.
+      automountServiceAccountToken: true
       hostNetwork: true
     persistence:
       etc-cni-net-d:

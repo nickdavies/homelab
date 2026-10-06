@@ -36,6 +36,9 @@ spec:
         serviceAccount:
           name: *app
         pod:
+          # tailscale keeps its state in a Secret via the API (TS_KUBE_SECRET),
+          # and app-template 5 only mounts the ServiceAccount token when asked.
+          automountServiceAccountToken: true
           securityContext:
             # blocky runs unprivileged but must bind :53 (see config.yaml)
             sysctls:
@@ -124,6 +127,11 @@ spec:
                 cpu: 10m
               limits:
                 memory: 128Mi
+    # The friends-dns ServiceAccount comes from rbac.yaml. app-template 5
+    # would otherwise create a same-named one per release and fail the upgrade
+    # on ownership.
+    global:
+      createDefaultServiceAccount: false
     # Metrics only. Friends reach blocky over the tailnet, not a LoadBalancer.
     service:
       app:
