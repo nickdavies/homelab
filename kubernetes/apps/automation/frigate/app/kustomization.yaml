@@ -7,6 +7,7 @@ resources:
   - ./helmrelease.yaml
   - ./prometheusrule.yaml
   - ./route.yaml
+  - ./securitypolicy.yaml
   - ../../../../templates/volsync
 configMapGenerator:
   - name: frigate-configmap
