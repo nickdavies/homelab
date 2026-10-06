@@ -1,0 +1,28 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cloudnative-pg-offsite
+spec:
+  groups:
+    - name: cloudnative-pg-offsite
+      rules:
+        # Hourly job; 3h tolerates two failed runs before alerting.
+        - alert: PostgresOffsiteStale
+          expr: time() - kube_cronjob_status_last_successful_time{namespace="database", cronjob="cloudnative-pg-offsite"} > 3 * 3600
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: Postgres offsite copy is stale
+            description: The offsite mirror of the barman buckets last succeeded {{ $value | humanizeDuration }} ago.
+        # The series only exists once the CronJob has succeeded at least once.
+        - alert: PostgresOffsiteNeverSucceeded
+          expr: absent(kube_cronjob_status_last_successful_time{namespace="database", cronjob="cloudnative-pg-offsite"})
+          for: 3h
+          labels:
+            severity: critical
+          annotations:
+            summary: Postgres offsite mirror has never succeeded
+            description: The cloudnative-pg-offsite CronJob is missing or has not completed a run.

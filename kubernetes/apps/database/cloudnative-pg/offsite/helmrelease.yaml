@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app cloudnative-pg-offsite
+spec:
+  interval: 15m
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+    namespace: flux-system
+  maxHistory: 2
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      *app :
+        type: cronjob
+        cronjob:
+          concurrencyPolicy: Forbid
+          schedule: "15 * * * *"
+          ttlSecondsAfterFinished: 86400
+        pod:
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            runAsNonRoot: true
+        containers:
+          app:
+            image:
+              repository: docker.io/rclone/rclone
+              tag: 1.75.1@sha256:45401ad7410db1d67ffdb58e19059ad20b0d8e0285a60e38bbec55cc1019c7a5
+            # current/<bucket>/ mirrors garage. Whatever a sync deletes or
+            # overwrites moves to trash/<bucket>/ and is purged 30 days later,
+            # so a bad delete in garage cannot wipe the offsite copy at once.
+            command: [/bin/sh, -ec]
+            args:
+              - |
+                rclone sync garage:cloudnative-pg offsite:current/cloudnative-pg --backup-dir offsite:trash/cloudnative-pg
+                rclone sync garage:cloudnative-pg-immich offsite:current/cloudnative-pg-immich --backup-dir offsite:trash/cloudnative-pg-immich
+                rclone delete offsite:trash --min-age 30d
+            envFrom:
+              - secretRef:
+                  name: cloudnative-pg-offsite-secret
+            env:
+              # Server-side LastModified instead of rclone's mtime metadata:
+              # it saves a HEAD per object, and a trashed file's LastModified
+              # is when it was trashed, which is what --min-age must measure.
+              RCLONE_USE_SERVER_MODTIME: "true"
+              # Barman objects are immutable apart from backup.info, which is
+              # rewritten later, so "destination is newer" means up to date.
+              RCLONE_UPDATE: "true"
+              RCLONE_FAST_LIST: "true"
+              RCLONE_VERBOSE: "1"
+              RCLONE_STATS_ONE_LINE: "true"
+              RCLONE_CONFIG_GARAGE_TYPE: s3
+              RCLONE_CONFIG_GARAGE_PROVIDER: Other
+              RCLONE_CONFIG_GARAGE_ENDPOINT: http://garage.storage.svc.cluster.local:3900
+              RCLONE_CONFIG_GARAGE_REGION: us-east-1
+              RCLONE_CONFIG_R2_TYPE: s3
+              RCLONE_CONFIG_R2_PROVIDER: Cloudflare
+              # Skip rclone's create-bucket call; a bucket-scoped token is refused it.
+              RCLONE_CONFIG_R2_NO_CHECK_BUCKET: "true"
+              # Spelled out rather than left to rclone's defaults: restoring
+              # needs exactly these settings (see README.md).
+              RCLONE_CONFIG_OFFSITE_TYPE: crypt
+              RCLONE_CONFIG_OFFSITE_FILENAME_ENCRYPTION: standard
+              RCLONE_CONFIG_OFFSITE_DIRECTORY_NAME_ENCRYPTION: "true"
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: [ALL]
+            resources:
+              requests:
+                cpu: 10m
+                memory: 64Mi
+              limits:
+                memory: 256Mi
