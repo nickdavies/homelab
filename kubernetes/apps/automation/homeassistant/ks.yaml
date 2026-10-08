@@ -11,6 +11,7 @@ spec:
     - name: homelab-data
     - name: external-secrets
     - name: multus-config
+    - name: volsync
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app

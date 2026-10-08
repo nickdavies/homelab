@@ -12,6 +12,7 @@ spec:
   dependsOn:
     - name: rook-ceph-cluster
     - name: dragonfly-cluster
+    - name: volsync
   path: ./kubernetes/apps/productivity/paperless-ngx/app
   prune: true
   sourceRef:

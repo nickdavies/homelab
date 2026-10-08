@@ -11,6 +11,7 @@ spec:
     - name: external-secrets
     - name: mosquitto
     - name: multus-config
+    - name: volsync
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
