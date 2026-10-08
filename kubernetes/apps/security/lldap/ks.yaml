@@ -43,7 +43,6 @@ spec:
     substitute:
       POSTGRES_ROLE: lldap
       APP_NAMESPACE: security
-      POSTGRES_DISABLE_PASSWORD: "false"
   prune: true
   sourceRef:
     kind: GitRepository
