@@ -19,19 +19,18 @@ spec:
       retries: 5
       strategy: rollback
   values:
+    defaultPodOptions:
+      # Group-owns kubelet-managed volumes with Paperless's USERMAP_GID, so the
+      # root-owned Postgres client key (mode 0440) is readable to the paperless
+      # user and still acceptable to libpq. No runAsUser: the image's s6 init
+      # must start as root to apply USERMAP_* before dropping privileges.
+      securityContext:
+        fsGroup: 100
+        fsGroupChangePolicy: OnRootMismatch
     controllers:
       paperless-ngx:
         annotations:
           reloader.stakater.com/auto: 'true'
-        initContainers:
-          01-init-db:
-            image:
-              repository: ghcr.io/home-operations/postgres-init
-              tag: 18.6.0@sha256:b6d3af974df781c673d37e49bdddfa14a6f5be28b18d2cb7713f0449bea4057b
-              pullPolicy: IfNotPresent
-            envFrom: &envFrom
-              - secretRef:
-                  name: paperless-secret
         containers:
           gotenburg:
             image:
@@ -49,10 +48,22 @@ spec:
             image:
               repository: ghcr.io/paperless-ngx/paperless-ngx
               tag: 3.3.0
-            envFrom: *envFrom
+            envFrom:
+              - secretRef:
+                  name: paperless-secret
             env:
               USERMAP_UID: 568
               USERMAP_GID: 100
+              PAPERLESS_DBENGINE: postgresql
+              PAPERLESS_DBHOST: postgres-rw.database.svc.cluster.local
+              PAPERLESS_DBPORT: 5432
+              PAPERLESS_DBNAME: paperless
+              PAPERLESS_DBUSER: paperless
+              # Encrypted and client-authenticated; the server isn't verified
+              # because its CA shares a Secret with the CA private key.
+              PAPERLESS_DBSSLMODE: require
+              PAPERLESS_DBSSLCERT: /postgres/tls.crt
+              PAPERLESS_DBSSLKEY: /postgres/tls.key
               PAPERLESS_TIME_ZONE: "${TIMEZONE}"
               PAPERLESS_PORT: &port 80
               PAPERLESS_REDIS: redis://dragonfly.database.svc.cluster.local:6379
@@ -102,3 +113,12 @@ spec:
         path: /volume1/paperless-consume/
         globalMounts:
           - path: /library
+      postgres-client-cert:
+        type: secret
+        name: paperless-postgres-client-cert
+        defaultMode: 0440
+        advancedMounts:
+          paperless-ngx:
+            app:
+              - path: /postgres
+                readOnly: true

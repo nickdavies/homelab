@@ -13,6 +13,7 @@ spec:
     - name: rook-ceph-cluster
     - name: dragonfly-cluster
     - name: volsync
+    - name: paperless-postgres
   path: ./kubernetes/apps/productivity/paperless-ngx/app
   prune: true
   sourceRef:
@@ -27,3 +28,30 @@ spec:
     substitute:
       APP: *app
       VOLSYNC_CAPACITY: 20Gi
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: paperless-postgres
+  namespace: flux-system
+spec:
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: paperless-ngx
+  dependsOn:
+    - name: cloudnative-pg-cluster
+    - name: external-secrets
+  path: ./kubernetes/templates/postgres-client
+  postBuild:
+    substitute:
+      POSTGRES_ROLE: paperless
+      APP_NAMESPACE: productivity
+      POSTGRES_DISABLE_PASSWORD: "false"
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: true
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
