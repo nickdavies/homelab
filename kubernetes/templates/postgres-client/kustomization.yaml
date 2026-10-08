@@ -13,6 +13,10 @@
 #       APP_NAMESPACE: observability
 #       POSTGRES_DATABASE: grafana   # optional, defaults to POSTGRES_ROLE
 #
+# The role's password is removed by default. When migrating an existing app,
+# set POSTGRES_DISABLE_PASSWORD: "false" until its pods are confirmed on the
+# certificate (client_dn set in pg_stat_ssl), then drop the override.
+#
 # The app mounts Secret ${POSTGRES_ROLE}-postgres-client-cert (tls.crt,
 # tls.key) and connects with sslmode=require.
 apiVersion: kustomize.config.k8s.io/v1beta1
