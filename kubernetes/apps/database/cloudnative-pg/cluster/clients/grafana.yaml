@@ -1,0 +1,52 @@
+---
+# The grafana role and database, plus the grant that lets the observability
+# namespace read this role's client certificate and nothing else.
+#
+# CNPG issues the certificate (CN=grafana) from the cluster's client CA into
+# the Secret grafana-client-cert, and renews it. Adopting an existing role
+# resets every attribute to this manifest, so it mirrors what postgres-init's
+# `createuser` made: LOGIN, INHERIT, nothing else.
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: grafana
+spec:
+  cluster:
+    name: postgres
+  name: grafana
+  login: true
+  clientCertificate: {}
+---
+# yaml-language-server: $schema=https://homelab-schemas-epg.pages.dev/postgresql.cnpg.io/database_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: grafana
+spec:
+  cluster:
+    name: postgres
+  name: grafana
+  owner: grafana
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grafana-client-cert-reader
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["grafana-client-cert"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana-client-cert-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grafana-client-cert-reader
+subjects:
+  - kind: ServiceAccount
+    name: postgres-client-cert
+    namespace: observability

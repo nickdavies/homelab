@@ -21,6 +21,12 @@ spec:
     parameters:
       max_connections: "600"
       shared_buffers: 512MB
+    # Roles that authenticate by client certificate (see ./clients/). CNPG
+    # renders these between its fixed rules and the default
+    # `host all all all scram-sha-256`, so a role's non-TLS password logins
+    # keep working until its DatabaseRole sets disablePassword.
+    pg_hba:
+      - hostssl grafana grafana all cert
     #shared_preload_libraries:
     #  - "vectors.so"
   nodeMaintenanceWindow:

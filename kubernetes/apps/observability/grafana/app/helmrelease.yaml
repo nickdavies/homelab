@@ -27,14 +27,27 @@ spec:
     - name: loki
       namespace: observability
   values:
-    extraInitContainers:
-      - name: 01-init-db
-        image: ghcr.io/home-operations/postgres-init:18.6.0
-        envFrom:
-          - secretRef:
-              name: &secret grafana-secret
     replicas: 2
+    # Postgres client certificate, copied in by ./postgres-client-cert.yaml.
+    # lib/pq refuses a key that is group-readable unless root owns it; secret
+    # volume files are root-owned, so 0440 (group = fsGroup 472) passes.
+    extraSecretMounts:
+      - name: postgres-client-cert
+        secretName: grafana-postgres-client-cert
+        mountPath: /etc/grafana/postgres
+        readOnly: true
+        defaultMode: 0440
     env:
+      GF_DATABASE_TYPE: postgres
+      GF_DATABASE_HOST: postgres-rw.database.svc.cluster.local:5432
+      GF_DATABASE_NAME: grafana
+      GF_DATABASE_USER: grafana
+      # Encrypted and client-authenticated, but the server isn't verified: its
+      # CA lives in postgres-ca next to the CA's private key, so it isn't
+      # shared out to app namespaces.
+      GF_DATABASE_SSL_MODE: require
+      GF_DATABASE_CLIENT_CERT_PATH: /etc/grafana/postgres/tls.crt
+      GF_DATABASE_CLIENT_KEY_PATH: /etc/grafana/postgres/tls.key
       GF_AUTH_GENERIC_OAUTH_API_URL: "https://auth.internal.${SECRET_DOMAIN}/api/oidc/userinfo"
       GF_AUTH_GENERIC_OAUTH_AUTH_URL: "https://auth.internal.${SECRET_DOMAIN}/api/oidc/authorization"
       GF_AUTH_GENERIC_OAUTH_CLIENT_ID: grafana
@@ -48,7 +61,7 @@ spec:
       GF_SECURITY_COOKIE_SAMESITE: grafana
       GF_SERVER_ROOT_URL: https://grafana.internal.${SECRET_DOMAIN}
     envFromSecrets:
-      - name: *secret
+      - name: grafana-secret
     grafana.ini:
       analytics:
         check_for_updates: false
