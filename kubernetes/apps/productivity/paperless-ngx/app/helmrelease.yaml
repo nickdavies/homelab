@@ -19,27 +19,18 @@ spec:
       retries: 5
       strategy: rollback
   values:
+    defaultPodOptions:
+      # Group-owns kubelet-managed volumes with Paperless's USERMAP_GID, so the
+      # root-owned Postgres client key (mode 0440) is readable to the paperless
+      # user and still acceptable to libpq. No runAsUser: the image's s6 init
+      # must start as root to apply USERMAP_* before dropping privileges.
+      securityContext:
+        fsGroup: 100
+        fsGroupChangePolicy: OnRootMismatch
     controllers:
       paperless-ngx:
         annotations:
           reloader.stakater.com/auto: 'true'
-        initContainers:
-          # Paperless drops to uid 568 / gid 100, and libpq only accepts a key
-          # it owns at 0600 (or root-owned at 0640). A Secret volume is
-          # root-owned with its group set by fsGroup, and fsGroup 100 would
-          # re-own the whole document volume, so copy the pair into memory
-          # owned by the paperless user instead. Reloader restarts the pod
-          # when CNPG renews the certificate.
-          01-postgres-client-cert:
-            image: &image
-              repository: ghcr.io/paperless-ngx/paperless-ngx
-              tag: 3.3.0
-            command:
-              - sh
-              - -c
-              - >-
-                install -o 568 -g 100 -m 0400 /postgres-client-cert/tls.key /postgres/tls.key &&
-                install -o 568 -g 100 -m 0444 /postgres-client-cert/tls.crt /postgres/tls.crt
         containers:
           gotenburg:
             image:
@@ -54,7 +45,9 @@ spec:
               tag: 3.3.1.0-full
               pullPolicy: IfNotPresent
           app:
-            image: *image
+            image:
+              repository: ghcr.io/paperless-ngx/paperless-ngx
+              tag: 3.3.0
             envFrom:
               - secretRef:
                   name: paperless-secret
@@ -123,18 +116,9 @@ spec:
       postgres-client-cert:
         type: secret
         name: paperless-postgres-client-cert
+        defaultMode: 0440
         advancedMounts:
           paperless-ngx:
-            01-postgres-client-cert:
-              - path: /postgres-client-cert
-                readOnly: true
-      postgres:
-        type: emptyDir
-        medium: Memory
-        advancedMounts:
-          paperless-ngx:
-            01-postgres-client-cert:
-              - path: /postgres
             app:
               - path: /postgres
                 readOnly: true
