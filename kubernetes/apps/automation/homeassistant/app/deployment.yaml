@@ -137,7 +137,7 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 3
       - name: app
-        image: ghcr.io/home-operations/home-assistant:2026.9.4
+        image: ghcr.io/home-operations/home-assistant:2026.10.0
         livenessProbe:
           exec:
             command:
