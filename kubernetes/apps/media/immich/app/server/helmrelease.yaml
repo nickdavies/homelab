@@ -43,15 +43,6 @@ spec:
               labelSelector:
                 matchLabels:
                   app.kubernetes.io/name: *app
-        initContainers:
-          init-db:
-            image:
-              repository: ghcr.io/home-operations/postgres-init
-              tag: 18.6.0@sha256:b6d3af974df781c673d37e49bdddfa14a6f5be28b18d2cb7713f0449bea4057b
-              pullPolicy: IfNotPresent
-            envFrom:
-              - secretRef:
-                  name: immich-secret
         containers:
           app:
             image:
@@ -60,6 +51,15 @@ spec:
             env:
               - name: IMMICH_CONFIG_FILE
                 value: /config/config.json
+              # Client-certificate login as the immich superuser
+              # (database/cloudnative-pg/immich/client.yaml). Parsed by
+              # pg-connection-string, where plain sslmode=require would verify
+              # the server; uselibpqcompat gives libpq's meaning instead, and
+              # Immich strips it before handing the URL to pg_dumpall. The
+              # server isn't verified because its CA shares a Secret with the
+              # CA private key.
+              - name: DB_URL
+                value: postgres://immich@immich-rw.database.svc.cluster.local:5432/immich?uselibpqcompat=true&sslmode=require&sslcert=/postgres/tls.crt&sslkey=/postgres/tls.key
             envFrom:
               - secretRef:
                   name: immich-secret
@@ -98,3 +98,14 @@ spec:
         type: emptyDir
         globalMounts:
           - path: /usr/src/app/.transformers_cache
+      # Group-owned by the pod's fsGroup 568. pg_dumpall's libpq accepts a
+      # root-owned key at 0640 or tighter.
+      postgres-client-cert:
+        type: secret
+        name: immich-postgres-client-cert
+        defaultMode: 0440
+        advancedMounts:
+          immich:
+            app:
+              - path: /postgres
+                readOnly: true
