@@ -1,0 +1,53 @@
+---
+# The role Immich connects as, and the grant that lets the media namespace
+# read its client certificate and nothing else.
+#
+# Not templates/postgres-client: Immich needs superuser, for its pg_dumpall
+# backups and for vchord extension upgrades, and this cluster holds only its
+# data. CNPG issues the certificate (CN=immich) from this cluster's client CA
+# into immich-client-cert and renews it.
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: immich
+spec:
+  cluster:
+    name: immich
+  name: immich
+  login: true
+  superuser: true
+  clientCertificate: {}
+---
+# yaml-language-server: $schema=https://homelab-schemas-epg.pages.dev/postgresql.cnpg.io/database_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: immich
+spec:
+  cluster:
+    name: immich
+  name: immich
+  owner: immich
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: immich-client-cert-reader
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["immich-client-cert"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: immich-client-cert-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: immich-client-cert-reader
+subjects:
+  - kind: ServiceAccount
+    name: immich-postgres-client-cert
+    namespace: media

@@ -25,6 +25,12 @@ spec:
     parameters:
       max_connections: "600"
       shared_buffers: 512MB
+    # The immich role (./client.yaml) logs in by client certificate, to every
+    # database because Immich's backups run pg_dumpall. CNPG renders this
+    # before its default `host all all all scram-sha-256`, so the role's TLS
+    # logins require the certificate and other roles are unaffected.
+    pg_hba:
+      - hostssl all immich all cert
   nodeMaintenanceWindow:
     inProgress: false
     reusePVC: true
