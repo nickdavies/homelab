@@ -22,6 +22,9 @@ spec:
   inRoles:
     - cert_auth
   clientCertificate: {}
+  # The certificate is the only way in. An app still mid-migration sets
+  # POSTGRES_DISABLE_PASSWORD: "false" so its existing password keeps working.
+  disablePassword: ${POSTGRES_DISABLE_PASSWORD:=true}
 ---
 # yaml-language-server: $schema=https://homelab-schemas-epg.pages.dev/postgresql.cnpg.io/database_v1.json
 apiVersion: postgresql.cnpg.io/v1
