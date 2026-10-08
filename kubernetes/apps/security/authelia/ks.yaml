@@ -15,6 +15,7 @@ spec:
     - name: external-secrets
     - name: lldap
     - name: dragonfly-cluster
+    - name: authelia-postgres
   path: ./kubernetes/apps/security/authelia/app
   prune: true
   sourceRef:
@@ -22,6 +23,34 @@ spec:
     name: homelab
     namespace: flux-system
   wait: false # no flux ks dependents
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: authelia-postgres
+  namespace: flux-system
+spec:
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: authelia
+  dependsOn:
+    - name: cloudnative-pg-cluster
+    - name: external-secrets
+  path: ./kubernetes/templates/postgres-client
+  postBuild:
+    substitute:
+      POSTGRES_ROLE: authelia
+      APP_NAMESPACE: security
+      POSTGRES_DISABLE_PASSWORD: "false"
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: true
   interval: 30m
   retryInterval: 1m
   timeout: 5m
