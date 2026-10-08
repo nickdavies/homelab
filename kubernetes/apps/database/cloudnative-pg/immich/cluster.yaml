@@ -29,8 +29,19 @@ spec:
     # database because Immich's backups run pg_dumpall. CNPG renders this
     # before its default `host all all all scram-sha-256`, so the role's TLS
     # logins require the certificate and other roles are unaffected.
+    #
+    # `app` is the owner CNPG's initdb defaults create. CNPG keeps
+    # re-applying its password from the immich-app Secret, so the role can't
+    # be dropped; nothing uses it, so refuse its network logins instead.
     pg_hba:
       - hostssl all immich all cert
+      - host all app all reject
+  managed:
+    roles:
+      # Created by postgres-init, which required a user that Immich never
+      # used. Owns nothing since the immich role took the database.
+      - name: dummyuser
+        ensure: absent
   nodeMaintenanceWindow:
     inProgress: false
     reusePVC: true
