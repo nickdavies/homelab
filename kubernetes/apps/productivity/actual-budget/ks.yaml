@@ -9,6 +9,8 @@ spec:
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
+  dependsOn:
+    - name: volsync
   path: ./kubernetes/apps/productivity/actual-budget/app
   prune: true
   sourceRef:
