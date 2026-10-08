@@ -13,9 +13,9 @@ spec:
   storage:
     size: 40Gi
     storageClass: openebs-hostpath
-  enableSuperuserAccess: true
-  superuserSecret:
-    name: cloudnative-pg-immich-secret
+  # postgres has no password; Immich connects as the immich superuser by
+  # client certificate (./client.yaml).
+  enableSuperuserAccess: false
   # Immich PG expects this
   postgresUID: 999
   postgresGID: 999
