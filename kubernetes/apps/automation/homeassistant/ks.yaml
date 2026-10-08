@@ -12,6 +12,7 @@ spec:
     - name: external-secrets
     - name: multus-config
     - name: volsync
+    - name: homeassistant-postgres
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
@@ -28,6 +29,34 @@ spec:
     substitute:
       APP: homeassistant-rw
       VOLSYNC_CAPACITY: 10Gi
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: homeassistant-postgres
+  namespace: flux-system
+spec:
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: homeassistant-app
+  dependsOn:
+    - name: cloudnative-pg-cluster
+    - name: external-secrets
+  path: ./kubernetes/templates/postgres-client
+  postBuild:
+    substitute:
+      POSTGRES_ROLE: homeassistant
+      APP_NAMESPACE: automation
+      POSTGRES_DISABLE_PASSWORD: "false"
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: true
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
 ---
 # yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
 apiVersion: kustomize.toolkit.fluxcd.io/v1
