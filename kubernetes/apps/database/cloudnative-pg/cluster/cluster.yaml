@@ -14,9 +14,9 @@ spec:
   storage:
     size: 40Gi
     storageClass: openebs-hostpath
-  enableSuperuserAccess: true
-  superuserSecret:
-    name: cloudnative-pg-secret
+  # postgres has no password; apps connect by client certificate as their
+  # own roles (./cert-auth.yaml, templates/postgres-client).
+  enableSuperuserAccess: false
   postgresql:
     parameters:
       max_connections: "600"
