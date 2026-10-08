@@ -39,18 +39,18 @@ spec:
       # still reach the real LG cloud.
       #
       # TEMPORARY, paired with the fork image below: that build is amd64-only
-      # (no buildx locally), while k8s-node-4 is arm64. Upstream's image is
+      # (no arm64 emulation locally), while k8s-node-4 is arm64. Upstream's image is
       # multi-arch, so this selector must be removed when we go back to it.
       nodeSelector:
         kubernetes.io/arch: amd64
       containers:
         - name: rethink
-          # TEMPORARY: fork build carrying the F3P2CYUBE__ (WM4000HBA) device
-          # class while https://github.com/nickdavies/rethink
-          # branch add-wm4000hba-washer is pending upstream. Revert to
-          # ghcr.io/anszom/rethink:dev@sha256:8d5bf02a032b7919bc7b4ed489894e578779b52bfc897252130c5ffb5b47dc70
-          # once merged -- and drop the nodeSelector above with it.
-          image: nickdavies1/rethink@sha256:8672020ffca5337e4cb1f3c239a8145d1981eb52b89bbd504dd73be2a41a14b3
+          # TEMPORARY: unmodified build of upstream PR
+          # https://github.com/anszom/rethink/pull/171 (commit 6ce82a1), the
+          # F3P2CYUBE__ handler we're validating against the WM4000HBA. Revert
+          # to ghcr.io/anszom/rethink:dev once it merges -- and drop the
+          # nodeSelector above with it.
+          image: nickdavies1/rethink:pr171-6ce82a1@sha256:2304504b76c56fa95bbb8325416c8dabb47fda43cf73e2c6b11f4435de96f8b3
           imagePullPolicy: IfNotPresent
           # Stock entrypoint: our config is mounted over /app/data/config.json,
           # and the image only copies its baked-in default when that path is
