@@ -46,7 +46,6 @@ spec:
     substitute:
       POSTGRES_ROLE: paperless
       APP_NAMESPACE: productivity
-      POSTGRES_DISABLE_PASSWORD: "false"
   prune: true
   sourceRef:
     kind: GitRepository

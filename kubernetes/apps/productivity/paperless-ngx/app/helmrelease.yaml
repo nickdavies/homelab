@@ -59,11 +59,10 @@ spec:
               PAPERLESS_DBPORT: 5432
               PAPERLESS_DBNAME: paperless
               PAPERLESS_DBUSER: paperless
-              # Encrypted and client-authenticated; the server isn't verified
-              # because its CA shares a Secret with the CA private key.
-              PAPERLESS_DBSSLMODE: require
-              PAPERLESS_DBSSLCERT: /postgres/tls.crt
-              PAPERLESS_DBSSLKEY: /postgres/tls.key
+              # Comma-separated key=value libpq options. Encrypted and
+              # client-authenticated; the server isn't verified because its CA
+              # shares a Secret with the CA private key.
+              PAPERLESS_DB_OPTIONS: sslmode=require,sslcert=/postgres/tls.crt,sslkey=/postgres/tls.key
               PAPERLESS_TIME_ZONE: "${TIMEZONE}"
               PAPERLESS_PORT: &port 80
               PAPERLESS_REDIS: redis://dragonfly.database.svc.cluster.local:6379
