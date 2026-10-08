@@ -48,7 +48,6 @@ spec:
     substitute:
       POSTGRES_ROLE: homeassistant
       APP_NAMESPACE: automation
-      POSTGRES_DISABLE_PASSWORD: "false"
   prune: true
   sourceRef:
     kind: GitRepository
