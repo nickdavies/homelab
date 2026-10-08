@@ -24,14 +24,22 @@ spec:
         annotations:
           reloader.stakater.com/auto: 'true'
         initContainers:
-          01-init-db:
-            image:
-              repository: ghcr.io/home-operations/postgres-init
-              tag: 18.6.0@sha256:b6d3af974df781c673d37e49bdddfa14a6f5be28b18d2cb7713f0449bea4057b
-              pullPolicy: IfNotPresent
-            envFrom: &envFrom
-              - secretRef:
-                  name: paperless-secret
+          # Paperless drops to uid 568 / gid 100, and libpq only accepts a key
+          # it owns at 0600 (or root-owned at 0640). A Secret volume is
+          # root-owned with its group set by fsGroup, and fsGroup 100 would
+          # re-own the whole document volume, so copy the pair into memory
+          # owned by the paperless user instead. Reloader restarts the pod
+          # when CNPG renews the certificate.
+          01-postgres-client-cert:
+            image: &image
+              repository: ghcr.io/paperless-ngx/paperless-ngx
+              tag: 3.3.0
+            command:
+              - sh
+              - -c
+              - >-
+                install -o 568 -g 100 -m 0400 /postgres-client-cert/tls.key /postgres/tls.key &&
+                install -o 568 -g 100 -m 0444 /postgres-client-cert/tls.crt /postgres/tls.crt
         containers:
           gotenburg:
             image:
@@ -46,13 +54,23 @@ spec:
               tag: 3.3.1.0-full
               pullPolicy: IfNotPresent
           app:
-            image:
-              repository: ghcr.io/paperless-ngx/paperless-ngx
-              tag: 3.3.0
-            envFrom: *envFrom
+            image: *image
+            envFrom:
+              - secretRef:
+                  name: paperless-secret
             env:
               USERMAP_UID: 568
               USERMAP_GID: 100
+              PAPERLESS_DBENGINE: postgresql
+              PAPERLESS_DBHOST: postgres-rw.database.svc.cluster.local
+              PAPERLESS_DBPORT: 5432
+              PAPERLESS_DBNAME: paperless
+              PAPERLESS_DBUSER: paperless
+              # Encrypted and client-authenticated; the server isn't verified
+              # because its CA shares a Secret with the CA private key.
+              PAPERLESS_DBSSLMODE: require
+              PAPERLESS_DBSSLCERT: /postgres/tls.crt
+              PAPERLESS_DBSSLKEY: /postgres/tls.key
               PAPERLESS_TIME_ZONE: "${TIMEZONE}"
               PAPERLESS_PORT: &port 80
               PAPERLESS_REDIS: redis://dragonfly.database.svc.cluster.local:6379
@@ -102,3 +120,21 @@ spec:
         path: /volume1/paperless-consume/
         globalMounts:
           - path: /library
+      postgres-client-cert:
+        type: secret
+        name: paperless-postgres-client-cert
+        advancedMounts:
+          paperless-ngx:
+            01-postgres-client-cert:
+              - path: /postgres-client-cert
+                readOnly: true
+      postgres:
+        type: emptyDir
+        medium: Memory
+        advancedMounts:
+          paperless-ngx:
+            01-postgres-client-cert:
+              - path: /postgres
+            app:
+              - path: /postgres
+                readOnly: true
