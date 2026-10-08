@@ -45,7 +45,6 @@ spec:
     substitute:
       POSTGRES_ROLE: authelia
       APP_NAMESPACE: security
-      POSTGRES_DISABLE_PASSWORD: "false"
   prune: true
   sourceRef:
     kind: GitRepository
