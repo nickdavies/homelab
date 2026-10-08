@@ -1,6 +1,8 @@
 ---
-# The `app` database CNPG's initdb defaults created. Immich uses `immich`
-# and nothing connects here, so drop it. The `app` role stays, see the
+# The `app` database CNPG's initdb defaults created. Immich uses `immich`,
+# but CNPG's metrics exporter runs its default monitoring queries against
+# the application database (reconcileMonitoringQueries), so it has to exist
+# even though nothing else connects to it. The `app` role stays too, see the
 # pg_hba note in ./cluster.yaml.
 # yaml-language-server: $schema=https://homelab-schemas-epg.pages.dev/postgresql.cnpg.io/database_v1.json
 apiVersion: postgresql.cnpg.io/v1
@@ -12,4 +14,3 @@ spec:
     name: immich
   name: app
   owner: app
-  ensure: absent
