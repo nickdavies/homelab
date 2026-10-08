@@ -24,12 +24,6 @@ spec:
           ]
     spec:
       terminationGracePeriodSeconds: 30
-      initContainers:
-        - name: init-db
-          image: ghcr.io/home-operations/postgres-init:18.6.0
-          envFrom:
-            - secretRef:
-                name: home-assistant-secret
       volumes:
       - name: overlayfs-config
         configMap:
@@ -83,6 +77,13 @@ spec:
       - name: rw-data-vol
         persistentVolumeClaim:
           claimName: homeassistant-rw
+      # The recorder's Postgres client certificate (templates/postgres-client).
+      # Home Assistant runs as root, and libpq only accepts a key its own user
+      # owns at 0600 or tighter, so root:root 0400 as Secret volumes are.
+      - name: postgres-client-cert
+        secret:
+          secretName: homeassistant-postgres-client-cert
+          defaultMode: 0400
       containers:
       - name: overlay-manager
         image: nickdavies1/kube-overlayfs:main
@@ -202,3 +203,6 @@ spec:
           mountPath: /config
           subPath: merged
           mountPropagation: HostToContainer
+        - name: postgres-client-cert
+          mountPath: /postgres
+          readOnly: true
