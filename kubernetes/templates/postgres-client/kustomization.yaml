@@ -1,0 +1,22 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+# A Postgres role on the main CNPG cluster that logs in with a client
+# certificate, and that certificate delivered to the app's namespace.
+#
+# Consume it from a Flux Kustomization with no targetNamespace (it writes to
+# both `database` and the app's namespace) and wait: true, then make the app's
+# Kustomization depend on it so the certificate Secret exists before pods start.
+#
+#   postBuild:
+#     substitute:
+#       POSTGRES_ROLE: grafana       # also the certificate's CN
+#       APP_NAMESPACE: observability
+#       POSTGRES_DATABASE: grafana   # optional, defaults to POSTGRES_ROLE
+#
+# The app mounts Secret ${POSTGRES_ROLE}-postgres-client-cert (tls.crt,
+# tls.key) and connects with sslmode=require.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./database.yaml
+  - ./app.yaml

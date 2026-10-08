@@ -28,7 +28,7 @@ spec:
       namespace: observability
   values:
     replicas: 2
-    # Postgres client certificate, copied in by ./postgres-client-cert.yaml.
+    # Postgres client certificate, from templates/postgres-client (../ks.yaml).
     # lib/pq refuses a key that is group-readable unless root owns it; secret
     # volume files are root-owned, so 0440 (group = fsGroup 472) passes.
     extraSecretMounts:
