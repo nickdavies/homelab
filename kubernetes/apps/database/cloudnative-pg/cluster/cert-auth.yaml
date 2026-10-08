@@ -1,0 +1,13 @@
+---
+# Group role for certificate logins: pg_hba (cluster.yaml) requires a client
+# certificate for TLS logins by any member. Roles join it through
+# templates/postgres-client. It holds no privileges.
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: cert-auth
+spec:
+  cluster:
+    name: postgres
+  name: cert_auth
+  login: false

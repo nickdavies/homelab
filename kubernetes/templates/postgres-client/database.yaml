@@ -1,0 +1,61 @@
+---
+# The role and its database, plus the grant that lets the app's namespace read
+# this role's client certificate and nothing else.
+#
+# CNPG issues the certificate (CN=${POSTGRES_ROLE}) from the cluster's client
+# CA into ${POSTGRES_ROLE}-client-cert and renews it. Membership in cert_auth is
+# what makes pg_hba require that certificate for TLS logins.
+#
+# Adopting an existing role resets every attribute to this manifest, so check
+# pg_roles first: this matches postgres-init's `createuser` (LOGIN, INHERIT,
+# nothing else).
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: ${POSTGRES_ROLE}
+  namespace: database
+spec:
+  cluster:
+    name: postgres
+  name: ${POSTGRES_ROLE}
+  login: true
+  inRoles:
+    - cert_auth
+  clientCertificate: {}
+---
+# yaml-language-server: $schema=https://homelab-schemas-epg.pages.dev/postgresql.cnpg.io/database_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: ${POSTGRES_DATABASE:=${POSTGRES_ROLE}}
+  namespace: database
+spec:
+  cluster:
+    name: postgres
+  name: ${POSTGRES_DATABASE:=${POSTGRES_ROLE}}
+  owner: ${POSTGRES_ROLE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ${POSTGRES_ROLE}-client-cert-reader
+  namespace: database
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["${POSTGRES_ROLE}-client-cert"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ${POSTGRES_ROLE}-client-cert-reader
+  namespace: database
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ${POSTGRES_ROLE}-client-cert-reader
+subjects:
+  - kind: ServiceAccount
+    name: ${POSTGRES_ROLE}-postgres-client-cert
+    namespace: ${APP_NAMESPACE}

@@ -21,6 +21,13 @@ spec:
     parameters:
       max_connections: "600"
       shared_buffers: 512MB
+    # Members of cert_auth (./cert-auth.yaml) must present a client
+    # certificate on TLS logins. CNPG renders this between its fixed rules and
+    # the default `host all all all scram-sha-256`, so a member's non-TLS
+    # password logins keep working until its DatabaseRole sets disablePassword,
+    # and roles outside the group are unaffected whatever their sslmode.
+    pg_hba:
+      - hostssl all +cert_auth all cert
     #shared_preload_libraries:
     #  - "vectors.so"
   nodeMaintenanceWindow:

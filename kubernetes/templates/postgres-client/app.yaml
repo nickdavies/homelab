@@ -1,0 +1,54 @@
+---
+# Copies the role's client certificate from the database namespace into the
+# app's, as ${POSTGRES_ROLE}-postgres-client-cert (type kubernetes.io/tls).
+# This ServiceAccount can read that one Secret and no other.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${POSTGRES_ROLE}-postgres-client-cert
+  namespace: ${APP_NAMESPACE}
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/secretstore_v1.json
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: ${POSTGRES_ROLE}-postgres-client-cert
+  namespace: ${APP_NAMESPACE}
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: database
+      server:
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          key: ca.crt
+      auth:
+        serviceAccount:
+          name: ${POSTGRES_ROLE}-postgres-client-cert
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1.json
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ${POSTGRES_ROLE}-postgres-client-cert
+  namespace: ${APP_NAMESPACE}
+spec:
+  # CNPG renews 7 days before expiry; an hourly copy picks that up well in time.
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: ${POSTGRES_ROLE}-postgres-client-cert
+  target:
+    name: ${POSTGRES_ROLE}-postgres-client-cert
+    template:
+      type: kubernetes.io/tls
+  data:
+    - secretKey: tls.crt
+      remoteRef:
+        key: ${POSTGRES_ROLE}-client-cert
+        property: tls.crt
+    - secretKey: tls.key
+      remoteRef:
+        key: ${POSTGRES_ROLE}-client-cert
+        property: tls.key
