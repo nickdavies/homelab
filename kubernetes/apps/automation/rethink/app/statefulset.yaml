@@ -45,12 +45,12 @@ spec:
         kubernetes.io/arch: amd64
       containers:
         - name: rethink
-          # TEMPORARY: unmodified build of upstream PR
-          # https://github.com/anszom/rethink/pull/171 (commit 6ce82a1), the
-          # F3P2CYUBE__ handler we're validating against the WM4000HBA. Revert
-          # to ghcr.io/anszom/rethink:dev once it merges -- and drop the
+          # TEMPORARY: upstream PRs #171 (6ce82a1, F3P2CYUBE__ washer) and #200
+          # (8efa0a6, RV13D4ASJW_D_US dryer) merged unmodified, from
+          # https://github.com/nickdavies/rethink branch rethink-171-200. Revert
+          # to ghcr.io/anszom/rethink:dev once both merge -- and drop the
           # nodeSelector above with it.
-          image: nickdavies1/rethink:pr171-6ce82a1@sha256:2304504b76c56fa95bbb8325416c8dabb47fda43cf73e2c6b11f4435de96f8b3
+          image: nickdavies1/rethink:pr171-pr200-14e8230@sha256:127432e37a531f6c4d72e031c01a8e7b69391578667fc02c101c8bd40d9ec37a
           imagePullPolicy: IfNotPresent
           # Stock entrypoint: our config is mounted over /app/data/config.json,
           # and the image only copies its baked-in default when that path is
