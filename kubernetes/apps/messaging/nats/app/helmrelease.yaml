@@ -1,0 +1,140 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nats
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: nats
+      version: 2.15.0
+      sourceRef:
+        kind: HelmRepository
+        name: nats
+        namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  dependsOn:
+    - name: rook-ceph-cluster
+      namespace: rook-ceph
+  values:
+    config:
+      # A single server. Ceph already replicates the JetStream volume, so the
+      # cost is only a few seconds of downtime on restarts. Moving to 3 later
+      # (cluster.enabled, replicas: 3, then raise each stream to replicas: 3)
+      # needs no client changes.
+      cluster:
+        enabled: false
+      jetstream:
+        enabled: true
+        fileStore:
+          pvc:
+            size: 10Gi
+            storageClassName: ceph-block
+          # Below the PVC size, so JetStream starts refusing writes before the
+          # filesystem fills up underneath it.
+          maxSize: 9Gi
+        memoryStore:
+          enabled: false
+      merge:
+        # Accounts and users, from the 1Password-backed secret mounted below.
+        # Includes resolve against /etc/nats-config, where the chart mounts the
+        # main config.
+        00$include: ../nats-auth/auth.conf
+
+    container:
+      env:
+        # ~80% of the memory limit, so the Go GC works harder before the
+        # kernel OOM-kills the pod.
+        GOMEMLIMIT: 200MiB
+      merge:
+        resources:
+          requests:
+            cpu: 10m
+          limits:
+            memory: 256Mi
+        securityContext: &securityContext
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: { drop: ["ALL"] }
+      patch:
+        - op: add
+          path: /volumeMounts/-
+          value:
+            name: auth
+            mountPath: /etc/nats-auth
+            readOnly: true
+
+    # Watches the config and the included auth.conf, and signals the server to
+    # reload when either changes.
+    reloader:
+      merge:
+        resources:
+          requests:
+            cpu: 5m
+          limits:
+            memory: 32Mi
+        securityContext: *securityContext
+
+    promExporter:
+      enabled: true
+      podMonitor:
+        enabled: true
+      merge:
+        resources:
+          requests:
+            cpu: 5m
+          limits:
+            memory: 32Mi
+        securityContext: *securityContext
+
+    podTemplate:
+      merge:
+        spec:
+          securityContext:
+            runAsUser: 568
+            runAsGroup: 568
+            runAsNonRoot: true
+            fsGroup: 568
+            fsGroupChangePolicy: OnRootMismatch
+      patch:
+        - op: add
+          path: /spec/volumes/-
+          value:
+            name: auth
+            secret:
+              secretName: nats-auth
+              items:
+                - key: auth.conf
+                  path: auth.conf
+
+    # A pod with the `nats` CLI, logged in as admin:
+    #   kubectl -n messaging exec -it deploy/nats-box -- nats stream ls
+    natsBox:
+      enabled: true
+      container:
+        env:
+          NATS_USER:
+            valueFrom:
+              secretKeyRef:
+                name: nats-auth
+                key: ADMIN_USER
+          NATS_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: nats-auth
+                key: ADMIN_PASSWORD
+        merge:
+          resources:
+            requests:
+              cpu: 5m
+            limits:
+              memory: 64Mi

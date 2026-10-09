@@ -1,0 +1,55 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nack
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: nack
+      version: 0.35.0
+      sourceRef:
+        kind: HelmRepository
+        name: nats
+        namespace: flux-system
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  dependsOn:
+    - name: nats
+  values:
+    jetstream:
+      nats:
+        url: nats://nats.messaging.svc.cluster.local:4222
+        nkey:
+          secret:
+            name: nack-nkey
+            key: nack.nk
+      # Continuously reconciles streams back to their manifests, and is the
+      # only mode that manages KeyValue and ObjectStore resources.
+      controlLoop: true
+    # A Role in this namespace rather than a ClusterRole, so the controller
+    # can only read this namespace's Secrets. Stream manifests live here too.
+    namespaced: true
+    resources:
+      requests:
+        cpu: 5m
+      limits:
+        memory: 128Mi
+    securityContext:
+      runAsUser: 65534
+      runAsGroup: 65534
+      runAsNonRoot: true
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities: { drop: ["ALL"] }

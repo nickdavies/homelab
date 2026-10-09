@@ -1,0 +1,22 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/jetstream.nats.io/stream_v1beta2.json
+# Prometheus alerts, one message per alert per state change, e.g.
+# events.alerts.firing / events.alerts.resolved. Publishers set Nats-Msg-Id to
+# fingerprint-status-startsAt, so Alertmanager re-sending the same alert within
+# duplicateWindow is stored once.
+apiVersion: jetstream.nats.io/v1beta2
+kind: Stream
+metadata:
+  name: events-alerts
+spec:
+  name: EVENTS_ALERTS
+  subjects: ["events.alerts.>"]
+  storage: file
+  replicas: 1
+  retention: limits
+  discard: old
+  maxAge: 720h
+  maxBytes: 1073741824 # 1 GiB
+  duplicateWindow: 2h
+  # Deleting this manifest leaves the stream and its history in place.
+  preventDelete: true
