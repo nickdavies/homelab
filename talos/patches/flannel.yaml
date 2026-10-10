@@ -5,4 +5,6 @@ cluster:
       name: flannel
       flannel:
         extraArgs:
-          - --iface-can-reach="192.168.254.1"
+          - --iface-can-reach=192.168.254.1
+        # Flannel alone accepts NetworkPolicy objects but never enforces them.
+        kubeNetworkPoliciesEnabled: true
