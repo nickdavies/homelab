@@ -44,11 +44,52 @@ spec:
           maxSize: 9Gi
         memoryStore:
           enabled: false
+      # Clients must present a certificate from the nats-ca Issuer
+      # (../pki), and its subject becomes their user: CN=admin logs in as
+      # the "CN=admin" user below. There are no passwords, and none can be
+      # added while verify_and_map is on, since every login is checked
+      # against a certificate.
+      nats:
+        tls:
+          enabled: true
+          secretName: nats-server-tls
+          merge:
+            # The issued Secret's own ca.crt, so the pod never mounts nats-ca.
+            ca_file: /etc/nats-certs/nats/ca.crt
+            verify_and_map: true
       merge:
-        # Accounts and users, from the 1Password-backed secret mounted below.
-        # Includes resolve against /etc/nats-config, where the chart mounts the
-        # main config.
-        00$include: ../nats-auth/auth.conf
+        # SYS is NATS's own system account (server events, `nats server`
+        # commands). APP is where every stream lives; users in other accounts
+        # can't see its subjects at all.
+        #
+        # Add a user per workload, scoped to the subjects it needs, and issue
+        # its certificate with kubernetes/templates/nats-client. A worker
+        # pulling from durable consumer "sanitizer" on EVENTS_EMAIL and
+        # publishing its results needs:
+        #   - user: CN=email-sanitizer
+        #     permissions:
+        #       publish:
+        #         - "$JS.API.CONSUMER.INFO.EVENTS_EMAIL.sanitizer"
+        #         - "$JS.API.CONSUMER.MSG.NEXT.EVENTS_EMAIL.sanitizer"
+        #         - "$JS.ACK.EVENTS_EMAIL.sanitizer.>"
+        #         - "tasks.email.>"
+        #       subscribe: ["_INBOX.>"]
+        # The config reloader applies changes here without a restart.
+        system_account: SYS
+        accounts:
+          SYS:
+            users:
+              - user: CN=sys
+          APP:
+            jetstream: enabled
+            users:
+              - user: CN=admin
+              # NACK only manages streams and consumers through the
+              # JetStream API, and can't publish or read events.
+              - user: CN=nack
+                permissions:
+                  publish: ["$JS.API.>"]
+                  subscribe: ["_INBOX.>"]
 
     container:
       env:
@@ -65,15 +106,8 @@ spec:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
           capabilities: { drop: ["ALL"] }
-      patch:
-        - op: add
-          path: /volumeMounts/-
-          value:
-            name: auth
-            mountPath: /etc/nats-auth
-            readOnly: true
 
-    # Watches the config and the included auth.conf, and signals the server to
+    # Watches the config and the server certificate, and signals the server to
     # reload when either changes.
     reloader:
       merge:
@@ -105,33 +139,26 @@ spec:
             runAsNonRoot: true
             fsGroup: 568
             fsGroupChangePolicy: OnRootMismatch
-      patch:
-        - op: add
-          path: /spec/volumes/-
-          value:
-            name: auth
-            secret:
-              secretName: nats-auth
-              items:
-                - key: auth.conf
-                  path: auth.conf
 
-    # A pod with the `nats` CLI, logged in as admin:
+    # A pod with the `nats` CLI, logged in with the admin certificate. The
+    # `sys` context uses the system account. This is also the way in when
+    # nothing outside the cluster has a certificate:
     #   kubectl -n messaging exec -it deploy/nats-box -- nats stream ls
+    #   kubectl -n messaging exec -it deploy/nats-box -- nats --context sys server list
     natsBox:
       enabled: true
+      contexts:
+        default:
+          tls:
+            secretName: nats-admin-tls
+          merge:
+            ca: /etc/nats-certs/default/ca.crt
+        sys:
+          tls:
+            secretName: nats-sys-tls
+          merge:
+            ca: /etc/nats-certs/sys/ca.crt
       container:
-        env:
-          NATS_USER:
-            valueFrom:
-              secretKeyRef:
-                name: nats-auth
-                key: ADMIN_USER
-          NATS_PASSWORD:
-            valueFrom:
-              secretKeyRef:
-                name: nats-auth
-                key: ADMIN_PASSWORD
         merge:
           resources:
             requests:

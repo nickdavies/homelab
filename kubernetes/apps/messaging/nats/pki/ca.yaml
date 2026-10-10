@@ -1,0 +1,44 @@
+---
+# The private CA that NATS trusts for client certificates. A client's identity
+# is its certificate's subject (CN=<name>), which the server maps to a user in
+# ../app/helmrelease.yaml, so whoever can issue from the `nats-ca` Issuer can
+# become any NATS user. It is namespaced to messaging for that reason:
+# workloads elsewhere get their certificate copied in by
+# kubernetes/templates/nats-client rather than requesting one themselves.
+#
+# Nothing here is backed up or needed outside the cluster. A rebuilt cluster
+# gets a new CA and every certificate is reissued from Git.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/issuer_v1.json
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: nats-selfsigned
+spec:
+  selfSigned: {}
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nats-ca
+spec:
+  isCA: true
+  commonName: nats-ca
+  duration: 87600h # 10 years
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: nats-selfsigned
+    kind: Issuer
+    group: cert-manager.io
+  secretName: nats-ca
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/issuer_v1.json
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: nats-ca
+spec:
+  ca:
+    secretName: nats-ca

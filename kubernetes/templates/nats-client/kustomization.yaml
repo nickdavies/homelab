@@ -1,0 +1,29 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+# A NATS client certificate (CN=${NATS_USER}), issued in messaging and
+# delivered to the app's namespace.
+#
+# Consume it from a Flux Kustomization with no targetNamespace (it writes to
+# both `messaging` and the app's namespace) and wait: true, then make the app's
+# Kustomization depend on it so the certificate Secret exists before pods start.
+#
+#   dependsOn:
+#     - name: nats-pki
+#     - name: external-secrets
+#   postBuild:
+#     substitute:
+#       NATS_USER: email-sanitizer   # the certificate's CN
+#       APP_NAMESPACE: automation
+#
+# The certificate only proves who the app is. What it may do comes from its
+# user entry, `CN=${NATS_USER}`, in the NATS HelmRelease
+# (kubernetes/apps/messaging/nats/app/helmrelease.yaml); until that exists the
+# server refuses the login.
+#
+# The app mounts Secret ${NATS_USER}-nats-client-cert (tls.crt, tls.key,
+# ca.crt) and connects to tls://nats.messaging.svc.cluster.local:4222.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./certificate.yaml
+  - ./app.yaml

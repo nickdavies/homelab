@@ -1,0 +1,49 @@
+---
+# Issued in messaging, where the nats-ca Issuer lives, so only manifests in
+# this repo can mint NATS identities. No SANs, so the subject is the only name
+# the server can map: it tries SANs first, and a SAN matching some other user
+# would log in as that user instead.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nats-client-${NATS_USER}
+  namespace: messaging
+spec:
+  commonName: ${NATS_USER}
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: nats-ca
+    kind: Issuer
+    group: cert-manager.io
+  secretName: nats-client-${NATS_USER}-tls
+  usages: ["client auth"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nats-client-${NATS_USER}-reader
+  namespace: messaging
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["nats-client-${NATS_USER}-tls"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nats-client-${NATS_USER}-reader
+  namespace: messaging
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nats-client-${NATS_USER}-reader
+subjects:
+  - kind: ServiceAccount
+    name: ${NATS_USER}-nats-client-cert
+    namespace: ${APP_NAMESPACE}

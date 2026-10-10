@@ -30,13 +30,14 @@ spec:
     jetstream:
       nats:
         url: nats://nats.messaging.svc.cluster.local:4222
-        nkey:
-          secret:
-            name: nack-nkey
-            key: nack.nk
       # Continuously reconciles streams back to their manifests, and is the
       # only mode that manages KeyValue and ObjectStore resources.
       controlLoop: true
+      # Logs in as CN=nack with its certificate from ../pki. The Secret's
+      # tls.crt, tls.key and ca.crt match the chart's default file names.
+      tls:
+        enabled: true
+        secretName: nats-nack-tls
     # A Role in this namespace rather than a ClusterRole, so the controller
     # can only read this namespace's Secrets. Stream manifests live here too.
     namespaced: true

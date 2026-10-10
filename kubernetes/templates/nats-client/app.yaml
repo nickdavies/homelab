@@ -1,0 +1,61 @@
+---
+# Copies the client certificate from messaging into the app's namespace, as
+# ${NATS_USER}-nats-client-cert (type kubernetes.io/tls).
+# This ServiceAccount can read that one Secret and no other.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${NATS_USER}-nats-client-cert
+  namespace: ${APP_NAMESPACE}
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/secretstore_v1.json
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: ${NATS_USER}-nats-client-cert
+  namespace: ${APP_NAMESPACE}
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: messaging
+      server:
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          key: ca.crt
+      auth:
+        serviceAccount:
+          name: ${NATS_USER}-nats-client-cert
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1.json
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ${NATS_USER}-nats-client-cert
+  namespace: ${APP_NAMESPACE}
+spec:
+  # cert-manager renews 15 days before expiry; an hourly copy picks that up
+  # well in time. nats.go's ClientCert rereads the files on every connect;
+  # clients that load them once at startup (nats-py's SSLContext, for one)
+  # should annotate their workload with reloader.stakater.com/auto.
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: ${NATS_USER}-nats-client-cert
+  target:
+    name: ${NATS_USER}-nats-client-cert
+    template:
+      type: kubernetes.io/tls
+  data:
+    - secretKey: tls.crt
+      remoteRef:
+        key: nats-client-${NATS_USER}-tls
+        property: tls.crt
+    - secretKey: tls.key
+      remoteRef:
+        key: nats-client-${NATS_USER}-tls
+        property: tls.key
+    - secretKey: ca.crt
+      remoteRef:
+        key: nats-client-${NATS_USER}-tls
+        property: ca.crt

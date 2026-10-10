@@ -1,0 +1,93 @@
+---
+# Every Secret here carries ca.crt alongside the pair, which is how the server
+# and each client find the CA without mounting nats-ca (and its key).
+#
+# Renewal needs no restarts: the server's config reloader watches its files,
+# and nats.go clients (NACK, the nats CLI) reread theirs on every connect.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nats-server
+spec:
+  commonName: nats
+  dnsNames:
+    - nats
+    - nats.messaging
+    - nats.messaging.svc
+    - nats.messaging.svc.cluster.local
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: nats-ca
+    kind: Issuer
+    group: cert-manager.io
+  secretName: nats-server-tls
+  usages: ["server auth"]
+---
+# Client certificates carry a CN and no SANs, so the subject is the only name
+# the server can map. It tries SANs first, and a SAN matching some other user
+# would log in as that user instead.
+#
+# CN=admin: full access to the APP account, for nats-box.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nats-admin
+spec:
+  commonName: admin
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: nats-ca
+    kind: Issuer
+    group: cert-manager.io
+  secretName: nats-admin-tls
+  usages: ["client auth"]
+---
+# CN=sys: the system account, for `nats server ...` commands from nats-box.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nats-sys
+spec:
+  commonName: sys
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: nats-ca
+    kind: Issuer
+    group: cert-manager.io
+  secretName: nats-sys-tls
+  usages: ["client auth"]
+---
+# CN=nack: the JetStream controller, limited to the JetStream API.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nats-nack
+spec:
+  commonName: nack
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: nats-ca
+    kind: Issuer
+    group: cert-manager.io
+  secretName: nats-nack-tls
+  usages: ["client auth"]
