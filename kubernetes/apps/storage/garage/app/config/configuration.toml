@@ -1,4 +1,7 @@
+# LMDB must not live on a network filesystem, so the DB is on ceph-block.
+# Snapshots go to NFS so they survive losing the ceph volume.
 metadata_dir = "/meta"
+metadata_snapshots_dir = "/metadata-snapshots"
 data_dir = "/data"
 db_engine = "lmdb"
 metadata_auto_snapshot_interval = "6h"
