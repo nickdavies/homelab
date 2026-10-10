@@ -1,0 +1,34 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: spegel
+spec:
+  interval: 1h
+  chartRef:
+    kind: OCIRepository
+    name: spegel
+    namespace: flux-system
+  install:
+    remediation:
+      retries: -1
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  values:
+    spegel:
+      # Talos keeps containerd's registry hosts under /etc/cri/conf.d rather
+      # than the default /etc/containerd/certs.d. Spegel only serves layers
+      # containerd still has, which needs discard_unpacked_layers = false
+      # (talos/patches/containerd.yaml).
+      containerdRegistryConfigPath: /etc/cri/conf.d/hosts
+    serviceMonitor:
+      enabled: true
+    grafanaDashboard:
+      enabled: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Kubernetes
