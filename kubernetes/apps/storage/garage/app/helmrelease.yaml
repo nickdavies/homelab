@@ -23,11 +23,37 @@ spec:
     remediation:
       retries: 5
       strategy: rollback
+  dependsOn:
+    - name: rook-ceph-cluster
+      namespace: rook-ceph
   values:
     controllers:
       garage:
         annotations:
           reloader.stakater.com/auto: "true"
+        initContainers:
+          # One-shot copy of the metadata off NFS. The Recreate strategy stops
+          # the old pod first, so LMDB is closed while this runs. The marker is
+          # written last, so an interrupted copy is redone from scratch.
+          copy-meta-from-nfs:
+            image:
+              repository: public.ecr.aws/docker/library/busybox
+              tag: 1.37.0-musl@sha256:5cec3fc171c87218698e85a52af7087de727372aae264a787b8112901a5b0092
+            command: ["/bin/sh", "-euc"]
+            args:
+              - |
+                [ -e /meta/.copied-from-nfs ] && exit 0
+                for f in /meta-nfs/*; do
+                  n="$(basename "$f")"
+                  [ "$n" = snapshots ] && continue
+                  rm -rf "/meta/$n"
+                  cp -R "$f" /meta/
+                done
+                touch /meta/.copied-from-nfs
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: [ALL] }
         containers:
           app:
             image:
@@ -79,8 +105,21 @@ spec:
         globalMounts:
           - path: /data
       meta:
+        existingClaim: garage-meta
+        globalMounts:
+          - path: /meta
+      meta-nfs:
         type: nfs
         server: ${SECRET_NFS_DOMAIN}
         path: /volume1/k8s/garage/meta
+        advancedMounts:
+          garage:
+            copy-meta-from-nfs:
+              - path: /meta-nfs
+                readOnly: true
+      metadata-snapshots:
+        type: nfs
+        server: ${SECRET_NFS_DOMAIN}
+        path: /volume1/k8s/garage/metadata-snapshots
         globalMounts:
-          - path: /meta
+          - path: /metadata-snapshots
