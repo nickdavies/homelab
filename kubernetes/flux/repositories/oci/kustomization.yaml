@@ -5,3 +5,4 @@ resources:
   - app-template.yaml
   - descheduler.yaml
   - envoy-gateway.yaml
+  - spegel.yaml
