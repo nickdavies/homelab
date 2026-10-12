@@ -2,14 +2,14 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: &app claude-notify-work
+  name: agent-hub-approval-server-work
   namespace: flux-system
 spec:
-  targetNamespace: productivity
+  targetNamespace: agent-hub
   commonMetadata:
     labels:
-      app.kubernetes.io/name: *app
-  path: ./kubernetes/apps/productivity/claude-notify-work/app
+      app.kubernetes.io/name: approval-server-work
+  path: ./kubernetes/apps/agent-hub/approval-server-work/app
   prune: true
   sourceRef:
     kind: GitRepository

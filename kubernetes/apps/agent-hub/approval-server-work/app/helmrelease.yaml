@@ -3,7 +3,7 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: &app claude-notify-personal
+  name: &app approval-server-work
 spec:
   interval: 15m
   chartRef:
@@ -20,7 +20,7 @@ spec:
       strategy: rollback
   values:
     controllers:
-      claude-notify-personal:
+      approval-server-work:
         annotations:
           reloader.stakater.com/auto: "true"
         containers:
@@ -35,13 +35,13 @@ spec:
               - --path
               - /data/state.json
             env:
-              BASE_URL: https://ai.internal.${SECRET_DOMAIN}
+              BASE_URL: https://work.ai.internal.${SECRET_DOMAIN}
               APPROVAL_MODE: readwrite
               OIDC_ISSUER_URL: https://auth.internal.${SECRET_DOMAIN}
-              OIDC_CLIENT_ID: claude-notify-personal
+              OIDC_CLIENT_ID: agent-hub-approval-server-work
             envFrom:
               - secretRef:
-                  name: claude-notify-personal-secret
+                  name: approval-server-work-secret
             resources:
               requests:
                 cpu: 10m
@@ -59,6 +59,6 @@ spec:
         enabled: true
         existingClaim: *app
         advancedMounts:
-          claude-notify-personal:
+          approval-server-work:
             app:
               - path: /data

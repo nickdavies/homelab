@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: claude-notify-work
+  name: approval-server-personal
 spec:
   accessModes: ["ReadWriteOnce"]
   resources:

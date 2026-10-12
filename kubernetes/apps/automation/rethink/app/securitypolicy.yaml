@@ -5,7 +5,7 @@
 # already covers the hostname, so no Authelia config change is needed.
 #
 # This is the first ext-authz consumer in the cluster -- every other Authelia
-# integration (grafana, immich, paperless, actual-budget, claude-notify) speaks
+# integration (grafana, immich, paperless, actual-budget, agent-hub-approval-server) speaks
 # OIDC natively. The paired ReferenceGrant lives with the authelia app, because
 # a ReferenceGrant must sit in the namespace being referenced.
 apiVersion: gateway.envoyproxy.io/v1alpha1
