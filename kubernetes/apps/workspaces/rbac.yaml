@@ -19,7 +19,7 @@ rules:
     resources: [services]
     verbs: ["*"]
   - apiGroups: [apps]
-    resources: [statefulsets]
+    resources: [statefulsets, deployments] # deployments: the opt-in remote-control pod
     verbs: ["*"]
   - apiGroups: [networking.k8s.io]
     resources: [networkpolicies]
