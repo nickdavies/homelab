@@ -1,0 +1,28 @@
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: deploy-key-agent-workspaces
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: onepassword-connect
+  target:
+    name: deploy-key-agent-workspaces
+    creationPolicy: Owner
+  dataFrom:
+    - extract:
+        key: deploy_key_agent_workspaces
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: agent-workspaces
+spec:
+  interval: 5m0s
+  provider: generic
+  url: ssh://git@github.com/nickdavies/agent-workspaces.git
+  ref:
+    branch: main
+  secretRef:
+    name: deploy-key-agent-workspaces

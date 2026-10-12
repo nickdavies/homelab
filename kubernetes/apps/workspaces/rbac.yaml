@@ -1,0 +1,43 @@
+# Flux applies the agent-workspaces repo as this ServiceAccount (the
+# Kustomizations set spec.serviceAccountName), so that repo can only manage
+# the kinds a workspace is made of, and only in this namespace. Everything
+# cluster-scoped or namespace-wide stays in this repo.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: workspace-reconciler
+  namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workspace-reconciler
+  namespace: workspaces
+rules:
+  - apiGroups: [""]
+    resources: [services]
+    verbs: ["*"]
+  - apiGroups: [apps]
+    resources: [statefulsets]
+    verbs: ["*"]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: ["*"]
+  - apiGroups: [external-secrets.io]
+    resources: [externalsecrets]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workspace-reconciler
+  namespace: workspaces
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: workspace-reconciler
+subjects:
+  - kind: ServiceAccount
+    name: workspace-reconciler
+    namespace: flux-system
