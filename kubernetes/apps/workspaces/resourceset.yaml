@@ -1,0 +1,70 @@
+# One input per workspace. Each generates two Flux Kustomizations:
+#   workspace-<name>-home  the home PVC ws-<name> from homelab's volsync
+#                          template, with hourly Garage and daily R2 backups
+#                          (movers run as the workspace user, uid 1000)
+#   workspace-<name>       agent-workspaces ./kubernetes/workspaces/<name>, with
+#                          WS_NAME substituted, applied as workspace-reconciler
+# Everything else about a workspace lives in the agent-workspaces repo.
+#
+# These Kustomizations aren't built by cluster-apps, so they don't get its
+# cluster-wide substituteFrom patch; the workspace one sets it itself for
+# SECRET_DOMAIN.
+apiVersion: fluxcd.controlplane.io/v1
+kind: ResourceSet
+metadata:
+  name: workspaces
+  namespace: flux-system
+spec:
+  inputs:
+    - name: assistant-pipelines
+  resources:
+    - apiVersion: kustomize.toolkit.fluxcd.io/v1
+      kind: Kustomization
+      metadata:
+        name: workspace-<< inputs.name >>-home
+        namespace: flux-system
+      spec:
+        targetNamespace: workspaces
+        path: ./kubernetes/templates/volsync
+        prune: true
+        sourceRef:
+          kind: GitRepository
+          name: homelab
+        dependsOn:
+          - name: external-secrets
+          - name: volsync
+        interval: 30m
+        retryInterval: 1m
+        timeout: 5m
+        postBuild:
+          substitute:
+            APP: ws-<< inputs.name >>
+            VOLSYNC_CAPACITY: 50Gi
+            VOLSYNC_PUID: "1000"
+            VOLSYNC_PGID: "1000"
+    - apiVersion: kustomize.toolkit.fluxcd.io/v1
+      kind: Kustomization
+      metadata:
+        name: workspace-<< inputs.name >>
+        namespace: flux-system
+      spec:
+        targetNamespace: workspaces
+        path: ./kubernetes/workspaces/<< inputs.name >>
+        prune: true
+        sourceRef:
+          kind: GitRepository
+          name: agent-workspaces
+        serviceAccountName: workspace-reconciler
+        dependsOn:
+          - name: workspace-<< inputs.name >>-home
+        interval: 30m
+        retryInterval: 1m
+        timeout: 5m
+        postBuild:
+          substitute:
+            WS_NAME: << inputs.name >>
+          substituteFrom:
+            - kind: ConfigMap
+              name: cluster-settings
+            - kind: Secret
+              name: cluster-config-secret

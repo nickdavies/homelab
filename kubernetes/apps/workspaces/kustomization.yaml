@@ -1,12 +1,12 @@
 # Claude Code workspaces. The workloads (StatefulSet, Service, secrets,
 # per-workspace NetworkPolicy) live in the private agent-workspaces repo; this
 # directory is the common infra around them: the namespace and its baseline
-# policy, the RBAC that confines that repo to this namespace, and one Flux
-# Kustomization pair per workspace.
+# policy, the RBAC that confines that repo to this namespace, and the
+# ResourceSet that generates each workspace's Flux Kustomizations.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ./namespace.yaml
   - ./networkpolicy.yaml
   - ./rbac.yaml
-  - ./assistant-pipelines/ks.yaml
+  - ./resourceset.yaml
