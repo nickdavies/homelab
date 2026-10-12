@@ -34,10 +34,16 @@ spec:
 
 Movers run as uid/gid 568 by default. Set `VOLSYNC_PUID`/`VOLSYNC_PGID` to
 the app's uid/gid when they differ, so restored files keep the app's
-ownership. The mover pod security context passes the `restricted` Pod
-Security Standard.
+ownership.
 
-Optional overrides: `VOLSYNC_PUID`, `VOLSYNC_PGID`, `VOLSYNC_SCHEDULE`, `VOLSYNC_R2_SCHEDULE`,
+In a namespace that enforces the `restricted` Pod Security Standard, also set
+`VOLSYNC_RUNASNONROOT: "true"`. It defaults to `false` because namespaces
+annotated `volsync.backube/privileged-movers: "true"` run the mover
+container as root (VolSync sets `runAsUser: 0` on the container), and a
+pod-level `runAsNonRoot: true` stops that container from starting. Such
+namespaces can't enforce `restricted` anyway.
+
+Optional overrides: `VOLSYNC_PUID`, `VOLSYNC_PGID`, `VOLSYNC_RUNASNONROOT`, `VOLSYNC_SCHEDULE`, `VOLSYNC_R2_SCHEDULE`,
 `VOLSYNC_STORAGECLASS`, `VOLSYNC_ACCESSMODES`, `VOLSYNC_SNAPSHOTCLASS`,
 `VOLSYNC_COPYMETHOD`, `VOLSYNC_CACHE_CAPACITY`, `VOLSYNC_CACHE_SNAPSHOTCLASS`,
 `VOLSYNC_CACHE_ACCESSMODES`. Defaults are inline in the templates.

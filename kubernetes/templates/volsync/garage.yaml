@@ -43,7 +43,7 @@ spec:
     storageClassName: "${VOLSYNC_STORAGECLASS:-ceph-block}"
     accessModes: ["${VOLSYNC_ACCESSMODES:-ReadWriteOnce}"]
     moverSecurityContext:
-      runAsNonRoot: true
+      runAsNonRoot: ${VOLSYNC_RUNASNONROOT:-false}
       runAsUser: ${VOLSYNC_PUID:-568}
       runAsGroup: ${VOLSYNC_PGID:-568}
       fsGroup: ${VOLSYNC_PGID:-568}
@@ -74,7 +74,7 @@ spec:
     accessModes: ["${VOLSYNC_ACCESSMODES:-ReadWriteOnce}"]
     capacity: "${VOLSYNC_CAPACITY}"
     moverSecurityContext:
-      runAsNonRoot: true
+      runAsNonRoot: ${VOLSYNC_RUNASNONROOT:-false}
       runAsUser: ${VOLSYNC_PUID:-568}
       runAsGroup: ${VOLSYNC_PGID:-568}
       fsGroup: ${VOLSYNC_PGID:-568}
