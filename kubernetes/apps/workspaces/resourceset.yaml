@@ -1,7 +1,8 @@
 # One input per workspace. Each generates two Flux Kustomizations:
 #   workspace-<name>-home  the home PVC ws-<name> from homelab's volsync
 #                          template, with hourly Garage and daily R2 backups
-#                          (movers run as the workspace user, uid 1000)
+#                          (movers run as the workspace user, uid 1000, and
+#                          non-root to pass the namespace's restricted PSS)
 #   workspace-<name>       agent-workspaces ./kubernetes/workspaces/<name>, with
 #                          WS_NAME substituted, applied as workspace-reconciler
 # Everything else about a workspace lives in the agent-workspaces repo.
@@ -42,6 +43,7 @@ spec:
             VOLSYNC_CAPACITY: 50Gi
             VOLSYNC_PUID: "1000"
             VOLSYNC_PGID: "1000"
+            VOLSYNC_RUNASNONROOT: "true"
     - apiVersion: kustomize.toolkit.fluxcd.io/v1
       kind: Kustomization
       metadata:
