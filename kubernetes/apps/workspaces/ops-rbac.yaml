@@ -1,0 +1,105 @@
+# Cluster read access for ops-tier workspaces (today: homelab). The identity
+# and its cluster-wide grants live here rather than in agent-workspaces,
+# whose reconciler can't create ServiceAccounts or bindings.
+#
+# Read everything except Secrets: the built-in `view` role covers namespaced
+# core and most built-in namespaced kinds (including pods/log) but not CRDs or
+# cluster-scoped objects, and RBAC can't subtract Secrets from a wildcard. So
+# workspace-ops-read lists core's cluster-scoped kinds explicitly and every
+# non-core API group by name. A new CRD group is unreadable until it's added
+# here (it fails closed). Regenerate the group list with:
+#   kubectl api-resources --verbs=list -o name | awk -F. 'NF>1{sub(/^[^.]*\./,""); print}' | sort -u
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ws-homelab
+  namespace: workspaces
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: workspace-ops-read
+rules:
+  - apiGroups: [""]
+    resources: [componentstatuses, nodes, persistentvolumes, podtemplates]
+    verbs: [get, list, watch]
+  - apiGroups:
+      - acme.cert-manager.io
+      - admissionregistration.k8s.io
+      - apiextensions.k8s.io
+      - apiregistration.k8s.io
+      - apps
+      - autoscaling
+      - barmancloud.cnpg.io
+      - batch
+      - ceph.rook.io
+      - certificates.k8s.io
+      - cert-manager.io
+      - coordination.k8s.io
+      - csi.ceph.io
+      - deviceplugin.intel.com
+      - discovery.k8s.io
+      - dragonflydb.io
+      - events.k8s.io
+      - externaldns.k8s.io
+      - external-secrets.io
+      - flowcontrol.apiserver.k8s.io
+      - fluxcd.controlplane.io
+      - fpga.intel.com
+      - gateway.envoyproxy.io
+      - gateway.networking.k8s.io
+      - gateway.networking.x-k8s.io
+      - generators.external-secrets.io
+      - groupsnapshot.storage.k8s.io
+      - helm.toolkit.fluxcd.io
+      - image.toolkit.fluxcd.io
+      - k8s.cni.cncf.io
+      - kustomize.toolkit.fluxcd.io
+      - metallb.io
+      - metrics.k8s.io
+      - monitoring.coreos.com
+      - networking.k8s.io
+      - nfd.k8s-sigs.io
+      - node.k8s.io
+      - notification.toolkit.fluxcd.io
+      - objectbucket.io
+      - onepassword.com
+      - openebs.io
+      - policy
+      - postgresql.cnpg.io
+      - rbac.authorization.k8s.io
+      - scheduling.k8s.io
+      - snapshot.storage.k8s.io
+      - source.toolkit.fluxcd.io
+      - storage.k8s.io
+      - tailscale.com
+      - volsync.backube
+    resources: ["*"]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ws-homelab-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: ws-homelab
+    namespace: workspaces
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ws-homelab-ops-read
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: workspace-ops-read
+subjects:
+  - kind: ServiceAccount
+    name: ws-homelab
+    namespace: workspaces
