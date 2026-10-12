@@ -43,9 +43,12 @@ spec:
     storageClassName: "${VOLSYNC_STORAGECLASS:-ceph-block}"
     accessModes: ["${VOLSYNC_ACCESSMODES:-ReadWriteOnce}"]
     moverSecurityContext:
-      runAsUser: 568
-      runAsGroup: 568
-      fsGroup: 568
+      runAsNonRoot: true
+      runAsUser: ${VOLSYNC_PUID:-568}
+      runAsGroup: ${VOLSYNC_PGID:-568}
+      fsGroup: ${VOLSYNC_PGID:-568}
+      seccompProfile:
+        type: RuntimeDefault
     retain:
       daily: 7
       weekly: 1

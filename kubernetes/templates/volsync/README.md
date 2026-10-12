@@ -32,7 +32,12 @@ spec:
       VOLSYNC_CAPACITY: 5Gi
 ```
 
-Optional overrides: `VOLSYNC_SCHEDULE`, `VOLSYNC_R2_SCHEDULE`,
+Movers run as uid/gid 568 by default. Set `VOLSYNC_PUID`/`VOLSYNC_PGID` to
+the app's uid/gid when they differ, so restored files keep the app's
+ownership. The mover pod security context passes the `restricted` Pod
+Security Standard.
+
+Optional overrides: `VOLSYNC_PUID`, `VOLSYNC_PGID`, `VOLSYNC_SCHEDULE`, `VOLSYNC_R2_SCHEDULE`,
 `VOLSYNC_STORAGECLASS`, `VOLSYNC_ACCESSMODES`, `VOLSYNC_SNAPSHOTCLASS`,
 `VOLSYNC_COPYMETHOD`, `VOLSYNC_CACHE_CAPACITY`, `VOLSYNC_CACHE_SNAPSHOTCLASS`,
 `VOLSYNC_CACHE_ACCESSMODES`. Defaults are inline in the templates.
