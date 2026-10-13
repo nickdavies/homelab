@@ -72,8 +72,19 @@ spec:
                   timeoutSeconds: 1
                   failureThreshold: 3
               readiness: *probes
+              # Frigate ffprobes every camera without detect.width/height
+              # before the API listens; a slow camera can take >30s. Allow up
+              # to 5 minutes before liveness takes over.
               startup:
-                enabled: false
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/version
+                    port: *port
+                  periodSeconds: 10
+                  timeoutSeconds: 1
+                  failureThreshold: 30
             securityContext:
               privileged: true
             resources:
