@@ -44,6 +44,12 @@ spec:
           bdev_async_discard_threads: "1" # quote
           osd_class_update_on_start: "false" # quote
           device_failure_prediction_mode: local # requires mgr module
+        mon:
+          # The mon store is small enough to sit in one SST, so the default
+          # compact-on-trim rewrites all of it on every paxos trim (~85GB/day
+          # per mon onto the control-plane root disks). RocksDB's background
+          # compaction is enough.
+          mon_compact_on_trim: "false" # quote
       mgr:
         modules:
           - name: diskprediction_local
