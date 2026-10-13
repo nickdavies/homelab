@@ -74,9 +74,6 @@ spec:
               limits:
                 gpu.intel.com/i915: "1"
                 memory: 8Gi
-        pod:
-          nodeSelector:
-            google.feature.node.kubernetes.io/coral: "true"
     service:
       app:
         controller: frigate
@@ -113,13 +110,6 @@ spec:
         sizeLimit: 4Gi
         globalMounts:
           - path: /dev/shm
-      usb:
-        enabled: true
-        type: hostPath
-        hostPath: /dev/bus/usb
-        hostPathType: Directory
-        globalMounts:
-          - path: /dev/bus/usb
       media:
         type: nfs
         server: ${SECRET_NFS_DOMAIN}
