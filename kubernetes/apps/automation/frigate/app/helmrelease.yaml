@@ -39,6 +39,16 @@ spec:
       frigate:
         annotations:
           reloader.stakater.com/auto: "true"
+        # Keep inference off the control-plane N150s. With the i915 request
+        # below, this leaves node-5 (Iris Xe) as the only eligible node.
+        pod:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node-role.kubernetes.io/control-plane
+                        operator: DoesNotExist
         containers:
           app:
             image:
