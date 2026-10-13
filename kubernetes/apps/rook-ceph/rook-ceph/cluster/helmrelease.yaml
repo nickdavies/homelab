@@ -137,24 +137,16 @@ spec:
         urlPrefix: /
         ssl: false
         prometheusEndpoint: http://prometheus-operated.observability.svc.cluster.local:9090
-      # Explicit per-node devices: NVMe enumeration order differs between
-      # identical nodes (node-6 boots from nvme1n1, node-7 from nvme0n1), so
-      # workers are pinned by /dev/disk/by-id.
+      # Explicit per-node devices, workers only: control-plane nodes carry no
+      # OSDs. NVMe enumeration order differs between identical nodes (node-6
+      # boots from nvme1n1, node-7 from nvme0n1), so disks are pinned by
+      # /dev/disk/by-id.
       storage:
         useAllNodes: false
         useAllDevices: false
         config:
           osdsPerDevice: "1"
         nodes:
-          - name: k8s-node-1
-            devices:
-              - name: nvme0n1
-          - name: k8s-node-2
-            devices:
-              - name: nvme0n1
-          - name: k8s-node-3
-            devices:
-              - name: nvme0n1
           - name: k8s-node-5
             devices:
               - name: /dev/disk/by-id/ata-Samsung_SSD_850_EVO_1TB_S2RENX0HA05085J
