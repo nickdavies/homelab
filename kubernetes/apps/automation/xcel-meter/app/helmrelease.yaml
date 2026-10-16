@@ -32,11 +32,12 @@ spec:
         defaultContainerOptionsStrategy: merge
         defaultContainerOptions:
           image:
-            # TEMPORARY: fork carrying METER_NAME
-            # (https://github.com/nickdavies/xcel_itron2mqtt branch meter-name).
-            # Revert to ghcr.io/zaknye/xcel_itron2mqtt once it merges upstream.
+            # TEMPORARY: fork carrying METER_NAME and re-sending discovery on
+            # HA's birth message (https://github.com/nickdavies/xcel_itron2mqtt
+            # branches meter-name, ha-birth-republish). Revert to
+            # ghcr.io/zaknye/xcel_itron2mqtt once both merge upstream.
             repository: ghcr.io/nickdavies/xcel_itron2mqtt
-            tag: sha-70b69ea@sha256:745479a214bd6f2dd8048d855de38fa077a7aa3128c217a372b1451d50823bc9
+            tag: sha-829b4a9@sha256:b14ebf1cf49cf1b48c5e4dd4387668e0647baf138b8648f79a8f3b95ab743073
           env:
             # Both set, or the bridge ignores METER_IP and falls back to mDNS.
             METER_PORT: "8081"
