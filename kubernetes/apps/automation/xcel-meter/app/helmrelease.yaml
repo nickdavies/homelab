@@ -1,0 +1,99 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app xcel-meter
+spec:
+  interval: 15m
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+    namespace: flux-system
+  maxHistory: 2
+  install:
+    remediation:
+      retries: -1
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  uninstall:
+    keepHistory: false
+  values:
+    # One bridge container per meter: upstream xcel_itron2mqtt polls a single
+    # meter per process. METER_NAME scopes each one's MQTT topics and HA entity
+    # IDs, and fixes the entity IDs forever once HA has seen them.
+    controllers:
+      xcel-meter:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        defaultContainerOptionsStrategy: merge
+        defaultContainerOptions:
+          image:
+            # TEMPORARY: fork carrying METER_NAME
+            # (https://github.com/nickdavies/xcel_itron2mqtt branch meter-name).
+            # Revert to ghcr.io/zaknye/xcel_itron2mqtt once it merges upstream.
+            repository: ghcr.io/nickdavies/xcel_itron2mqtt
+            tag: sha-70b69ea@sha256:745479a214bd6f2dd8048d855de38fa077a7aa3128c217a372b1451d50823bc9
+          env:
+            # Both set, or the bridge ignores METER_IP and falls back to mDNS.
+            METER_PORT: "8081"
+            MQTT_SERVER: mosquitto.automation.svc.cluster.local
+            MQTT_PORT: "1883"
+            MQTT_USER:
+              valueFrom:
+                secretKeyRef:
+                  name: xcel-meter-secret
+                  key: MQTT_USER
+            MQTT_PASSWORD:
+              valueFrom:
+                secretKeyRef:
+                  name: xcel-meter-secret
+                  key: MQTT_PASSWORD
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests:
+              cpu: 10m
+            limits:
+              memory: 128Mi
+        containers:
+          grid:
+            env:
+              METER_NAME: Xcel Grid
+              METER_IP:
+                valueFrom:
+                  secretKeyRef:
+                    name: xcel-meter-secret
+                    key: PRIMARY_METER_IP
+          solar:
+            env:
+              METER_NAME: Xcel Solar
+              METER_IP:
+                valueFrom:
+                  secretKeyRef:
+                    name: xcel-meter-secret
+                    key: SOLAR_METER_IP
+        pod:
+          securityContext:
+            runAsUser: 568
+            runAsGroup: 568
+            runAsNonRoot: true
+    persistence:
+      certs:
+        type: secret
+        name: xcel-meter-secret
+        # run.sh generates a fresh, unregistered keypair at startup unless it
+        # finds these exact dotfiles in the image's working directory.
+        items:
+          - key: cert.pem
+            path: .cert.pem
+          - key: key.pem
+            path: .key.pem
+        globalMounts:
+          - path: /opt/xcel_itron2mqtt/certs
+            readOnly: true
