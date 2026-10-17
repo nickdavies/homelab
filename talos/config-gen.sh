@@ -37,6 +37,11 @@ for NODE in "$@"; do
         echo "Node vars file ./nodes/$NODE.env doesn't exist" >&2
         exit 1
     fi
+    schematic="$(set -a; source "./nodes/$NODE.env"; echo "${SCHEMATIC:-}")"
+    if [ ! -f "$schematic" ]; then
+        echo "SCHEMATIC in ./nodes/$NODE.env must name an image_build schematic file, got: '$schematic'" >&2
+        exit 1
+    fi
 done
 
 # Fetch the bundle by re-running under talos-session, which holds it in memory
@@ -104,13 +109,20 @@ for NODE in "$@"; do
         render_patches "./patches-control-plane" --config-patch-control-plane
         render_patches "./patches-workers" --config-patch-worker
 
+        # The installer image is what gets written to disk. Fresh UEFI installs
+        # boot a systemd-boot UKI with the kernel cmdline baked in, so a vanilla
+        # installer silently drops the schematic's extraKernelArgs and
+        # extensions even though the node PXE-booted the schematic. The factory
+        # returns the same ID for the same schematic, so this is idempotent.
+        SCHEMATIC_ID="$(curl -fsS -X POST --data-binary "@$SCHEMATIC" https://factory.talos.dev/schematics | jq -er .id)"
+
         talosctl gen config "$CLUSTER_NAME" "$CLUSTER_ENDPOINT" \
             --with-secrets "$TALOS_SECRETS" \
             --with-examples=false \
             --with-docs=false \
             --install-disk "" \
             --talos-version="${TALOS_VERSION}" \
-            --install-image="ghcr.io/siderolabs/installer:${TALOS_VERSION}" \
+            --install-image="factory.talos.dev/metal-installer/${SCHEMATIC_ID}:${TALOS_VERSION}" \
             --kubernetes-version="${KUBE_VERSION}" \
             --output-types="${NODE_TYPE}" \
             --output "$NODE_DIR/${NODE_TYPE}.yaml" \
