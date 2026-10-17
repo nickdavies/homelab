@@ -4,3 +4,4 @@ kind: Kustomization
 namespace: kube-system
 resources:
 - ./intel-gpu.yaml
+- ./multus-networks.yaml

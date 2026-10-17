@@ -1,0 +1,42 @@
+---
+# Which multus networks each node can attach a pod to. Each NAD in
+# network/multus-config is a macvlan on a fixed master interface; a pod
+# scheduled on a node without that interface sits in ContainerCreating with
+# "macvlan failed (add): Link not found". Pods that use a network require its
+# label, so they only land where the interface actually exists.
+#
+# The interface names here must match the NADs' `master`.
+apiVersion: nfd.k8s-sigs.io/v1alpha1
+kind: NodeFeatureRule
+metadata:
+  name: multus-networks
+spec:
+  rules:
+  - name: multus.mgmt
+    labels:
+      multus.feature.node.kubernetes.io/mgmt: "true"
+    matchFeatures:
+    - feature: network.device
+      matchExpressions:
+        name: {op: In, value: ["eth0"]}
+  - name: multus.trusted
+    labels:
+      multus.feature.node.kubernetes.io/trusted: "true"
+    matchFeatures:
+    - feature: network.virtual
+      matchExpressions:
+        name: {op: In, value: ["eth0.10"]}
+  - name: multus.iot
+    labels:
+      multus.feature.node.kubernetes.io/iot: "true"
+    matchFeatures:
+    - feature: network.virtual
+      matchExpressions:
+        name: {op: In, value: ["eth0.20"]}
+  - name: multus.not
+    labels:
+      multus.feature.node.kubernetes.io/not: "true"
+    matchFeatures:
+    - feature: network.virtual
+      matchExpressions:
+        name: {op: In, value: ["eth0.30"]}
