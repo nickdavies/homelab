@@ -37,11 +37,13 @@ spec:
       # (1.1.1.1), not to blocky -- so the blocky customDNS entry that points
       # common.lgthinq.com at this pod does not apply here, and bridge mode can
       # still reach the real LG cloud.
-      #
-      # TEMPORARY, paired with the fork image below: that build is amd64-only
-      # (no arm64 emulation locally), while k8s-node-4 is arm64. Upstream's image is
-      # multi-arch, so this selector must be removed when we go back to it.
       nodeSelector:
+        # Only nodes where the multus-not macvlan can attach (NFD rule
+        # kube-system/multus-networks).
+        multus.feature.node.kubernetes.io/not: "true"
+        # TEMPORARY, paired with the fork image below: that build is amd64-only
+        # (no arm64 emulation locally), while k8s-node-4 is arm64. Upstream's image is
+        # multi-arch, so this selector must be removed when we go back to it.
         kubernetes.io/arch: amd64
       containers:
         - name: rethink
