@@ -95,7 +95,7 @@ spec:
     - name: volsync
   postBuild:
     substitute:
-      REPLICAS: "0"
+      REPLICAS: "1"
       SERVER_DNS: minecraft-oneblock
       SERVER_NAME: oneblock-v1
       # Minecraft settings
