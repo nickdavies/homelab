@@ -97,3 +97,10 @@ spec:
         type: emptyDir
         globalMounts:
           - path: /mosquitto/external_config
+      data:
+        enabled: true
+        existingClaim: mosquitto-data
+        advancedMounts:
+          mosquitto:
+            app:
+              - path: /mosquitto/data
