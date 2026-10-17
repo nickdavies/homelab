@@ -39,14 +39,18 @@ spec:
       frigate:
         annotations:
           reloader.stakater.com/auto: "true"
-        # Keep inference off the control-plane N150s. With the i915 request
-        # below, this leaves node-5 (Iris Xe) as the only eligible node.
+        # Prefer node-5 (Iris Xe), the only non-control-plane node with an
+        # i915 device. The N150 control-plane nodes are a fallback: inference
+        # is slower there and shares the box with etcd, but that beats no
+        # Frigate while node-5 is down. The descheduler moves the pod back
+        # once node-5 can take it.
         pod:
           affinity:
             nodeAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                nodeSelectorTerms:
-                  - matchExpressions:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  preference:
+                    matchExpressions:
                       - key: node-role.kubernetes.io/control-plane
                         operator: DoesNotExist
         containers:
