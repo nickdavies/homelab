@@ -1,0 +1,53 @@
+# Only Frigate's known clients may reach it. Port 5000 is Frigate's
+# unauthenticated port and its /api/config returns the go2rtc stream URLs with
+# the camera credentials unmasked, so "anything in the cluster" is too wide.
+#
+# - Home Assistant: the Frigate integration on 5000, and the camera entities'
+#   stream_source, rtsp://frigate...:8554/<camera>.
+# - The internal gateway's Envoy proxy: frigate.internal (route.yaml), gated by
+#   Authelia (securitypolicy.yaml).
+# - Prometheus: the ServiceMonitor scrapes 5000/api/metrics.
+#
+# Ingress only: Frigate dials out to the cameras, MQTT and Frigate+. Kubelet
+# probes come from the node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frigate
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: frigate
+      app.kubernetes.io/component: frigate
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: homeassistant
+      ports:
+        - protocol: TCP
+          port: 5000
+        - protocol: TCP
+          port: 8554
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - protocol: TCP
+          port: 5000
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 5000

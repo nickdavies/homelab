@@ -5,6 +5,7 @@ namespace: automation
 resources:
   - ./externalsecret.yaml
   - ./helmrelease.yaml
+  - ./networkpolicy.yaml
   - ./prometheusrule.yaml
   - ./route.yaml
   - ./securitypolicy.yaml
