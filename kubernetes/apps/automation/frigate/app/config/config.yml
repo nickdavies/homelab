@@ -48,6 +48,12 @@ birdseye:
   mode: objects
 
 go2rtc:
+  # go2rtc's API has no auth, and /api/streams returns each stream's source
+  # URL with the camera credentials filled in. Everything that uses it is in
+  # this container (Frigate's nginx and Python API both dial 127.0.0.1:1984),
+  # so it listens on loopback only.
+  api:
+    listen: "127.0.0.1:1984"
   streams:
     doorbell_main:
       - rtsp://{FRIGATE_CAMERA_USER}:{FRIGATE_CAMERA_PASSWORD}@{FRIGATE_DOORBELL_IP}:554/h264Preview_01_main
