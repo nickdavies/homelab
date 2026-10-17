@@ -38,8 +38,8 @@ for NODE in "$@"; do
         exit 1
     fi
     schematic="$(set -a; source "./nodes/$NODE.env"; echo "${SCHEMATIC:-}")"
-    if [ ! -f "$schematic" ]; then
-        echo "SCHEMATIC in ./nodes/$NODE.env must name an image_build schematic file, got: '$schematic'" >&2
+    if [ ! -s "${schematic%.yaml}.id" ]; then
+        echo "SCHEMATIC in ./nodes/$NODE.env must name an image_build schematic with a .id file beside it (written by image_build/remote-image-gen.sh), got: '$schematic'" >&2
         exit 1
     fi
 done
@@ -112,9 +112,8 @@ for NODE in "$@"; do
         # The installer image is what gets written to disk. Fresh UEFI installs
         # boot a systemd-boot UKI with the kernel cmdline baked in, so a vanilla
         # installer silently drops the schematic's extraKernelArgs and
-        # extensions even though the node PXE-booted the schematic. The factory
-        # returns the same ID for the same schematic, so this is idempotent.
-        SCHEMATIC_ID="$(curl -fsS -X POST --data-binary "@$SCHEMATIC" https://factory.talos.dev/schematics | jq -er .id)"
+        # extensions even though the node PXE-booted the schematic.
+        SCHEMATIC_ID="$(cat "${SCHEMATIC%.yaml}.id")"
 
         talosctl gen config "$CLUSTER_NAME" "$CLUSTER_ENDPOINT" \
             --with-secrets "$TALOS_SECRETS" \

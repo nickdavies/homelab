@@ -16,6 +16,10 @@ echo $OUTPUT
 
 ID="$(echo $OUTPUT | yq '.id' -r)"
 
+# Committed next to the schematic so config-gen.sh can render the install
+# image offline. Rerun this whenever the schematic changes.
+echo "$ID" > "${FILE%.yaml}.id"
+
 echo "https://factory.talos.dev/image/${ID}/${VERSION}/metal-amd64.iso"
 echo "https://factory.talos.dev/image/${ID}/${VERSION}/metal-arm64.raw.xz"
 echo "https://pxe.factory.talos.dev/pxe/${ID}/${VERSION}/metal-amd64"

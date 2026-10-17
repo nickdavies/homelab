@@ -36,8 +36,11 @@ First boot the machine into maintenance mode (for details see the
 ```
 
 Each node's `.env` names its Image Factory schematic in `SCHEMATIC` (a file
-under `image_build/`). `config-gen.sh` resolves it to a schematic ID and sets
-the install image to `factory.talos.dev/metal-installer/<id>`. On UEFI the
+under `image_build/`). `config-gen.sh` reads the schematic ID from the `.id`
+file beside it and sets the install image to
+`factory.talos.dev/metal-installer/<id>`. `image_build/remote-image-gen.sh`
+writes that `.id` file, so rerun it and commit the result whenever a schematic
+changes. On UEFI the
 kernel args are baked into the installed UKI, so installing from the vanilla
 installer would drop `net.ifnames=0` and the extensions, even though the node
 PXE-booted the schematic.
