@@ -37,7 +37,6 @@ spec:
       # (1.1.1.1), not to blocky -- so the blocky customDNS entry that points
       # common.lgthinq.com at this pod does not apply here, and bridge mode can
       # still reach the real LG cloud.
-      #
       nodeSelector:
         # Only nodes where the multus-not macvlan can attach (NFD rule
         # kube-system/multus-networks).
