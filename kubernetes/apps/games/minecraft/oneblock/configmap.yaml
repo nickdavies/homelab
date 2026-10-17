@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minecraft-${SERVER_NAME}-server-config
+  labels:
+    role: service-config
+    app: minecraft-${SERVER_NAME}
+data:
+  EULA: "TRUE"
+  TYPE: NEOFORGE
+  VERSION: "${MC_VERSION}"
+  NEOFORGE_VERSION: "${MC_NEOFORGE_VERSION}"
+  # Copied into /data/mods/oneblock.jar when it changes. A fixed file name, so an update replaces the old jar.
+  MODS: /modpacks/oneblock/oneblock.jar
+  MOTD: "running world: ${SERVER_NAME}!"
+  DIFFICULTY: "${MC_DIFFICULTY}"
+  MEMORY: "${MC_MEMORY_GB}G"
+  EXISTING_WHITELIST_FILE: "SYNCHRONIZE"
+  PVP: "false"
+  # The mod sets the seed, world name, void world type, game mode and spawn protection from the .apmc itself.

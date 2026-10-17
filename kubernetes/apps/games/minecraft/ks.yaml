@@ -70,3 +70,40 @@ spec:
       APP: minecraft-nick-britta-2025-08
       VOLSYNC_CAPACITY: 50Gi
       VOLSYNC_SCHEDULE: 0 */6 * * * # Backup only every 6 hours
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app minecraft-oneblock
+  namespace: flux-system
+spec:
+  targetNamespace: games
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/games/minecraft/oneblock
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: false
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
+  dependsOn:
+    - name: external-secrets
+    - name: volsync
+  postBuild:
+    substitute:
+      REPLICAS: "1"
+      SERVER_DNS: minecraft-oneblock
+      SERVER_NAME: oneblock-v1
+      # Minecraft settings
+      MC_VERSION: "26.3"
+      MC_NEOFORGE_VERSION: "26.3.0.26-beta"
+      MC_DIFFICULTY: "normal"
+      MC_MEMORY_GB: "4"
+      # volsync related values
+      APP: minecraft-oneblock-v1
+      VOLSYNC_CAPACITY: 20Gi
+      VOLSYNC_SCHEDULE: 0 */6 * * * # Backup only every 6 hours
