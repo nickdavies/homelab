@@ -107,8 +107,6 @@ spec:
             port: *port
           rtsp:
             port: 8554
-          go2rtc:
-            port: 1984
     serviceMonitor:
       app:
         serviceName: frigate
