@@ -1,11 +1,14 @@
 ---
+# Holds mosquitto.db, the broker's retained messages. CephFS rather than
+# ceph-block so a rescheduled pod remounts on its new node immediately
+# instead of waiting for an RBD volume to detach from the old one.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mosquitto
+  name: mosquitto-data
 spec:
-  accessModes: ["ReadWriteOnce"]
+  accessModes: ["ReadWriteMany"]
   resources:
     requests:
       storage: 1Gi
-  storageClassName: ceph-block
+  storageClassName: ceph-filesystem
