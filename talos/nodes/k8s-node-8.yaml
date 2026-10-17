@@ -1,0 +1,11 @@
+---
+machine:
+  install:
+    diskSelector:
+      size: '>= 256GB'
+      wwid: "eui.000000000000000000a07501ead042c5"
+---
+apiVersion: v1alpha1
+kind: HostnameConfig
+auto: off
+hostname: k8s-node-8
