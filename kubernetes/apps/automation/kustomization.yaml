@@ -7,6 +7,7 @@ resources:
   - ./homelab-data.yaml
   - ./mosquitto/ks.yaml
   - ./rethink/ks.yaml
+  - ./rtlamr2mqtt/ks.yaml
   - ./xcel-meter/ks.yaml
   - ./zigbee2mqtt/ks.yaml
   - namespace.yaml
