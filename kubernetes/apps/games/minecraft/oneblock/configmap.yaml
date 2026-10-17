@@ -9,8 +9,9 @@ metadata:
 data:
   EULA: "TRUE"
   TYPE: NEOFORGE
-  VERSION: "${MC_VERSION}"
-  NEOFORGE_VERSION: "${MC_NEOFORGE_VERSION}"
+  # Hardcoded, not substituted: Flux would turn "26.3" into a number. The mod jar pins both versions.
+  VERSION: "26.3"
+  NEOFORGE_VERSION: "26.3.0.26-beta"
   # Copied into /data/mods/oneblock.jar when it changes. A fixed file name, so an update replaces the old jar.
   MODS: /modpacks/oneblock/oneblock.jar
   MOTD: "running world: ${SERVER_NAME}!"

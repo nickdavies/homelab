@@ -99,8 +99,6 @@ spec:
       SERVER_DNS: minecraft-oneblock
       SERVER_NAME: oneblock-v1
       # Minecraft settings
-      MC_VERSION: "26.3"
-      MC_NEOFORGE_VERSION: "26.3.0.26-beta"
       MC_DIFFICULTY: "normal"
       MC_MEMORY_GB: "4"
       # volsync related values
