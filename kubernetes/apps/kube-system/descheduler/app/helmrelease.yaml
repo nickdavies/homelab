@@ -46,7 +46,6 @@ spec:
               args:
                 nodeAffinityType:
                   - requiredDuringSchedulingIgnoredDuringExecution
-                  - preferredDuringSchedulingIgnoredDuringExecution
             - name: RemovePodsViolatingNodeTaints
             - name: RemovePodsViolatingTopologySpreadConstraint
           plugins:
@@ -59,6 +58,24 @@ spec:
                 - RemovePodsViolatingInterPodAntiAffinity
                 - RemovePodsViolatingNodeAffinity
                 - RemovePodsViolatingNodeTaints
+        # Moves a pod back to the node its preferred affinity favours. The
+        # plugin only checks that the pod fits *some* node, not the preferred
+        # one, so a move can fail and land the pod where it started. minPodAge
+        # caps that to one attempt per pod every 6h instead of every cycle.
+        - name: PreferredNodeAffinity
+          pluginConfig:
+            - name: DefaultEvictor
+              args:
+                evictLocalStoragePods: true
+                minPodAge: 6h
+            - name: RemovePodsViolatingNodeAffinity
+              args:
+                nodeAffinityType:
+                  - preferredDuringSchedulingIgnoredDuringExecution
+          plugins:
+            deschedule:
+              enabled:
+                - RemovePodsViolatingNodeAffinity
     service:
       enabled: true
     serviceMonitor:

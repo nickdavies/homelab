@@ -42,8 +42,8 @@ spec:
         # Prefer node-5 (Iris Xe), the only non-control-plane node with an
         # i915 device. The N150 control-plane nodes are a fallback: inference
         # is slower there and shares the box with etcd, but that beats no
-        # Frigate while node-5 is down. The descheduler moves the pod back
-        # once node-5 can take it.
+        # Frigate while node-5 is down. The descheduler's PreferredNodeAffinity
+        # profile moves it back, at most once every 6h.
         pod:
           affinity:
             nodeAffinity:
