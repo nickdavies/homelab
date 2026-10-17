@@ -23,6 +23,12 @@ spec:
             {"name": "multus-not", "namespace": "network", "ips": ["192.168.30.9/24"]}
           ]
     spec:
+      # Only nodes where every network above can attach (NFD rule
+      # kube-system/multus-networks). Elsewhere the pod never starts.
+      nodeSelector:
+        multus.feature.node.kubernetes.io/iot: "true"
+        multus.feature.node.kubernetes.io/mgmt: "true"
+        multus.feature.node.kubernetes.io/not: "true"
       terminationGracePeriodSeconds: 30
       volumes:
       - name: overlayfs-config
