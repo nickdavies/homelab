@@ -1,0 +1,30 @@
+general:
+  sleep_for: 0
+  verbosity: info
+
+mqtt:
+  host: mosquitto.automation.svc.cluster.local
+  port: 1883
+  tls_enabled: false
+  user: "{{ .RTLAMR2MQTT_USER }}"
+  password: "{{ .RTLAMR2MQTT_PASS }}"
+  ha_autodiscovery_topic: homeassistant
+  base_topic: rtlamr
+
+custom_parameters:
+  # Fewer samples per symbol than rtlamr's default 72, to keep the Pi's CPU low.
+  rtlamr: -symbollength=32
+
+# The meter ID stays in 1Password: it is broadcast in the clear, so a public ID
+# would let anyone scanning the area match this repo to the house.
+meters:
+  - id: "{{ .RTLAMR2MQTT_METER_GAS }}"
+    name: meter_gas_main
+    protocol: scm
+    # One raw count is 10 ft³, so a single decimal place gives CCF (100 ft³),
+    # which HA accepts for device_class gas.
+    format: "######.#"
+    unit_of_measurement: "CCF"
+    icon: mdi:gauge
+    device_class: gas
+    state_class: total_increasing

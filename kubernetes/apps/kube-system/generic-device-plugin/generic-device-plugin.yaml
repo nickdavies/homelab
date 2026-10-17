@@ -32,6 +32,13 @@ spec:
             - paths:
               - path: /dev/serial/by-id/usb-ITead_Sonoff_Zigbee_3.0_USB_Dongle_Plus_*-port0
                 mountPath: /dev/zigbee0
+        - --device
+        - |
+          name: rtl-sdr
+          groups:
+            - usb:
+              - vendor: "0bda"
+                product: "2838"
         name: generic-device-plugin
         resources:
           requests:

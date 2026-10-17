@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: rtlamr2mqtt
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+    namespace: flux-system
+  maxHistory: 2
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  uninstall:
+    keepHistory: false
+  values:
+    defaultPodOptions:
+      tolerations:
+        - key: "homelab/special-node"
+          operator: "Equal"
+          value: "laundry-pi"
+          effect: "NoSchedule"
+    controllers:
+      rtlamr2mqtt:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: docker.io/allangood/rtlamr2mqtt
+              tag: 2026.10.15@sha256:6e7315df0b06f8293504077a7c0d751d36cc0421366db44c7cdf85fd9f06ef30
+            # Stays root: the dongle's /dev/bus/usb node is root-owned on the
+            # host, and the device plugin passes it through as-is.
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                # Allocated by kube-system/generic-device-plugin, which also
+                # pins the pod to the node the dongle is plugged into. If the
+                # app's USB-reset recovery re-enumerates the dongle under a new
+                # device number, the mounted node goes stale and only deleting
+                # the pod (not a container restart) picks up the new one.
+                devic.es/rtl-sdr: 1
+                memory: 256Mi
+    persistence:
+      config-file:
+        type: secret
+        name: rtlamr2mqtt-secret
+        globalMounts:
+          - path: /etc/rtlamr2mqtt.yaml
+            subPath: rtlamr2mqtt.yaml
+            readOnly: true
