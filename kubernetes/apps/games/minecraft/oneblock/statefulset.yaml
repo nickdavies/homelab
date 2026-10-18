@@ -58,15 +58,28 @@ spec:
               name: modpacks
               subPath: oneblock/apdata
               readOnly: true
-          readinessProbe:
+          # A first boot downloads NeoForge, so give it up to 10 minutes before liveness takes over.
+          startupProbe:
             exec:
-              command:
+              command: &mc-status
                 - mc-monitor
                 - status
                 - --host
                 - localhost
                 - --port
                 - "25565"
-            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: *mc-status
             periodSeconds: 5
             failureThreshold: 18
+          # An in-game /stop shuts the server down, but the Archipelago mod's websocket thread keeps the JVM
+          # alive, so the container never exits on its own. Restart it once the port has been dead for a minute.
+          livenessProbe:
+            exec:
+              command: *mc-status
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
