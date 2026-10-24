@@ -1,0 +1,17 @@
+---
+# The gateway's read-only listener (gateway.nginxConfig.httpSnippet in
+# helmrelease.yaml). The chart's loki-gateway Service exposes one port only.
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-query
+spec:
+  selector:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/component: gateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8081
+      protocol: TCP
