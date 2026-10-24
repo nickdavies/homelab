@@ -90,6 +90,23 @@ spec:
         size: 50Gi
     gateway:
       enabled: true
+      nginxConfig:
+        # Read-only listener for agents (loki-query Service, networkpolicy.yaml).
+        # Loki has no authorization, so read vs write is split by port: :8080
+        # serves the full API including push and delete, :8081 only the query
+        # endpoints below. Anything else on :8081 is refused.
+        httpSnippet: |
+          server {
+            listen 8081;
+            location ~ ^/loki/api/v1/(query|query_range|labels|label/[^/]+/values|series|index/(stats|volume|volume_range)|patterns|detected_fields|detected_labels|detected_field/[^/]+/values)$ {
+              # $uri is the normalized path the regex matched; $request_uri
+              # would forward the raw one, e.g. /push/../query.
+              proxy_pass http://loki.observability.svc.cluster.local:3100$uri$is_args$args;
+            }
+            location / {
+              return 403;
+            }
+          }
     # Disable other components for SingleBinary mode
     read:
       replicas: 0
