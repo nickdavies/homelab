@@ -1,0 +1,34 @@
+{
+  "supportedDetectors": ["openvino", "onnx", "tensorrt", "rknn", "cpu"],
+  "width": 640,
+  "height": 640,
+  "inputShape": "nchw",
+  "pixelFormat": "rgb",
+  "type": "yolo-generic",
+  "attributes": {
+    "person": ["face"],
+    "car": ["license_plate"]
+  },
+  "labelMap": {
+    "0": "person",
+    "1": "bicycle",
+    "2": "car",
+    "3": "motorcycle",
+    "4": "bird",
+    "5": "cat",
+    "6": "dog",
+    "7": "horse",
+    "8": "cow",
+    "9": "bear",
+    "10": "deer",
+    "11": "package",
+    "12": "amazon",
+    "13": "ups",
+    "14": "fedex",
+    "15": "usps",
+    "16": "dhl",
+    "17": "waste_bin",
+    "18": "face",
+    "19": "license_plate"
+  }
+}
