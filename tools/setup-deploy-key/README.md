@@ -1,39 +1,31 @@
 # Setup Deploy Key
 
-A Python tool to inject deploy keys into 1Password for Flux GitOps.
+Generates an ed25519 deploy key for a private GitHub repo with `flux create
+secret git --export`, stores it in 1Password as `deploy_key_<repo>`, and prints
+the public key to add on GitHub. It refuses to run if an item with that title
+already exists in the vault, and reads the key back after writing to check the
+newlines survived.
 
-## Installation
-
-Install the required dependencies:
-
-```bash
-pip install -r requirements.txt
-```
+The key never touches disk or a command line: it moves between flux, jq and op
+through pipes. `KUBECONFIG=/dev/null` keeps flux away from the cluster.
 
 ## Usage
 
-The tool supports two modes:
-
-1. **Using an existing key file:**
 ```bash
-python setup_deploy_key.py homelab-data ssh://git@github.com/user/repo.git --key-file ./key.pem
+./setup-deploy-key.sh nickdavies/nick-assistant-pipelines
+# -> 1Password item deploy_key_nick_assistant_pipelines in homelab-k8s
+VAULT=other-vault ./setup-deploy-key.sh nickdavies/some-repo
 ```
 
-2. **Generating a new ed25519 key:**
-```bash
-python setup_deploy_key.py homelab-data ssh://git@github.com/user/repo.git --generate-key
+Then reference the item from an ExternalSecret next to the GitRepository, as
+in `kubernetes/flux/repositories/private/repos/`:
+
+```yaml
+  dataFrom:
+    - extract:
+        key: deploy_key_nick_assistant_pipelines
 ```
-
-## Options
-
-- `usecase`: Use case name for the deploy key
-- `git_url`: Git repository URL
-- `--key-file`: Path to existing private key file
-- `--generate-key`: Generate a new ed25519 key
-- `--vault-name`: 1Password vault name (default: homelab-k8s)
 
 ## Requirements
 
-The following external commands must be available:
-- `flux`
-- `op` (1Password CLI)
+`flux`, `op` (signed in), `jq`, and `yq` (the jq wrapper, which outputs JSON by default).
