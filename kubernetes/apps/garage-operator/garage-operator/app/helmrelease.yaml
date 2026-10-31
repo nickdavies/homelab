@@ -1,0 +1,44 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: garage-operator
+spec:
+  interval: 1h
+  chartRef:
+    kind: OCIRepository
+    name: garage-operator
+    namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      strategy: rollback
+      retries: 3
+  values:
+    fullnameOverride: garage-operator
+    image:
+      # renovate: depName=ghcr.io/rajsinghtech/garage-operator datasource=docker
+      tag: v0.8.2
+      digest: sha256:2f37ba7a0f9b5cb60b6670de944d6d1a76d825327650ee1c6057a575af928c52
+    # The chart always adds its own namespace. Add a namespace here only if
+    # every Secret in it is fine for the operator to read: it caches all of
+    # them. Never add `storage`, which holds the backups Garage's rpc_secret.
+    watchNamespaces:
+      - garage-operator
+    # The chart's Role grants create/delete on workloads and Secrets in every
+    # watched namespace. rbac.yaml grants what management handles need.
+    rbac:
+      create: false
+    metrics:
+      enabled: false
+    crds:
+      install: true
+      keep: true
+    # Webhooks are kept for their guards: a handle can't be flipped into
+    # deploy mode, and connectTo.adminApiEndpoint is immutable.
+    webhooks:
+      enabled: true

@@ -1,0 +1,42 @@
+---
+# Enforced by kube-network-policies (Talos flannel sidecar). It filters in
+# POSTROUTING after DNAT, so egress rules see real endpoints, not Service IPs.
+# Traffic from root on the node bypasses it, so kubelet probes need no rule.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: garage-operator
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: garage-operator
+      control-plane: controller-manager
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Admission and conversion webhooks, called by kube-apiserver (uid 65534,
+    # host network). Over flannel VXLAN a host reaches a remote pod from its
+    # flannel.1 address (podCIDR .0) and a local pod from cni0 (podCIDR .1),
+    # never from the node IP. These are the control-plane nodes' podCIDRs;
+    # they change if a control-plane node re-registers.
+    - from:
+        - ipBlock: { cidr: 10.244.2.0/31 } # k8s-node-1
+        - ipBlock: { cidr: 10.244.0.0/31 } # k8s-node-2
+        - ipBlock: { cidr: 10.244.1.0/31 } # k8s-node-3
+      ports:
+        - { port: 9443, protocol: TCP }
+  egress:
+    # kube-apiserver: the `kubernetes` Service DNATs to the control-plane nodes.
+    - to:
+        - ipBlock: { cidr: 192.168.254.11/32 }
+        - ipBlock: { cidr: 192.168.254.12/32 }
+        - ipBlock: { cidr: 192.168.254.13/32 }
+      ports:
+        - { port: 6443, protocol: TCP }
