@@ -29,6 +29,7 @@ spec:
     # them. Never add `storage`, which holds the backups Garage's rpc_secret.
     watchNamespaces:
       - garage-operator
+      - pipelines
     # The chart's Role grants create/delete on workloads and Secrets in every
     # watched namespace. rbac.yaml grants what management handles need.
     rbac:

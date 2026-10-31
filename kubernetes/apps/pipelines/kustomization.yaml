@@ -9,5 +9,6 @@ resources:
   # Pre Flux-Kustomizations
   - ./namespace.yaml
   - ./networkpolicy.yaml
+  - ./rbac.yaml
   # Flux-Kustomizations
   - ./garage-pipelines/ks.yaml

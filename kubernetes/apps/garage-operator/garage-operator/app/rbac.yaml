@@ -52,6 +52,19 @@ rules:
       - garagekeys/finalizers
     verbs: [update]
 ---
+# Imported GarageKeys write Secrets: an immutable snapshot of the import
+# material, and the output Secret the consuming pod mounts (created, updated,
+# and deleted on rename or finalize). Bound only in namespaces that hold
+# GarageKeys, next to garage-operator-manager.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: garage-operator-key-secrets
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create, update, patch, delete]
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:

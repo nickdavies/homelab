@@ -33,6 +33,27 @@ spec:
       ports:
         - { port: 9443, protocol: TCP }
   egress:
+    # Handles name their Garage by Service DNS name.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    # Admin API of each managed Garage.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: pipelines
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: garage-pipelines
+      ports:
+        - { port: 3903, protocol: TCP }
     # kube-apiserver: the `kubernetes` Service DNATs to the control-plane nodes.
     - to:
         - ipBlock: { cidr: 192.168.254.11/32 }
