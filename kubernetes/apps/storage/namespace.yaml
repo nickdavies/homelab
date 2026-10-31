@@ -8,3 +8,11 @@ metadata:
     volsync.backube/privileged-movers: "true"
   labels:
     internal-gateway-access: "true"
+---
+# Pods get an API token only if their spec asks for one.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: storage
+automountServiceAccountToken: false

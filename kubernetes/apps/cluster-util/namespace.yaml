@@ -7,3 +7,11 @@ metadata:
     kustomize.toolkit.fluxcd.io/prune: disabled
   labels:
     internal-gateway-access: "true"
+---
+# Pods get an API token only if their spec asks for one.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: cluster-util
+automountServiceAccountToken: false
