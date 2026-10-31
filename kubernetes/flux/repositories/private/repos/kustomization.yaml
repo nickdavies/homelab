@@ -6,3 +6,4 @@ resources:
   - ./agent-workspaces.yaml
   - ./homelab-data.yaml
   - ./hass-configs.yaml
+  - ./nick-assistant-pipelines.yaml

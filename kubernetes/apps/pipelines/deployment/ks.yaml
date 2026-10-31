@@ -1,0 +1,31 @@
+---
+# The generated half of assistant-pipelines (nick-assistant-pipelines,
+# ./kubernetes = gen/ only), applied as pipelines-reconciler. No
+# targetNamespace: every generated object names its own namespace.
+#
+# Substitution is off: generated content applies verbatim (it carries NATS
+# subjects like $KV.<bucket>), and nothing in it needs cluster settings.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: nick-assistant-pipelines
+  namespace: flux-system
+  labels:
+    substitution.flux.home.arpa/disabled: "true"
+spec:
+  dependsOn:
+    # NACK's CRDs (and NATS, through nack's own dependency)
+    - name: nack
+    # Garage CRDs, and the handle the generated buckets and keys reference
+    - name: garage-pipelines-handle
+  path: ./kubernetes
+  prune: true
+  serviceAccountName: pipelines-reconciler
+  sourceRef:
+    kind: GitRepository
+    name: nick-assistant-pipelines
+  wait: false # no flux ks dependents
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m

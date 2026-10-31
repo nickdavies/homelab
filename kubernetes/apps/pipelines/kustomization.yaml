@@ -10,7 +10,9 @@ resources:
   - ./namespace.yaml
   - ./networkpolicy.yaml
   - ./rbac.yaml
+  - ./reconciler.yaml
   # Flux-Kustomizations
+  - ./deployment/ks.yaml
   - ./garage-pipelines/ks.yaml
   - ./nack/ks.yaml
   - ./nats/ks.yaml

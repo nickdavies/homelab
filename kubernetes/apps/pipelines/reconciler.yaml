@@ -1,0 +1,99 @@
+# Flux applies nick-assistant-pipelines as this ServiceAccount, so that repo
+# can only manage the kinds the generator emits, and only in the two
+# pipelines namespaces. No HelmReleases: helm-controller installs charts as
+# cluster-admin, so a repo that could create them wouldn't be confined.
+# Everything cluster-scoped or namespace-wide stays in this repo.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pipelines-reconciler
+  namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pipelines-reconciler
+  namespace: pipelines
+rules:
+  - apiGroups: [""]
+    resources: [configmaps, services, serviceaccounts]
+    verbs: ["*"]
+  - apiGroups: [apps]
+    resources: [deployments]
+    verbs: ["*"]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: ["*"]
+  - apiGroups: [cert-manager.io]
+    resources: [certificates]
+    verbs: ["*"]
+  - apiGroups: [external-secrets.io]
+    resources: [externalsecrets]
+    verbs: ["*"]
+  - apiGroups: [generators.external-secrets.io]
+    resources: [passwords]
+    verbs: ["*"]
+  - apiGroups: [monitoring.coreos.com]
+    resources: [podmonitors, prometheusrules]
+    verbs: ["*"]
+  - apiGroups: [jetstream.nats.io]
+    resources: [streams, consumers, keyvalues, objectstores]
+    verbs: ["*"]
+  - apiGroups: [garage.rajsingh.info]
+    resources: [garagebuckets, garagekeys]
+    verbs: ["*"]
+---
+# LLM runners and their egress proxies only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pipelines-reconciler
+  namespace: pipelines-agents
+rules:
+  - apiGroups: [""]
+    resources: [configmaps, services, serviceaccounts]
+    verbs: ["*"]
+  - apiGroups: [apps]
+    resources: [deployments]
+    verbs: ["*"]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: ["*"]
+  - apiGroups: [cert-manager.io]
+    resources: [certificates]
+    verbs: ["*"]
+  - apiGroups: [external-secrets.io]
+    resources: [externalsecrets]
+    verbs: ["*"]
+  - apiGroups: [monitoring.coreos.com]
+    resources: [podmonitors]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pipelines-reconciler
+  namespace: pipelines
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pipelines-reconciler
+subjects:
+  - kind: ServiceAccount
+    name: pipelines-reconciler
+    namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pipelines-reconciler
+  namespace: pipelines-agents
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pipelines-reconciler
+subjects:
+  - kind: ServiceAccount
+    name: pipelines-reconciler
+    namespace: flux-system
