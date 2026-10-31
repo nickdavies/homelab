@@ -1,0 +1,63 @@
+---
+# A private CA whose only job is letting Envoy verify the Synology's DSM
+# certificate. Its one consumer is the BackendTLSPolicy in route.yaml, so a
+# leaked CA key can only impersonate the NAS to this gateway route.
+#
+# The leaf is imported into DSM by hand (Control Panel > Security >
+# Certificate, set as default): DSM has no way to pull it from here. cert-manager
+# renews the Secret a third of the way before expiry, but DSM keeps serving the
+# copy it was given, so the real deadline is that copy's notAfter -- re-import
+# before then or the route starts failing with 503 upstream TLS errors.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/issuer_v1.json
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: synology-selfsigned
+spec:
+  selfSigned: {}
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: synology-ca
+spec:
+  isCA: true
+  commonName: synology-ca
+  duration: 87600h # 10y
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  issuerRef:
+    name: synology-selfsigned
+    kind: Issuer
+    group: cert-manager.io
+  secretName: synology-ca-tls
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/issuer_v1.json
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: synology-ca
+spec:
+  ca:
+    secretName: synology-ca-tls
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: synology
+spec:
+  commonName: nas.internal.${SECRET_DOMAIN}
+  dnsNames: ["nas.internal.${SECRET_DOMAIN}"]
+  duration: 17520h # 2y
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  issuerRef:
+    name: synology-ca
+    kind: Issuer
+    group: cert-manager.io
+  secretName: synology-tls
+  usages: ["server auth"]

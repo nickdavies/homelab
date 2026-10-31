@@ -1,0 +1,35 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: synology
+spec:
+  hostnames:
+    - "nas.internal.${SECRET_DOMAIN}"
+  parentRefs:
+    - name: internal
+      namespace: network
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: synology
+          port: 5001
+---
+# Envoy re-encrypts to DSM and verifies its certificate against the private CA
+# in certificate.yaml. hostname is both the SNI Envoy sends and the SAN it
+# requires, so it must match the leaf DSM serves as its default certificate.
+apiVersion: gateway.networking.k8s.io/v1alpha3
+kind: BackendTLSPolicy
+metadata:
+  name: synology
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: synology
+  validation:
+    caCertificateRefs:
+      - group: ""
+        kind: Secret
+        name: synology-ca-tls
+    hostname: nas.internal.${SECRET_DOMAIN}
