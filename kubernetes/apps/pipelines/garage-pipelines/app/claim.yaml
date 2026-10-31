@@ -1,0 +1,23 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: garage-pipelines-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 50G
+  storageClassName: ""
+  volumeName: ap-blobs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: garage-pipelines-meta
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: ceph-block
