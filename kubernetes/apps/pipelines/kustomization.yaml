@@ -9,6 +9,7 @@ resources:
   # Pre Flux-Kustomizations
   - ./namespace.yaml
   - ./networkpolicy.yaml
+  - ./pull-secret.yaml
   - ./rbac.yaml
   - ./reconciler.yaml
   # Flux-Kustomizations
