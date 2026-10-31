@@ -18,7 +18,7 @@ spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: frigate
-      app.kubernetes.io/component: frigate
+      app.kubernetes.io/controller: frigate
   policyTypes: [Ingress]
   ingress:
     - from:
