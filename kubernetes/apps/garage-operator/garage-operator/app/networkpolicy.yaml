@@ -24,12 +24,10 @@ spec:
     # Admission and conversion webhooks, called by kube-apiserver (uid 65534,
     # host network). Over flannel VXLAN a host reaches a remote pod from its
     # flannel.1 address (podCIDR .0) and a local pod from cni0 (podCIDR .1),
-    # never from the node IP. These are the control-plane nodes' podCIDRs;
-    # they change if a control-plane node re-registers.
+    # never from the node IP. Per-node podCIDRs change when a node
+    # re-registers, so this is the whole cluster pod CIDR (Talos default).
     - from:
-        - ipBlock: { cidr: 10.244.2.0/31 } # k8s-node-1
-        - ipBlock: { cidr: 10.244.0.0/31 } # k8s-node-2
-        - ipBlock: { cidr: 10.244.1.0/31 } # k8s-node-3
+        - ipBlock: { cidr: 10.244.0.0/16 }
       ports:
         - { port: 9443, protocol: TCP }
   egress:
@@ -54,10 +52,9 @@ spec:
               app.kubernetes.io/name: garage-pipelines
       ports:
         - { port: 3903, protocol: TCP }
-    # kube-apiserver: the `kubernetes` Service DNATs to the control-plane nodes.
+    # kube-apiserver: the `kubernetes` Service DNATs to the control-plane
+    # nodes. The node subnet, so control-plane changes need no edit here.
     - to:
-        - ipBlock: { cidr: 192.168.254.11/32 }
-        - ipBlock: { cidr: 192.168.254.12/32 }
-        - ipBlock: { cidr: 192.168.254.13/32 }
+        - ipBlock: { cidr: 192.168.254.0/24 }
       ports:
         - { port: 6443, protocol: TCP }
