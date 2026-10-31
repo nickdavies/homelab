@@ -1,0 +1,28 @@
+---
+# Selectorless Service fronting DSM's HTTPS port on the NAS. The EndpointSlice
+# below supplies the address; it carries no endpointslice managed-by label, so
+# the EndpointSlice controller leaves it alone.
+apiVersion: v1
+kind: Service
+metadata:
+  name: synology
+spec:
+  type: ClusterIP
+  ports:
+    - name: https
+      port: 5001
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: synology
+  labels:
+    kubernetes.io/service-name: synology
+addressType: IPv4
+ports:
+  - name: https
+    port: 5001
+    protocol: TCP
+endpoints:
+  - addresses: ["192.168.254.5"]
