@@ -1,0 +1,125 @@
+---
+# Replaces the chart's per-namespace Role, which can create Pods, workloads
+# and Secrets. The operator is only used through management handles
+# (GarageCluster with just spec.connectTo), so it gets read-only access to
+# everything except Garage CR status/finalizers.
+#
+# The read-only workload rules can't be dropped. The deploy-mode controllers
+# are always registered and their informers must sync, or the manager exits.
+#
+# There is deliberately no `delete` on Garage CRs. Deleting a handle makes
+# its finalizer delete every GarageKey and GarageBucket that references it.
+# Each key's finalizer then deletes the Garage key, which Garage tombstones
+# and never lets be re-imported. Without the verb, deleting a handle stalls
+# instead of cascading.
+#
+# This is a ClusterRole only so that one rule set can be granted in each
+# watched namespace through a RoleBinding. It is never bound cluster-wide.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: garage-operator-manager
+rules:
+  - apiGroups: [""]
+    resources: [configmaps, persistentvolumeclaims, pods, secrets, services]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [create, patch]
+  - apiGroups: [apps]
+    resources: [daemonsets, deployments, replicasets, statefulsets]
+    verbs: [get, list, watch]
+  - apiGroups: [policy]
+    resources: [poddisruptionbudgets]
+    verbs: [get, list, watch]
+  - apiGroups: [garage.rajsingh.info]
+    resources: [garageclusters, garagebuckets, garagekeys]
+    verbs: [get, list, watch, update, patch]
+  - apiGroups: [garage.rajsingh.info]
+    resources: [garageadmintokens, garagenodes, garagereferencegrants]
+    verbs: [get, list, watch]
+  - apiGroups: [garage.rajsingh.info]
+    resources:
+      - garageclusters/status
+      - garagebuckets/status
+      - garagekeys/status
+      - garagereferencegrants/status
+    verbs: [get, update, patch]
+  - apiGroups: [garage.rajsingh.info]
+    resources:
+      - garageclusters/finalizers
+      - garagebuckets/finalizers
+      - garagekeys/finalizers
+    verbs: [update]
+---
+# Imported GarageKeys write Secrets: an immutable snapshot of the import
+# material, and the output Secret the consuming pod mounts (created, updated,
+# and deleted on rename or finalize). Bound only in namespaces that hold
+# GarageKeys, next to garage-operator-manager.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: garage-operator-key-secrets
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: garage-operator-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: garage-operator-manager
+subjects:
+  - kind: ServiceAccount
+    name: garage-operator
+    namespace: garage-operator
+---
+# GarageReferenceGrant namespaceSelectors are evaluated against Namespace
+# labels, which needs a cluster-wide watch.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: garage-operator-namespace-reader
+rules:
+  - apiGroups: [""]
+    resources: [namespaces]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: garage-operator-namespace-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: garage-operator-namespace-reader
+subjects:
+  - kind: ServiceAccount
+    name: garage-operator
+    namespace: garage-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: garage-operator-leader-election
+rules:
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: garage-operator-leader-election
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: garage-operator-leader-election
+subjects:
+  - kind: ServiceAccount
+    name: garage-operator
+    namespace: garage-operator

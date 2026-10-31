@@ -1,0 +1,60 @@
+---
+# Enforced by kube-network-policies (Talos flannel sidecar). It filters in
+# POSTROUTING after DNAT, so egress rules see real endpoints, not Service IPs.
+# Traffic from root on the node bypasses it, so kubelet probes need no rule.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: garage-operator
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: garage-operator
+      control-plane: controller-manager
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Admission and conversion webhooks, called by kube-apiserver (uid 65534,
+    # host network). Over flannel VXLAN a host reaches a remote pod from its
+    # flannel.1 address (podCIDR .0) and a local pod from cni0 (podCIDR .1),
+    # never from the node IP. Per-node podCIDRs change when a node
+    # re-registers, so this is the whole cluster pod CIDR (Talos default).
+    - from:
+        - ipBlock: { cidr: 10.244.0.0/16 }
+      ports:
+        - { port: 9443, protocol: TCP }
+  egress:
+    # Handles name their Garage by Service DNS name.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    # Admin API of each managed Garage.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: pipelines
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: garage-pipelines
+      ports:
+        - { port: 3903, protocol: TCP }
+    # kube-apiserver: the `kubernetes` Service DNATs to the control-plane
+    # nodes. The node subnet, so control-plane changes need no edit here.
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - { port: 6443, protocol: TCP }
