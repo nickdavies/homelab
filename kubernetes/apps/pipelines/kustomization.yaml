@@ -12,3 +12,5 @@ resources:
   - ./rbac.yaml
   # Flux-Kustomizations
   - ./garage-pipelines/ks.yaml
+  - ./nack/ks.yaml
+  - ./nats/ks.yaml

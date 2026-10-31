@@ -1,0 +1,38 @@
+---
+# The CA behind every pipeline NATS identity: client certificates (one per
+# node, SPIFFE URI SAN, mapped to a NATS user by verify_and_map) and the
+# server's own. A ClusterIssuer, because nodes live in two namespaces; its
+# key stays here in cert-manager, outside every workload namespace.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: nats-ca-bootstrap
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nats-ca
+spec:
+  isCA: true
+  commonName: assistant-pipelines NATS CA
+  secretName: nats-ca
+  duration: 87600h # 10y
+  renewBefore: 720h
+  # Renewal keeps the key, so every ca.crt already distributed stays valid.
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Never
+  issuerRef:
+    kind: Issuer
+    name: nats-ca-bootstrap
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: nats-client-ca
+spec:
+  ca:
+    secretName: nats-ca
