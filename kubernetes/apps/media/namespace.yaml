@@ -9,3 +9,11 @@ metadata:
   labels:
     internal-gateway-access: "true"
     external-gateway-access: "true"
+---
+# Pods get an API token only if their spec asks for one.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: media
+automountServiceAccountToken: false
