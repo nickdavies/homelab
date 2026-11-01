@@ -1,0 +1,30 @@
+name: Pins
+
+# Repo-wide, so no path filter: a floating version can land in any file,
+# including a new workflow. The check is a few seconds of Python.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pins:
+    name: No floating versions
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.15"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Image and download pins
+        run: make validate-pins
