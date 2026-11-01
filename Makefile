@@ -105,6 +105,11 @@ validate-flux-local:
 # Rendered manifest diff against a branch (default: current branch HEAD).
 # Shows what would actually change in the cluster for a set of commits.
 # Requires: flux-local, helm, kustomize, flux CLI
+#
+# The base side is checked out here and passed as --path-orig rather than
+# using flux-local's --branch-orig: --branch-orig drops --sources for the base
+# render, so Kustomizations from other GitRepositories get built against this
+# repo's tree and the whole diff fails.
 DIFF_BRANCH ?= HEAD
 FLUX_LOCAL_EXTRA_ARGS ?=
 manifest-diff:
@@ -113,6 +118,9 @@ manifest-diff:
 		echo "Install: pip install flux-local"; \
 		exit 1; \
 	}
-	@flux-local diff kustomization --path kubernetes/ --sources homelab \
-		--branch-orig $(DIFF_BRANCH) --skip-secrets --limit-bytes 65536 \
-		$(FLUX_LOCAL_EXTRA_ARGS)
+	@base=$$(mktemp -d) && \
+		trap 'git worktree remove --force "$$base"' EXIT && \
+		git worktree add -q --detach "$$base" $(DIFF_BRANCH) && \
+		flux-local diff kustomization --path kubernetes/ --sources homelab \
+			--path-orig "$$base/kubernetes" --skip-secrets --limit-bytes 65536 \
+			$(FLUX_LOCAL_EXTRA_ARGS)

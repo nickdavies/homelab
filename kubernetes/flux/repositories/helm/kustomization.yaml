@@ -6,7 +6,6 @@ resources:
   - intel.yaml
   - node-feature-discovery.yaml
   - backube.yaml
-  - bjw-s.yaml
   - ceph-csi-operator.yaml
   - cloudnative-pg.yaml
   - external-dns.yaml
@@ -14,6 +13,7 @@ resources:
   - grafana.yaml
   - jetstack.yaml
   - k8s-gateway.yaml
+  - nats.yaml
   - openebs.yaml
   - piraeus.yaml
   - prometheus-community.yaml

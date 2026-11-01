@@ -41,6 +41,8 @@ spec:
       enabled: false
     alertmanager:
       alertmanagerSpec:
+        # Neither alertmanager nor its config-reloader talk to the API.
+        automountServiceAccountToken: false
         # The default (OnNamespace) scopes the AlertmanagerConfig's routes to alerts
         # from its own namespace; this is the cluster-wide routing tree.
         alertmanagerConfigMatcherStrategy:

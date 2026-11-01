@@ -1,0 +1,41 @@
+---
+# Trusted code: NATS, NACK, procedural workers, MCP servers, garage-pipelines.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pipelines
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# LLM runners and their egress proxies. Its only credential is the LLM
+# provider's.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pipelines-agents
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# Pods get an API token only if their spec asks for one.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: pipelines
+automountServiceAccountToken: false
+---
+# Pods get an API token only if their spec asks for one.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: pipelines-agents
+automountServiceAccountToken: false

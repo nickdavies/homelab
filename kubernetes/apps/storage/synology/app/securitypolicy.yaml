@@ -1,0 +1,28 @@
+---
+# Authelia in front of DSM, ahead of DSM's own login. Same ext-authz wiring as
+# automation/rethink/app/securitypolicy.yaml, which explains each field.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: synology-authelia
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: synology
+  extAuth:
+    headersToExtAuth:
+      - accept
+      - cookie
+      - location
+      - authorization
+      - proxy-authorization
+      - x-forwarded-proto
+    failOpen: false
+    http:
+      backendRefs:
+        - kind: Service
+          name: authelia
+          namespace: security
+          port: 80
+      path: /api/authz/ext-authz/

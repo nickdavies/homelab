@@ -1,0 +1,29 @@
+# Blob store for assistant-pipelines. rf=1 is acceptable: metadata is on
+# ceph-block (replicated, not NFS) and the data is transit data that lives
+# about 9 days.
+#
+# No admin_token: the admin API only accepts scoped tokens made with
+# `garage admin-token create`. No metrics_token yet: nothing scrapes it.
+#
+# Layout is set once by hand; the operator's handle never touches it. The
+# node ID lives in the metadata PVC, so it only needs redoing on a new PVC:
+#   garage status                                   # node ID
+#   garage layout assign -z dc1 -c 50G <node-id>
+#   garage layout apply --version <current + 1>
+# The operator's admin token: see ../handle/garagecluster.yaml.
+metadata_dir = "/meta"
+data_dir = "/data"
+db_engine = "lmdb"
+
+replication_factor = 1
+compression_level = 2
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+s3_region = "us-east-1"
+api_bind_addr = "[::]:3900"
+
+[admin]
+api_bind_addr = "[::]:3903"

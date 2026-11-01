@@ -1,0 +1,19 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/source.toolkit.fluxcd.io/ocirepository_v1.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: garage-operator
+spec:
+  interval: 1h
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  ref:
+    # The digest wins over the tag; the tag is for humans and Renovate.
+    tag: 0.8.2
+    digest: sha256:2aec61c6a0613aa9f21e8efed167b74429d555555871a96a643169137fa70ac8
+  # Upstream signs with cosign v3 bundles, which source-controller verifies only
+  # from v1.8. Until then, check provenance by hand before bumping the digest:
+  #   gh attestation verify oci://<url>@<digest> -R rajsinghtech/garage-operator
+  url: oci://ghcr.io/rajsinghtech/charts/garage-operator

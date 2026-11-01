@@ -1,0 +1,22 @@
+---
+# Admin API, for garage-operator only. S3 (:3900) ingress is generated per
+# node by nick-assistant-pipelines.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: garage-pipelines-admin
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: garage-pipelines
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: garage-operator
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: garage-operator
+      ports:
+        - { port: 3903, protocol: TCP }

@@ -1,0 +1,19 @@
+---
+# assistant-pipelines platform. The namespaces, their baseline policy and
+# every shared component live here; nick-assistant-pipelines holds only the
+# generated per-workflow objects. Nothing workflow-specific belongs here.
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Pre Flux-Kustomizations
+  - ./namespace.yaml
+  - ./networkpolicy.yaml
+  - ./pull-secret.yaml
+  - ./rbac.yaml
+  - ./reconciler.yaml
+  # Flux-Kustomizations
+  - ./deployment/ks.yaml
+  - ./garage-pipelines/ks.yaml
+  - ./nack/ks.yaml
+  - ./nats/ks.yaml

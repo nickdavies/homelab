@@ -1,0 +1,24 @@
+---
+# NACK reaches NATS (the generated NATS ingress policy admits it) and the
+# apiserver for its CRs. Kubelet health probes need no rule.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nack
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: nack
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nats
+      ports:
+        - { port: 4222, protocol: TCP }
+    # kube-apiserver on the control-plane nodes (post-DNAT).
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - { port: 6443, protocol: TCP }

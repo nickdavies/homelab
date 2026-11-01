@@ -28,3 +28,18 @@ spec:
   dependsOn:
     - name: node-feature-discovery
       namespace: kube-system
+  # The operator runs every plugin DaemonSet as this ServiceAccount, and the
+  # GPU plugin never calls the API. Neither the chart nor the GpuDevicePlugin
+  # CR can turn the token off, so do it on the ServiceAccount.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: ServiceAccount
+              name: inteldeviceplugins-plugin
+            patch: |-
+              apiVersion: v1
+              kind: ServiceAccount
+              metadata:
+                name: inteldeviceplugins-plugin
+              automountServiceAccountToken: false

@@ -1,0 +1,23 @@
+---
+# Static rather than an inline nfs: volume because the namespace enforces Pod
+# Security `restricted`, which forbids inline NFS.
+#
+# The NAS share quota (50 GB) is the hard cap on blob storage; capacity only
+# mirrors it, since NFS doesn't enforce it. The share is excluded from NAS
+# snapshots, replication and backups: blobs are transit data.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ap-blobs
+spec:
+  capacity:
+    storage: 50G
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  claimRef:
+    namespace: pipelines
+    name: garage-pipelines-data
+  nfs:
+    server: ${SECRET_NFS_DOMAIN}
+    path: /volume1/ap-blobs

@@ -1,0 +1,25 @@
+---
+# Server certificate, from the same CA as the client certificates, so clients
+# verify the server with the ca.crt in their own certificate Secret. The
+# chart's config reloader picks up renewals without a restart.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nats-server-tls
+spec:
+  secretName: nats-server-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: nats-client-ca
+  dnsNames:
+    - nats
+    - nats.pipelines
+    - nats.pipelines.svc
+    - nats.pipelines.svc.cluster.local
+  usages:
+    - server auth
+    - digital signature
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
