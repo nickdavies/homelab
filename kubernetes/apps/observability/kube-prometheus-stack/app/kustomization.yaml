@@ -6,5 +6,6 @@ resources:
   - ./alertmanager.yaml
   - ./externalsecret.yaml
   - ./helmrelease.yaml
+  - ./networkpolicy.yaml
   - ./route.yaml
   - ./securitypolicy.yaml
