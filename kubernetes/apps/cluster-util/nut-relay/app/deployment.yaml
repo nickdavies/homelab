@@ -48,7 +48,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: nut-relay
-          image: instantlinux/nut-upsd:latest
+          image: instantlinux/nut-upsd:2.8.5-r1@sha256:28eae8f3c097b409749ed4a50da57668cf8785a9bccf0db83e521bf343c0e97e
           resources:
             requests:
               cpu: 10m

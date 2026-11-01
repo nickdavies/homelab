@@ -24,6 +24,16 @@
   ],
   ignorePaths: [
   ],
+  packageRules: [
+    {
+      // Tags are the NUT version plus the Alpine package release (2.8.5-r1).
+      // Docker versioning treats "-r1" as a compatibility suffix and would never
+      // offer 2.8.5-r2 or 2.8.6, so read the release as a build number instead.
+      matchDatasources: ["docker"],
+      matchPackageNames: ["instantlinux/nut-upsd"],
+      versioning: "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<build>\\d+))?$",
+    },
+  ],
   flux: {
     managerFilePatterns: ["/(^|/)kubernetes/.+\\.ya?ml$/"]
   },
