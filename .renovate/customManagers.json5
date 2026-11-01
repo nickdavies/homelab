@@ -15,6 +15,7 @@
       description: "Process annotated dependencies",
       managerFilePatterns: [
         "/(^|/).+\\.env$/",
+        "/(^|/)talos/talosenv$/",
         "/(^|/).+\\.sh$/",
         "/(^|/).+\\.ya?ml(?:\\.j2)?$/",
       ],
