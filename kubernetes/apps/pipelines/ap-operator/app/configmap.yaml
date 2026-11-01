@@ -1,0 +1,22 @@
+---
+# nats CLI context, selected with NATS_CONTEXT=<path>.json. Loaded from a
+# file rather than `nats context save` at startup so nothing writes it.
+#
+# inbox_prefix is load-bearing: the ap-operator user may only subscribe to
+# _INBOX.ap-operator.>, and natscli v0.5 has no env var for the prefix. Without
+# it every request-reply (stream info, stream view, ...) times out or gets a
+# permissions violation.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ap-operator-nats-context
+data:
+  ap-operator.json: |
+    {
+      "description": "ap-operator: read-only AP_HISTORY and transcript stores",
+      "url": "tls://nats.pipelines.svc:4222",
+      "cert": "/etc/nats/tls/tls.crt",
+      "key": "/etc/nats/tls/tls.key",
+      "ca": "/etc/nats/tls/ca.crt",
+      "inbox_prefix": "_INBOX.ap-operator"
+    }

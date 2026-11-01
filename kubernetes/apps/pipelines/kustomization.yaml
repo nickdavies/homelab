@@ -13,6 +13,7 @@ resources:
   - ./rbac.yaml
   - ./reconciler.yaml
   # Flux-Kustomizations
+  - ./ap-operator/ks.yaml
   - ./deployment/ks.yaml
   - ./garage-pipelines/ks.yaml
   - ./nack/ks.yaml
