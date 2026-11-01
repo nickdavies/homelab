@@ -6,7 +6,6 @@ resources:
   - intel.yaml
   - node-feature-discovery.yaml
   - backube.yaml
-  - bjw-s.yaml
   - ceph-csi-operator.yaml
   - cloudnative-pg.yaml
   - external-dns.yaml
