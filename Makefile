@@ -1,5 +1,6 @@
 .PHONY: validate validate-yaml validate-kustomize validate-refs validate-kustomize-full \
-        validate-kubeconform validate-flux-local validate-all flux-schemas manifest-diff
+        validate-kubeconform validate-flux-local validate-all flux-schemas manifest-diff \
+        chart-diff
 
 # Run all local validations (no extra tools required beyond python3 + PyYAML)
 validate: validate-yaml validate-kustomize validate-refs
@@ -124,3 +125,23 @@ manifest-diff:
 		flux-local diff kustomization --path kubernetes/ --sources homelab \
 			--path-orig "$$base/kubernetes" --skip-secrets --limit-bytes 65536 \
 			$(FLUX_LOCAL_EXTRA_ARGS)
+
+# Rendered chart diff for every HelmRelease whose chart version changes
+# against DIFF_BRANCH: helm template of the old and new chart with the
+# release's values, a CRD summary, and kubeconform -strict on the new render.
+# Writes $(CHART_DIFF_OUT)/comment.md and the renders.
+# Requires: kustomize, helm, kubeconform, PyYAML
+#
+# KUBE_VERSION is what charts see as .Capabilities.KubeVersion; keep it at
+# the cluster's version.
+KUBE_VERSION ?= 1.33.2
+CHART_DIFF_OUT ?= /tmp/chart-diff
+chart-diff:
+	@for tool in kustomize helm kubeconform; do \
+		command -v $$tool >/dev/null 2>&1 || { echo "ERROR: $$tool not found."; exit 1; }; \
+	done
+	@base=$$(mktemp -d) && \
+		trap 'git worktree remove --force "$$base"' EXIT && \
+		git worktree add -q --detach "$$base" $(DIFF_BRANCH) && \
+		python3 scripts/chart-diff.py --base "$$base" --out $(CHART_DIFF_OUT) \
+			--kube-version $(KUBE_VERSION)

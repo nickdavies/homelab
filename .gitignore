@@ -3,3 +3,4 @@ talos/image_build/talos.ipxe
 flux/bootstrap/secrets
 venv
 talos/talos-session/target
+__pycache__/
