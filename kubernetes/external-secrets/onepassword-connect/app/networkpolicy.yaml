@@ -1,0 +1,31 @@
+---
+# Only the External Secrets controller may reach Connect. Connect already
+# requires a bearer token, but that token reads every vault Connect can see, so
+# this limits a leaked token to the one pod that legitimately holds it.
+#
+# - :8080 connect-api, called by the ClusterSecretStore
+#   (external-secrets/app/secrets-store.yaml).
+# - :8081 connect-sync is exposed on the Service but has no callers; its bus to
+#   connect-api is localhost (OP_BUS_PEERS), which a NetworkPolicy never sees.
+#
+# The ESO webhook and cert-controller never call providers, so they are left
+# out. Ingress only: Connect dials out to 1password.com. Kubelet probes come
+# from the node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: onepassword-connect
+spec:
+  podSelector:
+    matchLabels:
+      app: onepassword-connect
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: external-secrets
+              app.kubernetes.io/name: external-secrets
+      ports:
+        - protocol: TCP
+          port: 8080
