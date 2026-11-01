@@ -203,6 +203,89 @@ jobs:
           else
             body="### Manifest Diff"$'\n\n'"No manifest changes detected. :white_check_mark:"
           fi
-          # Update existing comment or create new one
-          gh pr comment "$PR_NUMBER" --body "$body" --edit-last 2>/dev/null \
-            || gh pr comment "$PR_NUMBER" --body "$body"
+          printf '%s\n' "$body" > /tmp/manifest-diff-comment.md
+          scripts/pr-comment.sh "$PR_NUMBER" /tmp/manifest-diff-comment.md
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 5: Chart diff — rendered Helm chart comparison for chart version bumps
+  #   - For each HelmRelease whose chart (HelmRepository version or
+  #     OCIRepository ref) changes, helm-templates the old and new chart with
+  #     the release's values; cluster-only substitutions become placeholders
+  #   - Summarises CRD changes: added/removed, versions dropped, fields
+  #     removed, storage version changes
+  #   - kubeconform -strict on the new render, against the new CRDs
+  #   - Posts a "Chart Diff" comment, edited in place; fails only on a render
+  #     failure or a kubeconform failure this PR introduces
+  # ─────────────────────────────────────────────────────────────────────────────
+  chart-diff:
+    name: Chart diff
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.15"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Install helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5
+
+      - name: Install kustomize
+        uses: imranismail/setup-kustomize@53f941b41dca13ed61874bbc6b4b6e1562877530 # v3
+
+      - name: Install kubeconform
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            | tar xz
+          sudo mv kubeconform /usr/local/bin/
+          kubeconform -v
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+
+      - name: Render and diff charts
+        id: diff
+        run: |
+          exit_code=0
+          make chart-diff DIFF_BRANCH=origin/${{ github.event.pull_request.base.ref }} \
+            CHART_DIFF_OUT=/tmp/chart-diff || exit_code=$?
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+
+      - name: Upload renders
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: chart-diff
+          path: |
+            /tmp/chart-diff
+            !/tmp/chart-diff/charts
+          if-no-files-found: ignore
+
+      - name: Post PR comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          mkdir -p /tmp/chart-diff
+          body=/tmp/chart-diff/comment.md
+          if [ ! -s "$body" ]; then
+            printf '%s\n\n%s\n' "### Chart Diff" \
+              ":warning: Chart diff failed before writing a report. Check the [CI logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details." > "$body"
+          fi
+          if grep -q "No HelmRelease chart versions change" "$body"; then
+            scripts/pr-comment.sh "$PR_NUMBER" "$body" --update-only
+          else
+            scripts/pr-comment.sh "$PR_NUMBER" "$body"
+          fi
+
+      - name: Fail on new problems
+        if: steps.diff.outputs.exit_code != '0'
+        run: exit 1
