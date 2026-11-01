@@ -1,9 +1,9 @@
-.PHONY: validate validate-yaml validate-kustomize validate-refs validate-kustomize-full \
-        validate-kubeconform validate-flux-local validate-all flux-schemas manifest-diff \
-        chart-diff
+.PHONY: validate validate-yaml validate-kustomize validate-refs validate-pins \
+        validate-kustomize-full validate-kubeconform validate-flux-local validate-all \
+        flux-schemas manifest-diff chart-diff
 
 # Run all local validations (no extra tools required beyond python3 + PyYAML)
-validate: validate-yaml validate-kustomize validate-refs
+validate: validate-yaml validate-kustomize validate-refs validate-pins
 	@echo "\nAll validations passed!"
 
 # Run all validations including schema checking and Helm rendering
@@ -13,14 +13,14 @@ validate-all: validate validate-kustomize-full validate-kubeconform validate-flu
 
 # 1. YAML syntax check
 validate-yaml:
-	@echo "==> [1/3] Checking YAML syntax..."
+	@echo "==> [1/4] Checking YAML syntax..."
 	@python3 scripts/validate-flux.py yaml
 
 # 2. Kustomization resource reference check
 #    - Forward: files listed in resources that don't exist
 #    - Reverse: yaml files in the same dir with k8s resources not listed
 validate-kustomize:
-	@echo "==> [2/3] Checking kustomization resource references..."
+	@echo "==> [2/4] Checking kustomization resource references..."
 	@python3 scripts/validate-flux.py kustomize
 
 # 3. Flux cross-reference checks:
@@ -29,8 +29,15 @@ validate-kustomize:
 #    - Flux Kustomization spec.path → directory exists
 #    - secretRef.name → ExternalSecret or Secret provides it
 validate-refs:
-	@echo "==> [3/3] Checking Flux cross-references..."
+	@echo "==> [3/4] Checking Flux cross-references..."
 	@python3 scripts/validate-flux.py refs
+
+# 4. Pins: no floating versions anywhere in the repo
+#    - Container images need a release tag or a digest (no latest/main/untagged)
+#    - No GitHub latest-release downloads or latest runner labels
+validate-pins:
+	@echo "==> [4/4] Checking image and download pins..."
+	@python3 scripts/validate-flux.py pins
 
 # Optional: full kustomize build (requires kustomize to be installed)
 # Install: https://kubectl.sigs.k8s.io/kustomize/installation/
@@ -81,11 +88,13 @@ validate-kubeconform:
 	echo "  Built: $$built dirs, Skipped (kustomize errors): $$skipped dirs"; \
 	[ $$failed -eq 0 ]
 
-# Download Flux CRD schemas locally for offline kubeconform validation.
+# Download Flux CRD schemas locally for offline kubeconform validation, for the
+# Flux version the cluster runs.
+FLUX_VERSION ?= $(shell sed -n 's/^FLUX_VERSION=v\{0,1\}//p' talos/talosenv)
 flux-schemas:
 	@mkdir -p $(FLUX_SCHEMA_DIR)
 	@echo "==> Downloading Flux CRD schemas to $(FLUX_SCHEMA_DIR)..."
-	@curl -sL https://github.com/fluxcd/flux2/releases/latest/download/crd-schemas.tar.gz \
+	@curl -sL https://github.com/fluxcd/flux2/releases/download/v$(FLUX_VERSION)/crd-schemas.tar.gz \
 		| tar zxf - -C $(FLUX_SCHEMA_DIR)/
 	@echo "  Done. Use: make validate-kubeconform FLUX_SCHEMA_DIR=$(FLUX_SCHEMA_DIR)"
 
