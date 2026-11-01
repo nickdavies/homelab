@@ -1,0 +1,38 @@
+# Only the two Envoy gateways may reach Home Assistant over the pod network.
+# Every browser, mobile app and webhook comes in through hass.internal (route
+# homeassistant-internal) or the Cloudflare tunnel (homeassistant-external);
+# nothing in the cluster calls HA directly.
+#
+# configuration.yaml trusts X-Forwarded-For from the whole pod CIDR, because
+# the Envoy pods' IPs aren't stable. Without this policy any pod could connect
+# to 8123 and name its own client IP.
+#
+# Scope: eth0 only. The Multus interfaces (IoT, mgmt, NoT) bypass
+# NetworkPolicy, so LAN clients of 192.168.254.9:8123 and HomeKit (21064) are
+# unaffected. Ingress only: HA's outbound calls (MQTT, ESPHome, Frigate,
+# InfluxDB, cloud integrations) are untouched. Kubelet probes come from the
+# node, and kubectl port-forward dials inside the pod; neither needs a rule.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: homeassistant
+spec:
+  podSelector:
+    matchLabels:
+      app: homeassistant
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchExpressions:
+              - key: gateway.envoyproxy.io/owning-gateway-name
+                operator: In
+                values: [internal, external]
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - protocol: TCP
+          port: 8123
