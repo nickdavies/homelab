@@ -20,6 +20,22 @@ spec:
       strategy: rollback
   uninstall:
     keepHistory: false
+  postRenderers:
+    # The chart has no minReadySeconds. With it, availableReplicas only counts
+    # a pod ready for a full minute, so a crash-looping pod can't look healthy
+    # between restarts (the Tuppr health checks read it).
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: blocky
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: blocky
+              spec:
+                minReadySeconds: 60
   values:
     controllers:
       blocky:
@@ -35,6 +51,16 @@ spec:
             args:
               - --config
               - /etc/blocky/config/config.yaml
+            probes:
+              # Ready once it accepts DNS. Readiness never restarts the pod.
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: 1053
+                  periodSeconds: 10
+                  failureThreshold: 3
             resources:
               requests:
                 cpu: 10m
