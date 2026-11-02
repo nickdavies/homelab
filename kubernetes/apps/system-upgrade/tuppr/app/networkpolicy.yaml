@@ -1,0 +1,59 @@
+---
+# Enforced by kube-network-policies (Talos flannel sidecar). It filters in
+# POSTROUTING after DNAT, so egress rules see real endpoints, not Service IPs.
+# Traffic from root on the node bypasses it, so kubelet probes need no rule.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# One policy for the controller and its upgrade Jobs alike: nothing else runs
+# in this namespace (see namespace.yaml).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tuppr
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Validating webhook, called by kube-apiserver (host network). Over flannel
+    # a host reaches a pod from its podCIDR .0/.1, never the node IP, and
+    # per-node podCIDRs change when a node re-registers, so this is the whole
+    # cluster pod CIDR (Talos default).
+    - from:
+        - ipBlock: { cidr: 10.244.0.0/16 }
+      ports:
+        - { port: 9443, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    # kube-apiserver (the `kubernetes` Service) and the Talos API (`default/talos`
+    # Service, then apid on each node). Both DNAT to node IPs.
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - { port: 6443, protocol: TCP }
+        - { port: 50000, protocol: TCP }
+    # Before each batch the controller checks the registry serves the target
+    # installer image (factory.talos.dev).
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - { port: 443, protocol: TCP }

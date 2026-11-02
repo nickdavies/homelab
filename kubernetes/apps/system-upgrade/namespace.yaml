@@ -1,0 +1,23 @@
+---
+# Talos grants os:admin on every node to this namespace
+# (talos/patches-control-plane/talos-api-access.yaml): anyone who can create a
+# talos.dev ServiceAccount here, or read the Secret Talos writes for it, owns
+# the cluster. Keep it to Tuppr alone.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: system-upgrade
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# Pods get an API token only if their spec asks for one.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: system-upgrade
+automountServiceAccountToken: false
