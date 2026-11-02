@@ -42,6 +42,12 @@ rules:
   - apiGroups: [ceph.rook.io]
     resources: [cephclusters]
     verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets]
+    verbs: [get, list, watch]
+  - apiGroups: [postgresql.cnpg.io]
+    resources: [clusters]
+    verbs: [get, list, watch]
   # The cert rotator injects its CA bundle into the webhook configuration.
   - apiGroups: [admissionregistration.k8s.io]
     resources: [validatingwebhookconfigurations]
