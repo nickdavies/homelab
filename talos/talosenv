@@ -2,7 +2,7 @@
 # with it. Renovate moves it with the last rollout stage (the Pi), so it only
 # changes once every node runs the new version.
 # renovate: datasource=docker depName=ghcr.io/siderolabs/talos
-TALOS_VERSION=v1.13.12
+TALOS_VERSION=v1.14.5
 KUBE_VERSION="v1.33.2"
 
 VIP=192.168.254.10
