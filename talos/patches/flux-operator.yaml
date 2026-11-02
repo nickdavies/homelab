@@ -21,8 +21,6 @@ cluster:
             - kustomize-controller
             - helm-controller
             - notification-controller
-            - image-reflector-controller
-            - image-automation-controller
           cluster:
             type: kubernetes
             multitenant: false

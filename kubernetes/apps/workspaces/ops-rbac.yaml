@@ -53,7 +53,6 @@ rules:
       - generators.external-secrets.io
       - groupsnapshot.storage.k8s.io
       - helm.toolkit.fluxcd.io
-      - image.toolkit.fluxcd.io
       - k8s.cni.cncf.io
       - kustomize.toolkit.fluxcd.io
       - metallb.io
