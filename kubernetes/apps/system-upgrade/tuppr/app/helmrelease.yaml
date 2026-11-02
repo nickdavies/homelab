@@ -1,0 +1,36 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tuppr
+spec:
+  interval: 1h
+  chartRef:
+    kind: OCIRepository
+    name: tuppr
+    namespace: flux-system
+  install:
+    # CreateReplace, not Create: an upgrade that kept old CRDs would silently
+    # drop new TalosUpgrade policy fields.
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    cleanupOnFail: true
+    remediation:
+      strategy: rollback
+      retries: 3
+  values:
+    # The image digest is pinned by the chart version (values.yaml image.digest).
+    replicaCount: 2
+    # The chart's ClusterRole reads every resource in the cluster (`*/*`) and,
+    # with the webhook on, writes Secrets cluster-wide. rbac.yaml grants what
+    # the controller's own kubebuilder markers declare.
+    rbac:
+      create: false
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi

@@ -1,0 +1,103 @@
+---
+# Replaces the chart's ClusterRole, which reads `*/*`. Rules follow the
+# controller's +kubebuilder:rbac markers (tuppr 0.5.11) plus what its health
+# checks, webhook cert rotator and leader election need.
+#
+# Reads are cluster-wide because the manager's cache is not namespace-scoped:
+# every type it gets or lists, Secrets included, is watched across the
+# cluster. Writes outside system-upgrade are limited to Nodes (the outdated
+# taint), its own CRs, Events and its own webhook configuration.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tuppr
+rules:
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, list, watch, update, patch]
+  - apiGroups: [""]
+    # secrets: the webhook reads tuppr-talosconfig through the cluster-wide cache.
+    resources: [pods, persistentvolumeclaims, secrets]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [create, patch]
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, watch]
+  - apiGroups: [storage.k8s.io]
+    resources: [volumeattachments]
+    verbs: [get, list, watch]
+  - apiGroups: [tuppr.home-operations.com]
+    resources: [talosupgrades, kubernetesupgrades]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [tuppr.home-operations.com]
+    resources: [talosupgrades/status, kubernetesupgrades/status]
+    verbs: [get, update, patch]
+  - apiGroups: [tuppr.home-operations.com]
+    resources: [talosupgrades/finalizers, kubernetesupgrades/finalizers]
+    verbs: [update]
+  # Health checks in the TalosUpgrade plans. Add a rule here for any new kind
+  # a plan checks; unlisted kinds fail the check rather than pass it.
+  - apiGroups: [ceph.rook.io]
+    resources: [cephclusters]
+    verbs: [get, list, watch]
+  # The cert rotator injects its CA bundle into the webhook configuration.
+  - apiGroups: [admissionregistration.k8s.io]
+    resources: [validatingwebhookconfigurations]
+    verbs: [get, list, watch]
+  - apiGroups: [admissionregistration.k8s.io]
+    resources: [validatingwebhookconfigurations]
+    resourceNames: [tuppr-validating-webhook]
+    verbs: [update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tuppr
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tuppr
+subjects:
+  - kind: ServiceAccount
+    name: tuppr
+    namespace: system-upgrade
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tuppr
+rules:
+  # Upgrade Jobs run talosctl in this namespace.
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [create, update, patch, delete]
+  # The cert rotator keeps the webhook serving cert in this Secret.
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create]
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [tuppr-webhook-server-cert]
+    verbs: [update, patch]
+  # Leader election, as in the chart's leader-election Role.
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tuppr
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tuppr
+subjects:
+  - kind: ServiceAccount
+    name: tuppr
+    namespace: system-upgrade

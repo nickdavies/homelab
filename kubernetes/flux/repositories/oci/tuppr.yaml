@@ -1,0 +1,16 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/source.toolkit.fluxcd.io/ocirepository_v1.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: tuppr
+spec:
+  interval: 1h
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  ref:
+    # The digest wins over the tag; the tag is for humans and Renovate.
+    tag: 0.5.11
+    digest: sha256:3c81b5bfaf051ff7aca6d9c8307d9653e267c27bec713722a7f4478c5403ecf1
+  url: oci://ghcr.io/home-operations/charts/tuppr

@@ -6,3 +6,4 @@ resources:
   - descheduler.yaml
   - envoy-gateway.yaml
   - garage-operator.yaml
+  - tuppr.yaml
