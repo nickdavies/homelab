@@ -1,0 +1,88 @@
+---
+# Rolls Talos to spec.talos.version one node at a time: talosctl drains,
+# upgrades and reboots each node; Tuppr waits for it to return Ready on the
+# new version, then re-runs the health checks before the next node.
+#
+# Each node keeps its own schematic: Tuppr swaps only the tag of the node's
+# install image, so it refuses a node whose install image doesn't name the
+# schematic it runs. Change a schematic with image_build/upgrade.sh, not here.
+#
+# Rollout is staged by nodeSelector, one PR per step: a canary worker, then
+# the amd64 nodes, then no selector so only the Pi is left.
+apiVersion: tuppr.home-operations.com/v1alpha1
+kind: TalosUpgrade
+metadata:
+  name: talos
+spec:
+  talos:
+    version: v1.14.5
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: k8s-node-7
+  parallelism: 1
+  # Checks run before every node, never after the last one: whatever a plan
+  # upgrades last is verified only by the next plan's first check, or by hand.
+  # Readiness here is the pods' own probes. Blocky, mosquitto, HA's app and
+  # Z2M have none, so for them "ready" only means "running", and a pod
+  # between crash-loop restarts can pass.
+  healthChecks:
+    - description: Ceph healthy
+      apiVersion: ceph.rook.io/v1
+      kind: CephCluster
+      namespace: rook-ceph
+      name: rook-ceph
+      expr: status.ceph.health == "HEALTH_OK"
+      timeout: 30m
+    - description: every node Ready
+      apiVersion: v1
+      kind: Node
+      expr: status.conditions.exists(c, c.type == "Ready" && c.status == "True")
+      timeout: 15m
+    - description: Postgres clusters healthy
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      namespace: database
+      expr: status.phase == "Cluster in healthy state"
+      timeout: 15m
+    - description: CoreDNS
+      apiVersion: apps/v1
+      kind: Deployment
+      namespace: kube-system
+      name: coredns
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 10m
+    - description: k8s-gateway (internal DNS)
+      apiVersion: apps/v1
+      kind: Deployment
+      namespace: network
+      name: k8s-gateway
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 10m
+    - description: Blocky
+      apiVersion: apps/v1
+      kind: Deployment
+      namespace: network
+      name: blocky
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 10m
+    - description: mosquitto
+      apiVersion: apps/v1
+      kind: Deployment
+      namespace: automation
+      name: mosquitto
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 10m
+    - description: Home Assistant
+      apiVersion: apps/v1
+      kind: StatefulSet
+      namespace: automation
+      name: homeassistant
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 15m
+    - description: Zigbee2MQTT
+      apiVersion: apps/v1
+      kind: StatefulSet
+      namespace: automation
+      name: zigbee2mqtt
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 15m

@@ -19,3 +19,27 @@ spec:
   interval: 30m
   retryInterval: 1m
   timeout: 5m
+---
+# The plans. Separate so the CRDs exist first, and without wait: a
+# TalosUpgrade runs for hours and has no Ready condition to wait on.
+# yaml-language-server: $schema=https://lds-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app tuppr-upgrades
+  namespace: flux-system
+spec:
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  dependsOn:
+    - name: tuppr
+  path: ./kubernetes/apps/system-upgrade/tuppr/upgrades
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: false
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
