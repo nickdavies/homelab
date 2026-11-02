@@ -22,7 +22,7 @@ FLUX_OPERATOR_VERSION=v0.23.0
 FLUX_VERSION=2.6.2
 
 # renovate: datasource=github-releases depName=kubernetes-sigs/metrics-server
-METRICS_SERVER_VERSION=v0.7.2
+METRICS_SERVER_VERSION=v0.9.1
 
 # renovate: datasource=github-releases depName=alex1989hu/kubelet-serving-cert-approver
 KUBELET_SERVING_CERT_APPROVER_VERSION=v0.12.1
