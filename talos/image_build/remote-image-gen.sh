@@ -5,7 +5,7 @@ set -euo pipefail
 FILE="$1"
 VERSION="${2:-<VERSION>}"
 
-# Check if customizations.yaml exists
+# Check the schematic file exists
 if [[ ! -f "$FILE" ]]; then
     echo "Error: $FILE file not found in current directory"
     exit 1
