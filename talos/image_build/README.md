@@ -8,10 +8,14 @@ For example if we want to upgrade to version `v1.10.4` first update your `talose
 ```
 source ../talosenv
 ./remote-image-gen.sh pi_customizations.yaml "${TALOS_VERSION}"
-./remote-image-gen.sh customizations.yaml "${TALOS_VERSION}"
+./remote-image-gen.sh intel_customizations.yaml "${TALOS_VERSION}"
+./remote-image-gen.sh amd_customizations.yaml "${TALOS_VERSION}"
 ```
 
 This will generate you an id if you don't have it already for each machine type (eg `2babf6fe3a996452becf9635e9b9d9a380e8a7ece5190b17db365dae427ed807`).
+`intel_customizations.yaml` is for the Intel nodes, `amd_customizations.yaml` for the
+AMD ones and `pi_customizations.yaml` for the Pi; each node's `SCHEMATIC` in
+`../nodes/<node>.env` says which. Use that node's ID with `upgrade.sh`.
 
 Then you can pass this into `upgrade.sh` for example:
 ```
@@ -95,7 +99,7 @@ This file needs to live at the top of the tftp directory called `talos.ipxe` (or
 and can be built by running:
 
 ```
-./remote-image-gen.sh customizations.yaml "v1.10.4"
+./remote-image-gen.sh intel_customizations.yaml "v1.10.4"
 ```
 
 Then this will give you some urls. One of them is the pxe config. If you curl this you will get the config you need to upload to the NAS
