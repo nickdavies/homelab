@@ -4,6 +4,9 @@ metadata:
   name: zigbee2mqtt
 spec:
   replicas: 1
+  # availableReplicas counts the pod only after 2 minutes of readiness, so a
+  # crash-looping Z2M can't look healthy between restarts (Tuppr health checks).
+  minReadySeconds: 120
   selector:
     matchLabels:
       app: &app zigbee2mqtt
@@ -52,14 +55,36 @@ spec:
             - containerPort: 8080
               name: web
               protocol: TCP
+          # The frontend starts only after zigbee-herdsman and the MQTT
+          # connection are up (and Z2M exits if MQTT fails), so GET / means
+          # "fully started".
+          #
+          # Startup can be slow (coordinator, device interviews): allow 15
+          # minutes before liveness may restart it. Liveness only begins once
+          # the startup probe passes.
+          startupProbe:
+            httpGet:
+              path: /
+              port: web
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 60
           livenessProbe:
             failureThreshold: 5
             httpGet:
               path: /
               port: web
-            initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 10
+          # Never restarts the container; only gates Service endpoints and
+          # readyReplicas/availableReplicas.
+          readinessProbe:
+            httpGet:
+              path: /
+              port: web
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
           resources:
             limits:
               devic.es/zigbee-serial: 1
