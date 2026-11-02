@@ -1,7 +1,7 @@
 ---
 cluster:
   extraManifests:
-    - https://github.com/controlplaneio-fluxcd/flux-operator/releases/latest/download/install.yaml
+    - https://github.com/controlplaneio-fluxcd/flux-operator/releases/download/${FLUX_OPERATOR_VERSION}/install.yaml
   inlineManifests:
     - name: flux-instance
       contents: |-
@@ -12,7 +12,7 @@ cluster:
           namespace: flux-system
         spec:
           distribution:
-            version: "2.x"
+            version: "${FLUX_VERSION}"
             registry: "ghcr.io/fluxcd"
           components:
             - source-controller
