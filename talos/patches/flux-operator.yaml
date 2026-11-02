@@ -3,6 +3,8 @@ cluster:
   extraManifests:
     - https://github.com/controlplaneio-fluxcd/flux-operator/releases/download/${FLUX_OPERATOR_VERSION}/install.yaml
   inlineManifests:
+    # Bootstrap copy of kubernetes/apps/flux-system/flux-instance/app/fluxinstance.yaml,
+    # which Flux manages from then on. Keep the two specs identical.
     - name: flux-instance
       contents: |-
         apiVersion: fluxcd.controlplane.io/v1

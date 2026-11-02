@@ -1,0 +1,36 @@
+---
+# Keep in step with the bootstrap copy in talos/patches/flux-operator.yaml. Renovate
+# moves the version here and FLUX_VERSION in talos/talosenv in the same PR.
+apiVersion: fluxcd.controlplane.io/v1
+kind: FluxInstance
+metadata:
+  # flux-operator only reconciles a FluxInstance named "flux".
+  name: flux
+spec:
+  distribution:
+    # An exact version, never a range: a range resolves to the newest Flux the
+    # running operator ships, so an operator bump would silently upgrade Flux.
+    # renovate: datasource=github-releases depName=fluxcd/flux2
+    version: 2.6.2
+    registry: ghcr.io/fluxcd
+  components:
+    - source-controller
+    - kustomize-controller
+    - helm-controller
+    - notification-controller
+    - image-reflector-controller
+    - image-automation-controller
+  cluster:
+    type: kubernetes
+    multitenant: false
+    networkPolicy: true
+    domain: cluster.local
+  kustomize:
+    patches:
+      - target:
+          kind: Deployment
+          name: kustomize-controller
+        patch: |-
+          - op: add
+            path: /spec/template/spec/containers/0/args/-
+            value: --feature-gates=StrictPostBuildSubstitutions=true
