@@ -49,6 +49,10 @@ validate-kustomize-full:
 # Optional: run 'make flux-schemas' first to use local schemas instead.
 FLUX_SCHEMA_DIR ?= /tmp/flux-crd-schemas
 CRD_CATALOG_URL = https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+# Kinds whose catalog schema lags the CRD we run, so kubeconform rejects valid
+# fields. The API server and the operator's webhook still validate them on
+# apply. TalosUpgrade: catalog predates nodeSelector/parallelism (tuppr 0.5.x).
+KUBECONFORM_SKIP = TalosUpgrade
 
 validate-kubeconform:
 	@command -v kustomize >/dev/null 2>&1 || { echo "ERROR: kustomize not found"; exit 1; }
@@ -74,6 +78,7 @@ validate-kubeconform:
 			-strict \
 			-summary \
 			-ignore-missing-schemas \
+			-skip "$(KUBECONFORM_SKIP)" \
 			-schema-location default \
 			-schema-location "$$SCHEMA_EXTRA" \
 			|| failed=$$((failed+1)); \
