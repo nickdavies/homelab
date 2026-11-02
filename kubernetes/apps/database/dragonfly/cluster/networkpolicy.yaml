@@ -1,10 +1,10 @@
 ---
 # Only Dragonfly's known clients may reach it. Neither port has a password:
 # 6379 has no requirepass, and the operator starts 9999 with --admin_nopass.
-# Anything that connects can read, rewrite or FLUSHALL every database,
-# including Authelia's sessions (db 14).
+# Anything that connects can read, rewrite or FLUSHALL every database.
+# Authelia has its own instance (../authelia).
 #
-#   6379   data      Authelia, Immich, Paperless
+#   6379   data      Immich, Paperless
 #   9999   admin     Prometheus (PodMonitor), the operator, replication
 #
 # Ingress only. The probes exec healthcheck.sh inside the container, so they
@@ -22,12 +22,6 @@ spec:
     # Immich's machine-learning pod also gets REDIS_HOSTNAME from the shared
     # ConfigMap but never connects; only immich-server runs the job queues.
     - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: security
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: authelia
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: media
