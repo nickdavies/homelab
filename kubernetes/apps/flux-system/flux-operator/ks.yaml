@@ -1,0 +1,25 @@
+---
+# flux-operator from its release install.yaml, the same manifest Talos applies at
+# bootstrap (talos/patches/flux-operator.yaml), so the two never disagree.
+# Never prune: deleting its CRDs deletes the FluxInstance, which uninstalls Flux.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app flux-operator
+  namespace: flux-system
+spec:
+  targetNamespace: flux-system
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+    annotations:
+      kustomize.toolkit.fluxcd.io/prune: disabled
+  path: ./kubernetes/apps/flux-system/flux-operator/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: true
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
