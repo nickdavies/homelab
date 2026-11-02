@@ -34,6 +34,12 @@
       versioning: "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<build>\\d+))?$",
     },
     {
+      // One PR per Flux minor, merged lowest first, so each minor's release
+      // notes get read and its API migrations land before the next.
+      matchPackageNames: ["fluxcd/flux2"],
+      separateMultipleMinor: true,
+    },
+    {
       // Talos may only move one minor at a time, and Tuppr doesn't enforce it.
       matchDatasources: ["docker"],
       matchPackageNames: ["ghcr.io/siderolabs/talos"],
