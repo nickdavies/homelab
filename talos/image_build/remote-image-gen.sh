@@ -11,10 +11,17 @@ if [[ ! -f "$FILE" ]]; then
     exit 1
 fi
 
-OUTPUT=$(curl -X POST --data-binary @${FILE} https://factory.talos.dev/schematics)
+OUTPUT=$(curl -fsS -X POST --data-binary @${FILE} https://factory.talos.dev/schematics)
 echo $OUTPUT
 
 ID="$(echo $OUTPUT | yq '.id' -r)"
+
+# config-gen.sh trusts the .id file, so never write anything but an ID. curl -f
+# catches HTTP errors; a body without an id would make yq print "null".
+if [[ ! "$ID" =~ ^[0-9a-f]{64}$ ]]; then
+    echo "Error: factory did not return a schematic ID, got: $ID" >&2
+    exit 1
+fi
 
 # Committed next to the schematic so config-gen.sh can render the install
 # image offline. Rerun this whenever the schematic changes.
