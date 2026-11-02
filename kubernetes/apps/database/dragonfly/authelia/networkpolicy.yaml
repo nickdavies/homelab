@@ -1,0 +1,50 @@
+---
+# Authelia is the only client. 6379 also needs the password; 9999 has none.
+#
+#   6379   data      Authelia
+#   9999   admin     Prometheus (PodMonitor), the operator, replication
+#
+# Ingress only. The probes exec healthcheck.sh inside the container, so they
+# never cross the pod network.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dragonfly-authelia
+spec:
+  podSelector:
+    matchLabels:
+      app: dragonfly-authelia
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: security
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: authelia
+      ports:
+        - { port: 6379, protocol: TCP }
+    # The PodMonitor scrapes /metrics on the admin port.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 9999, protocol: TCP }
+    # The operator issues REPLICAOF / REPLTAKEOVER to each pod's admin port.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dragonfly-operator
+      ports:
+        - { port: 9999, protocol: TCP }
+    # Replicas dial the master's admin port. Which pod is master moves on
+    # failover, so each pod may reach the other on any port.
+    - from:
+        - podSelector:
+            matchLabels:
+              app: dragonfly-authelia

@@ -1,8 +1,7 @@
 ---
 session:
   redis:
-    host: dragonfly.database.svc.cluster.local
-    database_index: 14
+    host: dragonfly-authelia.database.svc.cluster.local
   same_site: lax
   cookies:
     - name: "internal.${SECRET_DOMAIN}_session"
