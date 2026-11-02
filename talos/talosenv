@@ -23,7 +23,7 @@ PROMETHEUS_OPERATOR_VERSION=v0.94.2
 FLUX_OPERATOR_VERSION=v0.62.1
 
 # renovate: datasource=github-releases depName=fluxcd/flux2
-FLUX_VERSION=2.7.5
+FLUX_VERSION=2.8.8
 
 # renovate: datasource=github-releases depName=kubernetes-sigs/metrics-server
 METRICS_SERVER_VERSION=v0.7.2
