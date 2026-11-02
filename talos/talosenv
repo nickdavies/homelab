@@ -13,7 +13,7 @@ FLUX_REPO_URL="ssh://git@github.com/nickdavies/homelab.git"
 # until then. Unquoted so Renovate's annotation regex reads a bare version.
 
 # renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
-PROMETHEUS_OPERATOR_VERSION=v0.73.2
+PROMETHEUS_OPERATOR_VERSION=v0.94.2
 
 # renovate: datasource=github-releases depName=controlplaneio-fluxcd/flux-operator
 FLUX_OPERATOR_VERSION=v0.23.0
