@@ -1,0 +1,76 @@
+---
+# Stage 3 of 4: the control planes (1, 2, 3), one at a time. talosctl checks
+# etcd health before each (policy.force stays false).
+apiVersion: tuppr.home-operations.com/v1alpha1
+kind: TalosUpgrade
+metadata:
+  name: controlplane
+spec:
+  talos:
+    # renovate: datasource=docker depName=ghcr.io/siderolabs/talos
+    version: v1.13.12
+  nodeSelector:
+    matchExpressions:
+      - { key: node-role.kubernetes.io/control-plane, operator: Exists }
+  parallelism: 1
+  healthChecks:
+    - description: Ceph healthy
+      apiVersion: ceph.rook.io/v1
+      kind: CephCluster
+      namespace: rook-ceph
+      name: rook-ceph
+      expr: status.ceph.health == "HEALTH_OK"
+      timeout: 30m
+    - description: every node Ready
+      apiVersion: v1
+      kind: Node
+      expr: status.conditions.exists(c, c.type == "Ready" && c.status == "True")
+      timeout: 15m
+    - description: Postgres clusters healthy
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      namespace: database
+      expr: status.phase == "Cluster in healthy state"
+      timeout: 15m
+    - description: CoreDNS
+      apiVersion: apps/v1
+      kind: Deployment
+      namespace: kube-system
+      name: coredns
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 10m
+    - description: k8s-gateway (internal DNS)
+      apiVersion: apps/v1
+      kind: Deployment
+      namespace: network
+      name: k8s-gateway
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 10m
+    - description: Blocky
+      apiVersion: apps/v1
+      kind: Deployment
+      namespace: network
+      name: blocky
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 10m
+    - description: mosquitto
+      apiVersion: apps/v1
+      kind: Deployment
+      namespace: automation
+      name: mosquitto
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 10m
+    - description: Home Assistant
+      apiVersion: apps/v1
+      kind: StatefulSet
+      namespace: automation
+      name: homeassistant
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 15m
+    - description: Zigbee2MQTT
+      apiVersion: apps/v1
+      kind: StatefulSet
+      namespace: automation
+      name: zigbee2mqtt
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 15m
