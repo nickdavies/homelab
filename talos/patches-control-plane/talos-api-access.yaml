@@ -1,0 +1,16 @@
+---
+# Lets Tuppr (kubernetes/apps/system-upgrade) drive Talos upgrades through the
+# Talos API from inside the cluster. Control-plane only: Talos rejects this
+# feature on workers, and apid on the control planes proxies to them.
+#
+# os:admin is what `talosctl upgrade` needs. Anyone who can create a
+# talos.dev/v1alpha1 ServiceAccount in system-upgrade, or read the Secret it
+# produces, gets os:admin on every node, so keep that namespace to Tuppr alone.
+machine:
+  features:
+    kubernetesTalosAPIAccess:
+      enabled: true
+      allowedRoles:
+        - os:admin
+      allowedKubernetesNamespaces:
+        - system-upgrade
