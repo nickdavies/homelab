@@ -1,4 +1,8 @@
-TALOS_VERSION="v1.13.12"
+# The installed Talos version: config-gen.sh tags each node's install image
+# with it. Renovate moves it with the last rollout stage (the Pi), so it only
+# changes once every node runs the new version.
+# renovate: datasource=docker depName=ghcr.io/siderolabs/talos
+TALOS_VERSION=v1.13.12
 KUBE_VERSION="v1.33.2"
 
 VIP=192.168.254.10

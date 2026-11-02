@@ -1,30 +1,17 @@
 ---
-# Rolls Talos to spec.talos.version one node at a time: talosctl drains,
-# upgrades and reboots each node; Tuppr waits for it to return Ready on the
-# new version, then re-runs the health checks before the next node.
-#
-# Each node keeps its own schematic: Tuppr swaps only the tag of the node's
-# install image, so it refuses a node whose install image doesn't name the
-# schematic it runs. Change a schematic with image_build/upgrade.sh, not here.
-#
-# Rollout is staged by nodeSelector, one PR per step: a canary worker, then
-# the amd64 nodes, then no selector so only the Pi is left.
+# Stage 1 of 4: one worker, to catch a bad release before anything else.
 apiVersion: tuppr.home-operations.com/v1alpha1
 kind: TalosUpgrade
 metadata:
-  name: talos
+  name: canary
 spec:
   talos:
+    # renovate: datasource=docker depName=ghcr.io/siderolabs/talos
     version: v1.14.5
   nodeSelector:
     matchLabels:
       kubernetes.io/hostname: k8s-node-7
   parallelism: 1
-  # Checks run before every node, never after the last one: whatever a plan
-  # upgrades last is verified only by the next plan's first check, or by hand.
-  # Readiness here is the pods' own probes. Blocky, mosquitto, HA's app and
-  # Z2M have none, so for them "ready" only means "running", and a pod
-  # between crash-loop restarts can pass.
   healthChecks:
     - description: Ceph healthy
       apiVersion: ceph.rook.io/v1

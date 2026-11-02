@@ -33,6 +33,43 @@
       matchPackageNames: ["instantlinux/nut-upsd"],
       versioning: "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<build>\\d+))?$",
     },
+    {
+      // Talos may only move one minor at a time, and Tuppr doesn't enforce it.
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/siderolabs/talos"],
+      separateMinorPatch: true,
+    },
+    // One PR per rollout stage (kubernetes/apps/system-upgrade/tuppr/upgrades),
+    // merged in order. Without a distinct branch prefix Renovate would put all
+    // four files in one PR.
+    {
+      matchPackageNames: ["ghcr.io/siderolabs/talos"],
+      matchFileNames: ["kubernetes/apps/system-upgrade/tuppr/upgrades/talosupgrade-1-canary.yaml"],
+      additionalBranchPrefix: "talos-1-canary-",
+      commitMessageSuffix: "(1/4 canary)",
+    },
+    {
+      matchPackageNames: ["ghcr.io/siderolabs/talos"],
+      matchFileNames: ["kubernetes/apps/system-upgrade/tuppr/upgrades/talosupgrade-2-workers.yaml"],
+      additionalBranchPrefix: "talos-2-workers-",
+      commitMessageSuffix: "(2/4 workers)",
+    },
+    {
+      matchPackageNames: ["ghcr.io/siderolabs/talos"],
+      matchFileNames: ["kubernetes/apps/system-upgrade/tuppr/upgrades/talosupgrade-3-controlplane.yaml"],
+      additionalBranchPrefix: "talos-3-controlplane-",
+      commitMessageSuffix: "(3/4 control plane)",
+    },
+    {
+      // The last stage also moves talosenv, so renders match once every node is done.
+      matchPackageNames: ["ghcr.io/siderolabs/talos"],
+      matchFileNames: [
+        "kubernetes/apps/system-upgrade/tuppr/upgrades/talosupgrade-4-pi.yaml",
+        "talos/talosenv",
+      ],
+      additionalBranchPrefix: "talos-4-pi-",
+      commitMessageSuffix: "(4/4 Pi)",
+    },
   ],
   flux: {
     managerFilePatterns: ["/(^|/)kubernetes/.+\\.ya?ml$/"]

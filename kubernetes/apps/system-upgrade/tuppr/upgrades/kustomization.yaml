@@ -1,6 +1,27 @@
 ---
+# Talos rollout, one TalosUpgrade per stage with non-overlapping nodeSelectors.
+# Renovate opens one PR per stage for each Talos release (see .renovaterc.json5);
+# merge them in file order, each only after the previous plan is Completed.
+#
+# Tuppr runs one plan at a time, but if two stage PRs land together the order
+# between them is whichever reconciles first. A stage can't gate on the
+# previous one with a health check: a plan waiting on its checks counts as
+# active and blocks the plan it's waiting for.
+#
+# Each node keeps its own schematic: Tuppr swaps only the tag of the node's
+# install image, so it refuses a node whose install image doesn't name the
+# schematic it runs. Change a schematic with image_build/upgrade.sh, not here.
+#
+# Health checks run before every node, never after the last one: each stage's
+# last node is verified by the next stage's first check, and the Pi by hand.
+# Readiness is the pods' own probes. Blocky, mosquitto, HA's app and Z2M have
+# none, so for them "ready" only means "running", and a pod between crash-loop
+# restarts can pass.
 # yaml-language-server: $schema=https://json.schemastore.org/kustomization
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ./talosupgrade.yaml
+  - ./talosupgrade-1-canary.yaml
+  - ./talosupgrade-2-workers.yaml
+  - ./talosupgrade-3-controlplane.yaml
+  - ./talosupgrade-4-pi.yaml
