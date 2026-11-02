@@ -135,6 +135,6 @@ for NODE in "$@"; do
         # validation mode.
         talosctl validate --config "$NODE_DIR/${NODE_TYPE}.yaml" --mode metal
 
-        echo "  apply with: talos-session exec admin -- talosctl apply -f $NODE_DIR/${NODE_TYPE}.yaml -n $NODE"
+        echo "  apply with: ./apply.sh $NODE (dry run), then ./apply.sh $NODE --apply"
     )
 done
