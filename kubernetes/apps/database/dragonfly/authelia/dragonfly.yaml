@@ -1,0 +1,40 @@
+---
+# Authelia's session store, kept apart from the shared instance in ../cluster.
+# Session keys are `authelia-session:<id>` and the id is the session cookie's
+# value, so anything that can list keys can replay a login. A separate process
+# with its own password and NetworkPolicy keeps that off every other client.
+#
+# It lives in `database` because the operator watches only this namespace.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/dragonflydb.io/dragonfly_v1alpha1.json
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: dragonfly-authelia
+spec:
+  image: ghcr.io/dragonflydb/dragonfly:v2.0.0@sha256:7426fdb31ddcf7bd9499b4205f36ebaa83b26149ba1609a0d5f8f474b3631233
+  # A replica lets rollouts move the master with REPLTAKEOVER, so a restart
+  # doesn't log everyone out.
+  replicas: 2
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: dragonfly-authelia
+  # Applies to 6379 only. The operator starts 9999 with --admin_nopass and uses
+  # it for replication and health checks; networkpolicy.yaml guards it.
+  authentication:
+    passwordFromSecret:
+      name: dragonfly-authelia-secret
+      key: password
+  # Dragonfly refuses a maxmemory below 256MiB per thread. That is a cap on
+  # its dataset, not an allocation: sessions use a few MiB, so the request is
+  # sized to real usage and there is no limit.
+  args:
+    - --maxmemory=256Mi
+    - --proactor_threads=1
+  resources:
+    requests:
+      cpu: 10m
+      memory: 50Mi
