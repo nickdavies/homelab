@@ -57,12 +57,16 @@ Output goes to `$XDG_RUNTIME_DIR/talos-render/nodes/<node>/<type>.yaml`, where
 `.env`. It is written there rather than into the checkout because a rendered
 control-plane config embeds the cluster CA private keys.
 
-The script prints the exact apply command for each node it renders. For a node
-already in the cluster:
+For a node already in the cluster, review the diff, then apply:
 
 ```
-talos-session exec admin -- talosctl apply -f <rendered> -n k8s-node-1
+./apply.sh k8s-node-1           # dry run: prints the config diff
+./apply.sh k8s-node-1 --apply
 ```
+
+`apply.sh` takes only the node name and derives both the rendered file and the
+node's IP from it, so a node can't be sent another node's config. Don't call
+`talosctl apply` by hand for cluster nodes.
 
 For a node in maintenance mode, which has no credential to authenticate
 against yet:
