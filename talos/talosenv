@@ -3,6 +3,13 @@
 # changes once every node runs the new version.
 # renovate: datasource=docker depName=ghcr.io/siderolabs/talos
 TALOS_VERSION=v1.14.5
+# The config contract config-gen.sh generates for (talosctl gen config
+# --talos-version), separate from TALOS_VERSION: it picks the generator's
+# defaults and layout, and a newer one restructures the whole config. v1.14
+# moves Kubernetes settings out of v1alpha1 into separate documents, which every
+# patch here would have to follow. Talos runs configs generated for older
+# contracts, so this moves only as its own change, never with an upgrade.
+TALOS_CONFIG_CONTRACT=v1.13
 KUBE_VERSION="v1.33.2"
 
 VIP=192.168.254.10
