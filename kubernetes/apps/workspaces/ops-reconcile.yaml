@@ -1,0 +1,89 @@
+# Lets ops-tier workspaces (today: homelab) trigger reconciles without being
+# able to change anything else. `flux reconcile` and ExternalSecret force-sync
+# are both annotation patches; RBAC can grant `patch` but not restrict which
+# fields it touches, so the ValidatingAdmissionPolicy below rejects any patch
+# from the workspace that changes more than the reconcile annotations.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: workspace-ops-reconcile
+rules:
+  - apiGroups: [kustomize.toolkit.fluxcd.io]
+    resources: [kustomizations]
+    verbs: [patch]
+  - apiGroups: [helm.toolkit.fluxcd.io]
+    resources: [helmreleases]
+    verbs: [patch]
+  - apiGroups: [source.toolkit.fluxcd.io]
+    resources: [gitrepositories, ocirepositories, helmrepositories, helmcharts, buckets]
+    verbs: [patch]
+  - apiGroups: [external-secrets.io]
+    resources: [externalsecrets]
+    verbs: [patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ws-homelab-ops-reconcile
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: workspace-ops-reconcile
+subjects:
+  - kind: ServiceAccount
+    name: ws-homelab
+    namespace: workspaces
+---
+# Annotations the workspace may add, change or remove:
+#   reconcile.fluxcd.io/requestedAt  flux reconcile
+#   reconcile.fluxcd.io/forceAt      flux reconcile hr --force
+#   reconcile.fluxcd.io/resetAt      flux reconcile hr --reset
+#   force-sync                       ExternalSecret refresh
+# Everything else (spec, labels, other annotations, finalizers, owner
+# references) must be unchanged. managedFields isn't compared: every write
+# updates it.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: workspace-ops-reconcile-only
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [kustomize.toolkit.fluxcd.io, helm.toolkit.fluxcd.io, source.toolkit.fluxcd.io, external-secrets.io]
+        apiVersions: ["*"]
+        operations: [UPDATE]
+        resources: ["*"]
+  matchConditions:
+    - name: ops-workspace
+      expression: request.userInfo.username == 'system:serviceaccount:workspaces:ws-homelab'
+  variables:
+    - name: allowed
+      expression: >-
+        ['reconcile.fluxcd.io/requestedAt', 'reconcile.fluxcd.io/forceAt',
+        'reconcile.fluxcd.io/resetAt', 'force-sync']
+    - name: new
+      expression: object.metadata.?annotations.orValue({})
+    - name: old
+      expression: oldObject.metadata.?annotations.orValue({})
+  validations:
+    - expression: object.?spec == oldObject.?spec
+      message: workspaces may not change spec
+    - expression: >-
+        object.metadata.?labels.orValue({}) == oldObject.metadata.?labels.orValue({}) &&
+        object.metadata.?finalizers.orValue([]) == oldObject.metadata.?finalizers.orValue([]) &&
+        object.metadata.?ownerReferences.orValue([]) == oldObject.metadata.?ownerReferences.orValue([])
+      message: workspaces may not change labels, finalizers or owner references
+    - expression: >-
+        variables.new.all(k, k in variables.allowed || (k in variables.old && variables.old[k] == variables.new[k])) &&
+        variables.old.all(k, k in variables.allowed || k in variables.new)
+      message: workspaces may only change reconcile annotations
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: workspace-ops-reconcile-only
+spec:
+  policyName: workspace-ops-reconcile-only
+  validationActions: [Deny]

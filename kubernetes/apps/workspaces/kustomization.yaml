@@ -9,5 +9,6 @@ resources:
   - ./namespace.yaml
   - ./networkpolicy.yaml
   - ./ops-rbac.yaml
+  - ./ops-reconcile.yaml
   - ./rbac.yaml
   - ./resourceset.yaml
