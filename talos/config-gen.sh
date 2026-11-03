@@ -120,7 +120,7 @@ for NODE in "$@"; do
             --with-examples=false \
             --with-docs=false \
             --install-disk "" \
-            --talos-version="${TALOS_VERSION}" \
+            --talos-version="${TALOS_CONFIG_CONTRACT}" \
             --install-image="factory.talos.dev/metal-installer/${SCHEMATIC_ID}:${TALOS_VERSION}" \
             --kubernetes-version="${KUBE_VERSION}" \
             --output-types="${NODE_TYPE}" \
