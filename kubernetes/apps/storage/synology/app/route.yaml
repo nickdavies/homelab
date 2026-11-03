@@ -18,7 +18,7 @@ spec:
 # Envoy re-encrypts to DSM and verifies its certificate against the private CA
 # in certificate.yaml. hostname is both the SNI Envoy sends and the SAN it
 # requires, so it must match the leaf DSM serves as its default certificate.
-apiVersion: gateway.networking.k8s.io/v1alpha3
+apiVersion: gateway.networking.k8s.io/v1
 kind: BackendTLSPolicy
 metadata:
   name: synology
