@@ -41,7 +41,7 @@ spec:
       containers:
         - name: nats-box
           # The -nonroot variant runs as nats (1000). natscli v0.5.0.
-          image: docker.io/natsio/nats-box:0.20.1-nonroot@sha256:9eec37227e52bf4d207ffc246284034c18dd09d51bae0bfd2af9dbbd77ba4d44
+          image: docker.io/natsio/nats-box:0.20.2-nonroot@sha256:d00bffed51ea1a29e58852698bde37020d306af55585882f88dbcf09dd86f5fe
           # Idle until exec'd into; exits promptly on SIGTERM.
           command: ["/bin/sh", "-c", "trap 'exit 0' TERM INT; while :; do sleep 3600 & wait $!; done"]
           env:
