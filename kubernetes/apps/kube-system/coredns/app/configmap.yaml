@@ -1,7 +1,4 @@
 ---
-# Talos creates this ConfigMap at cluster bootstrap and never touches it again
-# (its manifest controller is create-only), so Flux can own it safely.
-#
 # Everything below the internal zone stanza is Talos' stock Corefile, unchanged.
 apiVersion: v1
 kind: ConfigMap

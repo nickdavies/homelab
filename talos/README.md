@@ -80,9 +80,9 @@ Once the first control plane is bootstrapped and the API answers:
 ```
 
 It injects the bootstrap-only secrets (the Flux deploy key and the 1Password
-Connect credentials), then installs flux-operator, the FluxInstance and the
-root sync (`kubernetes/flux/sync.yaml`) from this checkout, waiting for each.
-Flux takes it from there and manages all three afterwards. Run it from a
+Connect credentials), then installs CoreDNS, flux-operator, the FluxInstance
+and the root sync (`kubernetes/flux/sync.yaml`) from this checkout, waiting
+for each. Flux takes it from there and manages all four afterwards. Run it from a
 checkout of main; it is safe to re-run.
 
 `bootstrap-rehearsal.sh` runs the same script against a throwaway kind cluster

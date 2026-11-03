@@ -12,7 +12,8 @@ set -euo pipefail
 # never applies. Never give it the real Connect credentials.
 #
 # Checks:
-#   1. flux-operator, the FluxInstance and the root sync come up;
+#   1. CoreDNS (ours, replacing kind's) resolves, and flux-operator, the
+#      FluxInstance and the root sync come up;
 #   2. prometheus-operator-crds is Ready, then external-secrets-operator, with
 #      its ServiceMonitors created;
 #   3. what cluster-apps itself applies passes a server-side dry-run, i.e. no
@@ -52,11 +53,17 @@ fi
 
 echo '{"dummy": "rehearsal"}' > "$work/op-creds.json"
 echo "dummy-rehearsal-token" > "$work/op-token"
+echo "rehearsal.invalid" > "$work/domain"
 
+# bootstrap.sh replaces kind's own CoreDNS with ours: same names and labels.
 BOOTSTRAP_KUBECONFIG="$KUBECONFIG" \
 BOOTSTRAP_OP_CREDS="$work/op-creds.json" \
 BOOTSTRAP_OP_TOKEN="$work/op-token" \
+BOOTSTRAP_CLUSTER_DOMAIN="$work/domain" \
     ./bootstrap.sh
+
+echo "==> CoreDNS resolves from a pod"
+kubectl run dns-check --rm -i --restart=Never --image=busybox:1.37.0 -- nslookup kubernetes.default.svc.cluster.local
 
 ready() {
     kubectl -n flux-system wait "kustomization/$1" --for=condition=Ready --timeout "${2:-10m}"

@@ -10,9 +10,10 @@ REPO="$(cd .. && pwd)"
 set -a; source talosenv; set +a
 
 # Turns a fresh cluster (Talos up, API reachable, nothing else) into one Flux
-# manages: the bootstrap-only secrets, then flux-operator, the FluxInstance and
-# the root sync, each applied from this checkout's copy of what Flux manages
-# from then on. Run it from a checkout of main. Safe to re-run.
+# manages: the bootstrap-only secrets, then CoreDNS, flux-operator, the
+# FluxInstance and the root sync, each applied from this checkout's copy of
+# what Flux manages from then on. Run it from a checkout of main. Safe to
+# re-run.
 #
 # The secrets are needed exactly once per cluster rebuild, to give Flux and
 # External Secrets enough to start reconciling; everything after that comes out
@@ -24,6 +25,8 @@ OP_KUBECONFIG_REF="${OP_KUBECONFIG_REF:-op://Homelab/talos/kubeconfig}"
 OP_FLUX_KEY_REF="${OP_FLUX_KEY_REF:-op://Homelab/flux_deploy_key_v1/privatekey}"
 OP_CONNECT_CREDS_REF="${OP_CONNECT_CREDS_REF:-op://Homelab/1password-connect/1password-credentials.json}"
 OP_CONNECT_TOKEN_REF="${OP_CONNECT_TOKEN_REF:-op://Homelab/1password-connect/access_token}"
+# CoreDNS's Corefile forwards internal.${SECRET_DOMAIN}; same ref as config-gen.sh.
+CLUSTER_DOMAIN_REF="${CLUSTER_DOMAIN_REF:-op://homelab-k8s/cluster-config/DOMAIN}"
 
 if [ -z "${FLUX_REPO_URL:-}" ]; then
     echo "FLUX_REPO_URL unset, make sure this is configured in talosenv" >&2
@@ -39,6 +42,7 @@ if [ -z "${BOOTSTRAP_KUBECONFIG:-}" ]; then
         --secret "BOOTSTRAP_FLUX_KEY=$OP_FLUX_KEY_REF" \
         --secret "BOOTSTRAP_OP_CREDS=$OP_CONNECT_CREDS_REF" \
         --secret "BOOTSTRAP_OP_TOKEN=$OP_CONNECT_TOKEN_REF" \
+        --secret "BOOTSTRAP_CLUSTER_DOMAIN=$CLUSTER_DOMAIN_REF" \
         -- "$SELF" "$@"
 fi
 
@@ -77,6 +81,14 @@ kubectl create secret generic onepassword-connect-token \
     --dry-run=client \
     -o yaml \
     | apply -f -
+
+# Talos doesn't deploy CoreDNS (cluster.coreDNS.disabled), and Flux needs DNS
+# to fetch from git, so install the copy Flux manages before Flux.
+echo "Installing CoreDNS"
+kubectl kustomize "$REPO/kubernetes/apps/kube-system/coredns/app" \
+    | SECRET_DOMAIN="$(cat "$BOOTSTRAP_CLUSTER_DOMAIN")" flux envsubst --strict \
+    | apply -n kube-system -f -
+kubectl -n kube-system rollout status deploy/coredns --timeout 5m
 
 echo "Installing flux-operator"
 apply -k "$REPO/kubernetes/apps/flux-system/flux-operator/app"
