@@ -80,6 +80,35 @@ jobs:
         run: make validate-kubeconform
 
   # ─────────────────────────────────────────────────────────────────────────────
+  # CRD order — can the cluster boot from empty with Flux alone?
+  #   - Renders every HelmRelease and models Flux's ordering (dependsOn, the
+  #     Kustomization that applies each one, wait)
+  #   - Fails if a custom resource's CRD provider waits on it (deadlock), or a
+  #     HelmRelease could install before its CRDs (stalls after retries)
+  # ─────────────────────────────────────────────────────────────────────────────
+  validate-crd-order:
+    name: CRD order
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.15"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Install helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5
+
+      - name: Install kustomize
+        uses: imranismail/setup-kustomize@53f941b41dca13ed61874bbc6b4b6e1562877530 # v3
+
+      - name: Check CRD order
+        run: make validate-crd-order
+
+  # ─────────────────────────────────────────────────────────────────────────────
   # Job 3: flux-local — Flux reconciliation graph structure validation
   #   - Walks the repo as kustomize-controller would
   #   - Verifies Kustomization paths, sourceRefs, and dependsOn consistency
