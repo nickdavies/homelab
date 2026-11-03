@@ -1,0 +1,41 @@
+---
+# Enforced by kube-network-policies (Talos flannel sidecar). Traffic from root
+# on the node bypasses it, so kubelet probes need no rule.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kube-ops-mcp
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: kube-ops-mcp
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # The workspace whose ServiceAccount is in ALLOWED_USERS, and its
+    # remote-control pod, which runs as the same ServiceAccount.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: workspaces
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [ws-homelab, ws-homelab-remote-control]
+      ports:
+        - { port: 8080, protocol: TCP }
+  egress:
+    # kube-apiserver: the `kubernetes` Service DNATs to the control-plane
+    # nodes. The node subnet, so control-plane changes need no edit here.
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - { port: 6443, protocol: TCP }
