@@ -48,6 +48,17 @@ Optional overrides: `VOLSYNC_PUID`, `VOLSYNC_PGID`, `VOLSYNC_RUNASNONROOT`, `VOL
 `VOLSYNC_COPYMETHOD`, `VOLSYNC_CACHE_CAPACITY`, `VOLSYNC_CACHE_SNAPSHOTCLASS`,
 `VOLSYNC_CACHE_ACCESSMODES`. Defaults are inline in the templates.
 
+## Stale locks
+
+A mover killed mid-run (node reboot, OOM) leaves its restic lock behind, and
+every later sync of that repository fails with `repository is already
+locked`. To clear it, change `spec.restic.unlock` in `garage.yaml` and
+`r2.yaml` to today's date. Each ReplicationSource then runs `restic unlock`
+once before its next backup, for every app. That's safe because plain
+`restic unlock` only removes locks older than 30 minutes, which a live restic
+process would have refreshed. It is not `--remove-all`.
+`status.restic.lastUnlocked` shows the value each source last ran.
+
 ## Restoring
 
 A fresh PVC is populated from `${APP}-dst`'s latest restored snapshot. That
