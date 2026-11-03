@@ -1,6 +1,6 @@
 .PHONY: validate validate-yaml validate-kustomize validate-refs validate-kustomize-full \
         validate-kubeconform validate-flux-local validate-all flux-schemas manifest-diff \
-        chart-diff
+        chart-diff validate-crd-order
 
 # Run all local validations (no extra tools required beyond python3 + PyYAML)
 validate: validate-yaml validate-kustomize validate-refs
@@ -150,3 +150,14 @@ chart-diff:
 		git worktree add -q --detach "$$base" $(DIFF_BRANCH) && \
 		python3 scripts/chart-diff.py --base "$$base" --out $(CHART_DIFF_OUT) \
 			--kube-version $(KUBE_VERSION)
+
+# Boot-from-empty check: every custom resource's CRD is ordered before it by
+# Flux alone (dependsOn, parent Kustomizations, wait), with every HelmRelease
+# rendered. Fails on a deadlock or a HelmRelease install that would stall.
+# Requires: kustomize, helm, PyYAML
+CHART_CACHE ?= /tmp/chart-cache
+validate-crd-order:
+	@for tool in kustomize helm; do \
+		command -v $$tool >/dev/null 2>&1 || { echo "ERROR: $$tool not found."; exit 1; }; \
+	done
+	@python3 scripts/crd-order.py --kube-version $(KUBE_VERSION) --cache $(CHART_CACHE)

@@ -9,6 +9,10 @@ spec:
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
+  # The chart skips its ServiceMonitors when their CRD is missing at install
+  # (serviceMonitor.renderMode: skipIfMissing), and never adds them later.
+  dependsOn:
+    - name: prometheus-operator-crds
   path: ./kubernetes/external-secrets/external-secrets-operator/app
   prune: true
   sourceRef:
