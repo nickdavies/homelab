@@ -137,9 +137,9 @@ manifest-diff:
 # Writes $(CHART_DIFF_OUT)/comment.md and the renders.
 # Requires: kustomize, helm, kubeconform, PyYAML
 #
-# KUBE_VERSION is what charts see as .Capabilities.KubeVersion; keep it at
-# the cluster's version.
-KUBE_VERSION ?= 1.33.2
+# KUBE_VERSION is what charts see as .Capabilities.KubeVersion: the cluster's
+# version, read from talos/talosenv so it moves with each upgrade.
+KUBE_VERSION ?= $(shell sed -n 's/^KUBE_VERSION=//p' talos/talosenv)
 CHART_DIFF_OUT ?= /tmp/chart-diff
 chart-diff:
 	@for tool in kustomize helm kubeconform; do \

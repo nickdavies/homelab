@@ -25,3 +25,4 @@ resources:
   - ./talosupgrade-2-workers.yaml
   - ./talosupgrade-3-controlplane.yaml
   - ./talosupgrade-4-pi.yaml
+  - ./kubernetesupgrade.yaml

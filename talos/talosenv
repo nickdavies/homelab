@@ -10,7 +10,14 @@ TALOS_VERSION=v1.14.5
 # patch here would have to follow. Talos runs configs generated for older
 # contracts, so this moves only as its own change, never with an upgrade.
 TALOS_CONFIG_CONTRACT=v1.13
-KUBE_VERSION="v1.33.2"
+# The cluster's Kubernetes version, which renders pin for the kubelet and the
+# control plane. Renovate moves it in the same PR as the KubernetesUpgrade in
+# kubernetes/apps/system-upgrade/tuppr/upgrades: upgrade-k8s rewrites the
+# machine configs, so applying a render from a stale value rolls the cluster
+# back. The Makefile reads it too, for the Kubernetes version CI renders charts
+# against. Unquoted so Renovate's annotation regex reads a bare version.
+# renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
+KUBE_VERSION=v1.33.2
 
 VIP=192.168.254.10
 
