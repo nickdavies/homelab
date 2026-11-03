@@ -1,6 +1,5 @@
 ---
-# Keep in step with the bootstrap copy in talos/patches/flux-operator.yaml. Renovate
-# moves the version here and FLUX_VERSION in talos/talosenv in the same PR.
+# talos/bootstrap.sh applies this file on a new cluster; Flux manages it after.
 apiVersion: fluxcd.controlplane.io/v1
 kind: FluxInstance
 metadata:
