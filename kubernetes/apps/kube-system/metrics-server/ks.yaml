@@ -1,0 +1,24 @@
+---
+# metrics-server from its release components.yaml, the same manifest Talos
+# applied as an extraManifest until it moved here, so Flux adopted the live
+# objects without a rollout. Renovate bumps the URL in app/; merging upgrades it.
+#
+# No targetNamespace: components.yaml namespaces its own objects (kube-system).
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app metrics-server
+  namespace: flux-system
+spec:
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/apps/kube-system/metrics-server/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: false
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m

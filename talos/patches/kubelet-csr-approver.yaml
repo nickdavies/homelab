@@ -1,4 +1,0 @@
----
-cluster:
-  extraManifests:
-    - https://raw.githubusercontent.com/alex1989hu/kubelet-serving-cert-approver/${KUBELET_SERVING_CERT_APPROVER_VERSION}/deploy/standalone-install.yaml
