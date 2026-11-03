@@ -29,7 +29,7 @@ spec:
           app:
             image:
               repository: ghcr.io/nickdavies/kube-ops-mcp
-              tag: main@sha256:50ca67e63f2d1937f0ca23e6b4d43d238afa09c74223e81c48ab92cca7959ae2
+              tag: main@sha256:0fe8582b59565c8e14af2761ddcba134fb25b7528fd43bfe404d6a8d2b20ae04
             env:
               ALLOWED_USERS: system:serviceaccount:workspaces:ws-homelab
               ALLOWED_HOSTS: kube-ops-mcp.kube-ops-mcp.svc.cluster.local,kube-ops-mcp.kube-ops-mcp.svc
