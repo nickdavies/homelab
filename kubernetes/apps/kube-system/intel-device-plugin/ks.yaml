@@ -10,6 +10,10 @@ spec:
   commonMetadata:
     labels:
       app.kubernetes.io/name: *app
+  # The operator chart installs a cert-manager Certificate and Issuer for its
+  # webhook; without the CRDs the install fails and stops retrying.
+  dependsOn:
+    - name: cert-manager
   path: ./kubernetes/apps/kube-system/intel-device-plugin/app
   prune: true
   sourceRef:

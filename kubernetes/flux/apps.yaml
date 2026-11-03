@@ -11,6 +11,7 @@ spec:
   dependsOn:
     - name: cluster-config-secret
     - name: private-repos
+    - name: prometheus-operator-crds
   sourceRef:
     kind: GitRepository
     name: homelab

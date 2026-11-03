@@ -1,0 +1,23 @@
+---
+# No dependsOn: CRDs need nothing else, so this is Ready within seconds of Flux
+# starting. external-secrets-operator and cluster-apps depend on it.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app prometheus-operator-crds
+  namespace: flux-system
+spec:
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  path: ./kubernetes/crds/prometheus-operator/app
+  # Deleting a CRD deletes every object of its kind.
+  prune: false
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: true
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m

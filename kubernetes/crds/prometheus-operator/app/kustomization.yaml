@@ -1,0 +1,31 @@
+---
+# Prometheus Operator CRDs, applied before anything that creates ServiceMonitors,
+# PodMonitors, PrometheusRules or the other monitoring.coreos.com kinds.
+# kube-prometheus-stack has crds.enabled: false, so this is their only owner.
+#
+# Keep the tag at or above kube-prometheus-stack's operator version (the chart's
+# appVersion): an operator newer than its CRDs drops the fields they lack.
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.94.1/example/prometheus-operator-crd/monitoring.coreos.com_alertmanagerconfigs.yaml
+  # renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.94.1/example/prometheus-operator-crd/monitoring.coreos.com_alertmanagers.yaml
+  # renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.94.1/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
+  # renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.94.1/example/prometheus-operator-crd/monitoring.coreos.com_probes.yaml
+  # renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.94.1/example/prometheus-operator-crd/monitoring.coreos.com_prometheusagents.yaml
+  # renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.94.1/example/prometheus-operator-crd/monitoring.coreos.com_prometheuses.yaml
+  # renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.94.1/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
+  # renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.94.1/example/prometheus-operator-crd/monitoring.coreos.com_scrapeconfigs.yaml
+  # renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.94.1/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+  # renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.94.1/example/prometheus-operator-crd/monitoring.coreos.com_thanosrulers.yaml
