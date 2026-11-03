@@ -1,0 +1,42 @@
+---
+# The dry-run-only guard is its own Kustomization so the server's write
+# grants never exist without it: the app waits for the guard to be Ready.
+# yaml-language-server: $schema=https://lds-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: kube-ops-mcp-guard
+  namespace: flux-system
+spec:
+  path: ./kubernetes/apps/kube-ops-mcp/kube-ops-mcp/guard
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: true
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
+---
+# yaml-language-server: $schema=https://lds-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app kube-ops-mcp
+  namespace: flux-system
+spec:
+  targetNamespace: kube-ops-mcp
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  dependsOn:
+    - name: kube-ops-mcp-guard
+  path: ./kubernetes/apps/kube-ops-mcp/kube-ops-mcp/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  wait: false
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m

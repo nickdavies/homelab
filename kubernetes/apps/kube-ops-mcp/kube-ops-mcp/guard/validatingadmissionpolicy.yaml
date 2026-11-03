@@ -1,0 +1,42 @@
+---
+# kube-ops-mcp holds create/patch on nearly every kind so it can run
+# server-side dry-runs (RBAC has no dry-run verb). This rejects every
+# admitted request from its ServiceAccount that isn't a dry-run, so a bug in
+# the server can't mutate the cluster. CONNECT is covered too, which closes
+# pods/exec, pods/attach and pods/portforward.
+#
+# The API server exempts admission policies and webhook configurations from
+# all admission, this policy included, so the server's RBAC must never grant
+# writes on admissionregistration.k8s.io (see app/rbac.yaml).
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: kube-ops-mcp-dry-run-only
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["*"]
+        apiVersions: ["*"]
+        operations: ["*"]
+        resources: ["*", "*/*"]
+    # The server authenticates its callers with TokenReviews.
+    excludeResourceRules:
+      - apiGroups: [authentication.k8s.io]
+        apiVersions: ["*"]
+        operations: [CREATE]
+        resources: [tokenreviews]
+  matchConditions:
+    - name: kube-ops-mcp-only
+      expression: request.userInfo.username == 'system:serviceaccount:kube-ops-mcp:kube-ops-mcp'
+  validations:
+    - expression: request.dryRun == true
+      message: kube-ops-mcp may only write with dryRun=All
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: kube-ops-mcp-dry-run-only
+spec:
+  policyName: kube-ops-mcp-dry-run-only
+  validationActions: [Deny]

@@ -1,0 +1,121 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-ops-mcp
+---
+# Reads: everything, Secrets included. dry_run_apply diffs against the live
+# object, and secret_keys reads a Secret to list its key names; the server
+# refuses to dry-run Secrets and never returns Secret values.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-ops-mcp-read
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: [get]
+  - apiGroups: [authentication.k8s.io]
+    resources: [tokenreviews]
+    verbs: [create]
+---
+# Writes, for server-side dry-runs only: the guard ValidatingAdmissionPolicy
+# (../guard) rejects anything else from this ServiceAccount. Server-side apply
+# needs patch, plus create when the object doesn't exist yet; bind and
+# escalate let dry-runs of RBAC objects succeed as they would for Flux.
+#
+# The API groups are listed rather than "*" because admission policies are
+# exempt from admission, the guard included: a wildcard would let this
+# ServiceAccount really rewrite its own guard. admissionregistration.k8s.io is
+# therefore absent, and dry-runs of webhooks and admission policies are
+# forbidden. A new CRD group is forbidden until it's added here. Regenerate:
+#   kubectl api-resources --verbs=patch -o name | awk -F. 'NF>1{sub(/^[^.]*\./,""); print}' | sort -u
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-ops-mcp-dry-run
+rules:
+  - apiGroups:
+      - ""
+      - acme.cert-manager.io
+      - apiextensions.k8s.io
+      - apiregistration.k8s.io
+      - apps
+      - autoscaling
+      - barmancloud.cnpg.io
+      - batch
+      - ceph.rook.io
+      - certificates.k8s.io
+      - cert-manager.io
+      - coordination.k8s.io
+      - csi.ceph.io
+      - deviceplugin.intel.com
+      - discovery.k8s.io
+      - dragonflydb.io
+      - events.k8s.io
+      - externaldns.k8s.io
+      - external-secrets.io
+      - flowcontrol.apiserver.k8s.io
+      - fluxcd.controlplane.io
+      - fpga.intel.com
+      - garage.rajsingh.info
+      - gateway.envoyproxy.io
+      - gateway.networking.k8s.io
+      - gateway.networking.x-k8s.io
+      - generators.external-secrets.io
+      - groupsnapshot.storage.k8s.io
+      - helm.toolkit.fluxcd.io
+      - jetstream.nats.io
+      - k8s.cni.cncf.io
+      - kustomize.toolkit.fluxcd.io
+      - metallb.io
+      - monitoring.coreos.com
+      - networking.k8s.io
+      - nfd.k8s-sigs.io
+      - node.k8s.io
+      - notification.toolkit.fluxcd.io
+      - objectbucket.io
+      - onepassword.com
+      - openebs.io
+      - policy
+      - postgresql.cnpg.io
+      - rbac.authorization.k8s.io
+      - scheduling.k8s.io
+      - snapshot.storage.k8s.io
+      - source.toolkit.fluxcd.io
+      - storage.k8s.io
+      - tailscale.com
+      - talos.dev
+      - tuppr.home-operations.com
+      - volsync.backube
+    resources: ["*"]
+    verbs: [create, patch]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [roles, clusterroles]
+    verbs: [bind, escalate]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-ops-mcp-read
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-ops-mcp-read
+subjects:
+  - kind: ServiceAccount
+    name: kube-ops-mcp
+    namespace: kube-ops-mcp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-ops-mcp-dry-run
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-ops-mcp-dry-run
+subjects:
+  - kind: ServiceAccount
+    name: kube-ops-mcp
+    namespace: kube-ops-mcp
