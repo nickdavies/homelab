@@ -19,7 +19,8 @@ spec:
       - apiGroups: ["*"]
         apiVersions: ["*"]
         operations: ["*"]
-        resources: ["*", "*/*"]
+        # Every resource and every subresource.
+        resources: ["*/*"]
     # The server authenticates its callers with TokenReviews.
     excludeResourceRules:
       - apiGroups: [authentication.k8s.io]
