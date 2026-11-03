@@ -10,3 +10,9 @@ machine:
       enabled: true
       resolveMemberNames: true
       forwardKubeDNSToHost: false
+cluster:
+  # CoreDNS is Flux's (kubernetes/apps/kube-system/coredns); talos/bootstrap.sh
+  # installs it on a new cluster. Talos' copy would replace the Corefile on
+  # every upgrade-k8s.
+  coreDNS:
+    disabled: true

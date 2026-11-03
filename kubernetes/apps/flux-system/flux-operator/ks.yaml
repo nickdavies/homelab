@@ -1,6 +1,6 @@
 ---
-# flux-operator from its release install.yaml, the same manifest Talos applies at
-# bootstrap (talos/patches/flux-operator.yaml), so the two never disagree.
+# flux-operator from its release install.yaml. talos/bootstrap.sh applies the
+# same app/ on a new cluster, so the two never disagree.
 # Never prune: deleting its CRDs deletes the FluxInstance, which uninstalls Flux.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization

@@ -2,12 +2,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  # Same version as FLUX_OPERATOR_VERSION in talos/talosenv; Renovate moves both in one PR.
   # renovate: datasource=github-releases depName=controlplaneio-fluxcd/flux-operator
   - https://github.com/controlplaneio-fluxcd/flux-operator/releases/download/v0.62.1/install.yaml
 patches:
   # install.yaml ships the namespace; flux-system must never be owned (and so
-  # prunable) by anything but Talos.
+  # prunable) by anything. talos/bootstrap.sh creates it.
   - patch: |-
       $patch: delete
       apiVersion: v1

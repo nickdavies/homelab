@@ -1,6 +1,6 @@
 ---
-# Flux's own FluxInstance. Talos creates it at bootstrap (talos/patches/flux-operator.yaml)
-# and never updates it again; this Kustomization takes it over so upgrades go through git.
+# Flux's own FluxInstance. talos/bootstrap.sh creates it on a new cluster; this
+# Kustomization takes it over so upgrades go through git.
 # Never prune it: deleting the FluxInstance makes flux-operator uninstall Flux.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization

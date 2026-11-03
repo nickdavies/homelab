@@ -22,15 +22,9 @@ FLUX_REPO_URL="ssh://git@github.com/nickdavies/homelab.git"
 # Versions of the bootstrap manifests in patches/. Talos only re-applies these
 # on bootstrap and `talosctl upgrade-k8s`, so a bump here changes nothing live
 # until then. Unquoted so Renovate's annotation regex reads a bare version.
-
-# renovate: datasource=github-releases depName=prometheus-operator/prometheus-operator
-PROMETHEUS_OPERATOR_VERSION=v0.94.2
-
-# renovate: datasource=github-releases depName=controlplaneio-fluxcd/flux-operator
-FLUX_OPERATOR_VERSION=v0.62.1
-
-# renovate: datasource=github-releases depName=fluxcd/flux2
-FLUX_VERSION=2.8.8
+#
+# Only for what nothing in kubernetes/ manages: Talos force-applies these on
+# every upgrade-k8s, over whatever else owns the fields.
 
 # renovate: datasource=github-releases depName=kubernetes-sigs/metrics-server
 METRICS_SERVER_VERSION=v0.7.2
