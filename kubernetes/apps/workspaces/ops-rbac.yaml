@@ -47,12 +47,14 @@ rules:
       - flowcontrol.apiserver.k8s.io
       - fluxcd.controlplane.io
       - fpga.intel.com
+      - garage.rajsingh.info
       - gateway.envoyproxy.io
       - gateway.networking.k8s.io
       - gateway.networking.x-k8s.io
       - generators.external-secrets.io
       - groupsnapshot.storage.k8s.io
       - helm.toolkit.fluxcd.io
+      - jetstream.nats.io
       - k8s.cni.cncf.io
       - kustomize.toolkit.fluxcd.io
       - metallb.io
@@ -73,6 +75,8 @@ rules:
       - source.toolkit.fluxcd.io
       - storage.k8s.io
       - tailscale.com
+      - talos.dev
+      - tuppr.home-operations.com
       - volsync.backube
     resources: ["*"]
     verbs: [get, list, watch]
