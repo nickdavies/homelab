@@ -50,7 +50,7 @@ spec:
                       values: [kube-dns]
       containers:
         - name: coredns
-          image: registry.k8s.io/coredns/coredns:v1.12.1
+          image: registry.k8s.io/coredns/coredns:v1.15.0
           args: [-conf, /etc/coredns/Corefile]
           env:
             - name: GOMEMLIMIT
