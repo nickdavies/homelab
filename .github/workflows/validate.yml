@@ -19,6 +19,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # renovate: datasource=github-releases depName=yannh/kubeconform
+  KUBECONFORM_VERSION: v0.8.0
+
 jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   # Job 1: Python-based checks (fast, no extra tooling)
@@ -28,7 +32,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   validate-python:
     name: Flux cross-reference checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -55,7 +59,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   validate-kubeconform:
     name: Schema validation (kubeconform)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -71,7 +75,7 @@ jobs:
 
       - name: Install kubeconform
         run: |
-          curl -sL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+          curl -sL https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz \
             | tar xz
           sudo mv kubeconform /usr/local/bin/
           kubeconform -v
@@ -87,7 +91,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   validate-flux-local:
     name: Flux graph validation (flux-local)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -121,7 +125,7 @@ jobs:
   manifest-diff:
     name: Manifest diff
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: write
@@ -220,7 +224,7 @@ jobs:
   chart-diff:
     name: Chart diff
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: write
@@ -242,7 +246,7 @@ jobs:
 
       - name: Install kubeconform
         run: |
-          curl -sL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+          curl -sL https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz \
             | tar xz
           sudo mv kubeconform /usr/local/bin/
           kubeconform -v

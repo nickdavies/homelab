@@ -6,12 +6,14 @@ Usage:
   validate-flux.py kustomize        - Check kustomization resource references
   validate-flux.py refs             - Check Flux cross-references
   validate-flux.py kustomize-full   - Run kustomize build (requires kustomize)
+  validate-flux.py pins             - Check images and downloads are pinned
 """
 
 import argparse
 import os
 import sys
 import glob
+import re as _re
 import subprocess
 from pathlib import Path
 from typing import Iterator
@@ -383,6 +385,86 @@ def validate_kustomize_build() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Stage 5: Image pins
+# ---------------------------------------------------------------------------
+
+# A tag that names a release: starts with a digit, optionally after "v".
+# Anything else (latest, main, java25, edge, sha-abc123) moves under you unless
+# a digest pins it.
+_RELEASE_TAG = _re.compile(r"^v?\d")
+
+# Floating references outside image fields: GitHub "latest release" download
+# URLs and runner labels such as ubuntu-latest.
+_FLOATING_TEXT = _re.compile(r"releases/latest\b|\b[\w.]+-latest\b")
+
+
+def _image_problem(ref: str) -> str | None:
+    """Why an image reference floats, or None if it's pinned."""
+    if "${" in ref:
+        # Resolved by Flux postBuild; the value isn't in the repo.
+        return None
+    if "@sha256:" in ref:
+        return None
+    name = ref.rsplit("/", 1)[-1]
+    if ":" not in name:
+        return "no tag (implicit latest)"
+    tag = name.rsplit(":", 1)[1]
+    if not _RELEASE_TAG.match(tag):
+        return f"tag {tag!r} is not a release; use a release tag or add @sha256:"
+    return None
+
+
+def _collect_images(obj: object, found: list[str]) -> None:
+    """Collect image references from container specs (`image: repo:tag`),
+    Helm/app-template values (`image: {repository, tag}`), and CNPG
+    `imageName`. A values map without a tag inherits the chart's appVersion,
+    which the chart version pins, so it isn't collected."""
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key in ("image", "imageName") and isinstance(value, str):
+                found.append(value)
+            elif key == "image" and isinstance(value, dict) and value.get("tag"):
+                tag = str(value["tag"])
+                if value.get("digest"):
+                    tag = f"{tag}@{value['digest']}"
+                found.append(f"{value.get('repository', '')}:{tag}")
+            else:
+                _collect_images(value, found)
+    elif isinstance(obj, list):
+        for item in obj:
+            _collect_images(item, found)
+
+
+def validate_image_pins() -> None:
+    images = 0
+    for path in all_yaml_files():
+        for doc in load_docs(path):
+            found: list[str] = []
+            _collect_images(doc, found)
+            for ref in found:
+                images += 1
+                problem = _image_problem(ref)
+                if problem:
+                    err(f"{rel(path)}: {ref}: {problem}")
+
+    tracked = subprocess.run(
+        # This file names the patterns it bans.
+        ["git", "ls-files", "--", ":!*.md", ":!scripts/validate-flux.py"],
+        cwd=REPO_ROOT, capture_output=True, text=True, check=True,
+    ).stdout.splitlines()
+    for name in tracked:
+        try:
+            lines = (REPO_ROOT / name).read_text().splitlines()
+        except (UnicodeDecodeError, FileNotFoundError):
+            continue
+        for lineno, line in enumerate(lines, 1):
+            match = _FLOATING_TEXT.search(line)
+            if match:
+                err(f"{name}:{lineno}: {match.group(0)!r} floats; pin a version")
+    print(f"  Checked {images} image references and {len(tracked)} files for floating versions")
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -391,6 +473,7 @@ STAGES = {
     "kustomize": ("Checking kustomization resource references", validate_kustomize_resources),
     "refs": ("Checking Flux cross-references", validate_flux_refs),
     "kustomize-full": ("Running full kustomize build", validate_kustomize_build),
+    "pins": ("Checking image and download pins", validate_image_pins),
 }
 
 
@@ -409,8 +492,6 @@ def _has_flux_var(obj: object) -> bool:
         return any(_has_flux_var(item) for item in obj)
     return False
 
-
-import re as _re
 
 _DIGIT_ONLY = _re.compile(r'^\d+$')
 
