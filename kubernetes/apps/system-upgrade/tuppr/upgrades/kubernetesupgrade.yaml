@@ -1,0 +1,62 @@
+---
+# The cluster's Kubernetes version. Tuppr runs `talosctl upgrade-k8s --to` this
+# from a control plane: static pods, then every kubelet, then Talos's own
+# manifests (flannel, kube-proxy, metrics-server, the cert approver), which roll
+# to whatever the installed Talos release ships.
+#
+# Renovate moves this and talos/talosenv KUBE_VERSION in one PR, one PR per
+# minor. Merge the lowest first: upgrade-k8s only moves one minor at a time and
+# refuses anything else before changing a thing. The two must move together
+# because upgrade-k8s rewrites each node's machine config; a render from a stale
+# KUBE_VERSION would roll the control plane back.
+#
+# Health checks run once, before the upgrade starts, never after it. A run is
+# verified by the next one's checks; confirm flannel and kube-proxy by hand.
+apiVersion: tuppr.home-operations.com/v1alpha1
+kind: KubernetesUpgrade
+metadata:
+  name: kubernetes
+spec:
+  kubernetes:
+    # renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
+    version: v1.33.2
+  healthChecks:
+    - description: every node Ready
+      apiVersion: v1
+      kind: Node
+      expr: status.conditions.exists(c, c.type == "Ready" && c.status == "True")
+      timeout: 15m
+    - description: Ceph healthy
+      apiVersion: ceph.rook.io/v1
+      kind: CephCluster
+      namespace: rook-ceph
+      name: rook-ceph
+      expr: status.ceph.health == "HEALTH_OK"
+      timeout: 30m
+    - description: flannel up to date and available on every node
+      apiVersion: apps/v1
+      kind: DaemonSet
+      namespace: kube-system
+      name: kube-flannel
+      expr: >-
+        has(status.numberAvailable) && has(status.updatedNumberScheduled)
+        && status.numberAvailable == status.desiredNumberScheduled
+        && status.updatedNumberScheduled == status.desiredNumberScheduled
+      timeout: 10m
+    - description: kube-proxy up to date and available on every node
+      apiVersion: apps/v1
+      kind: DaemonSet
+      namespace: kube-system
+      name: kube-proxy
+      expr: >-
+        has(status.numberAvailable) && has(status.updatedNumberScheduled)
+        && status.numberAvailable == status.desiredNumberScheduled
+        && status.updatedNumberScheduled == status.desiredNumberScheduled
+      timeout: 10m
+    - description: CoreDNS
+      apiVersion: apps/v1
+      kind: Deployment
+      namespace: kube-system
+      name: coredns
+      expr: has(status.readyReplicas) && status.readyReplicas == object.spec.replicas
+      timeout: 10m

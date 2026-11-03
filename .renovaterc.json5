@@ -40,6 +40,16 @@
       separateMultipleMinor: true,
     },
     {
+      // Kubernetes: the KubernetesUpgrade plus talos/talosenv KUBE_VERSION, in
+      // one PR. upgrade-k8s moves one minor at a time and Tuppr doesn't
+      // enforce it, so there's one PR per minor, merged lowest first, and never
+      // automerged: merging runs the upgrade.
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/siderolabs/kubelet"],
+      separateMultipleMinor: true,
+      automerge: false,
+    },
+    {
       // Talos may only move one minor at a time, and Tuppr doesn't enforce it.
       matchDatasources: ["docker"],
       matchPackageNames: ["ghcr.io/siderolabs/talos"],
