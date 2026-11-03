@@ -1,4 +1,0 @@
----
-cluster:
-  extraManifests:
-    - https://github.com/kubernetes-sigs/metrics-server/releases/download/${METRICS_SERVER_VERSION}/components.yaml

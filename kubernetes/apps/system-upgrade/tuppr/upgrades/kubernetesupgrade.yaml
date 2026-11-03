@@ -1,8 +1,8 @@
 ---
 # The cluster's Kubernetes version. Tuppr runs `talosctl upgrade-k8s --to` this
 # from a control plane: static pods, then every kubelet, then Talos's own
-# manifests (flannel, kube-proxy, metrics-server, the cert approver), which roll
-# to whatever the installed Talos release ships.
+# manifests (flannel with kube-network-policies, and kube-proxy), which roll to
+# whatever the installed Talos release ships.
 #
 # Renovate moves this and talos/talosenv KUBE_VERSION in one PR, one PR per
 # minor. Merge the lowest first: upgrade-k8s only moves one minor at a time and
