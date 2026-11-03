@@ -37,13 +37,14 @@ rules:
   - apiGroups: [tuppr.home-operations.com]
     resources: [talosupgrades/finalizers, kubernetesupgrades/finalizers]
     verbs: [update]
-  # Health checks in the TalosUpgrade plans. Add a rule here for any new kind
-  # a plan checks; unlisted kinds fail the check rather than pass it.
+  # Health checks in the TalosUpgrade plans and the KubernetesUpgrade. Add a
+  # rule here for any new kind a plan checks; an unlisted kind can't be read,
+  # so its check never passes and the upgrade waits forever.
   - apiGroups: [ceph.rook.io]
     resources: [cephclusters]
     verbs: [get, list, watch]
   - apiGroups: [apps]
-    resources: [deployments, statefulsets]
+    resources: [deployments, statefulsets, daemonsets]
     verbs: [get, list, watch]
   - apiGroups: [postgresql.cnpg.io]
     resources: [clusters]
