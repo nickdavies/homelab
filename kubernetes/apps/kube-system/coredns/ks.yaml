@@ -12,9 +12,8 @@ spec:
       app.kubernetes.io/name: *app
   interval: 1h
   path: ./kubernetes/apps/kube-system/coredns/app
-  # Deliberately not pruned: this ConfigMap is adopted from Talos, not created
-  # by us. Talos only writes it at bootstrap, so a prune would take out cluster
-  # DNS with nothing to recreate it.
+  # Cluster DNS, which Flux itself needs to fetch from git: never prune it.
+  # talos/bootstrap.sh applies the same manifests on a new cluster, before Flux.
   prune: false
   retryInterval: 2m
   sourceRef:

@@ -231,7 +231,8 @@ def validate_flux_refs() -> None:
     # Build indexes by scanning all YAML files
     flux_ks_names: dict[str, Path] = {}        # Flux Kustomization name → file
     sources: dict[tuple[str, str], Path] = {}  # (kind, name) → file
-    provided_secrets: dict[str, Path] = {}     # secret name → file
+    # secret name → file; talos/bootstrap.sh creates the Flux deploy key Secret.
+    provided_secrets: dict[str, Path] = {"homelab-auth": Path("talos/bootstrap.sh")}
     helm_releases: list[tuple[Path, dict]] = []
     flux_kustomizations: list[tuple[Path, dict]] = []
 
