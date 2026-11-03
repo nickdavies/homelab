@@ -5,6 +5,7 @@ metadata:
 spec:
   interval: 1h
   url: oci://docker.io/envoyproxy/gateway-helm
+  # An exact tag, not a semver range: Renovate only proposes updates for exact
+  # tags, so a range silently stops at its upper bound.
   ref:
-    semver: "1.4.x"
-
+    tag: v1.9.3
