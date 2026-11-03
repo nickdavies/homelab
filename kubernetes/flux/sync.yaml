@@ -1,0 +1,47 @@
+---
+# The root of the tree: this repo, and the Kustomization that applies
+# kubernetes/flux (this directory). talos/bootstrap.sh applies both once on a
+# new cluster; from then on the Kustomization manages them like everything else.
+#
+# prune: disabled on both. Removing either from git must not delete it: deleting
+# the root Kustomization prunes everything it applied, which is the cluster.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: homelab
+  namespace: flux-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  interval: 5m
+  provider: generic
+  url: ssh://git@github.com/nickdavies/homelab.git
+  ref:
+    name: refs/heads/main
+  secretRef:
+    name: homelab-auth
+  ignore: |-
+    # exclude all
+    /*
+    # include kubernetes directory
+    !/kubernetes
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: homelab
+  namespace: flux-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  interval: 5m
+  path: ./kubernetes/flux
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+  postBuild:
+    substitute:
+      # Something to substitute, so Flux runs substitution here: children only
+      # get it when every Kustomization above them has it enabled.
+      var_substitution_enabled: "true"

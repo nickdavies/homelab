@@ -5,12 +5,18 @@ set -euo pipefail
 # Resolved before the cd below, so the re-exec further down can name this script.
 SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 cd "$(dirname "$0")"
+REPO="$(cd .. && pwd)"
 
 set -a; source talosenv; set +a
 
-# Bootstrap-only secrets. These are needed exactly once per cluster rebuild, to
-# give Flux and External Secrets enough to start reconciling; everything after
-# that comes out of 1Password via the Connect operator.
+# Turns a fresh cluster (Talos up, API reachable, nothing else) into one Flux
+# manages: the bootstrap-only secrets, then flux-operator, the FluxInstance and
+# the root sync, each applied from this checkout's copy of what Flux manages
+# from then on. Run it from a checkout of main. Safe to re-run.
+#
+# The secrets are needed exactly once per cluster rebuild, to give Flux and
+# External Secrets enough to start reconciling; everything after that comes out
+# of 1Password via the Connect operator.
 #
 # The kubeconfig here is the break-glass cluster-admin one rather than an OIDC
 # login, because at this point in a rebuild there is no Authelia to log in to.
@@ -38,30 +44,50 @@ fi
 
 export KUBECONFIG="$BOOTSTRAP_KUBECONFIG"
 
+# Server-side, and forcing: on a re-run Flux already owns these fields.
+apply() {
+    kubectl apply --server-side --force-conflicts --field-manager=bootstrap "$@"
+}
+
 echo "Waiting for kubeAPI to be up"
 timeout 10m bash -c "until kubectl version >/dev/null 2>&1; do sleep 1; done"
 
-echo "Waiting for external-secrets namespace to exist"
-kubectl wait --for=create namespaces/external-secrets --timeout 10m
-
-echo "Waiting for flux-system namespace to exist"
-kubectl wait --for=create namespaces/flux-system --timeout 10m
+# Nothing manages these two namespaces: Flux must never own (and so be able
+# to prune) flux-system, and external-secrets holds the secrets below before
+# Flux runs.
+for ns in flux-system external-secrets; do
+    kubectl create namespace "$ns" --dry-run=client -o yaml | apply -f -
+done
 
 flux create secret git homelab-auth \
     --export \
     --url "$FLUX_REPO_URL" \
     --private-key-file "$BOOTSTRAP_FLUX_KEY" \
-    | kubectl apply -f -
+    | apply -f -
 
 kubectl create secret generic onepassword-connect-credentials \
     --from-file="1password-credentials.json=$BOOTSTRAP_OP_CREDS" \
     -n external-secrets \
     --dry-run=client \
-    -o yaml | kubectl apply -f -
+    -o yaml | apply -f -
 
 kubectl create secret generic onepassword-connect-token \
     --from-literal="token=$(cat "$BOOTSTRAP_OP_TOKEN")" \
     -n external-secrets \
     --dry-run=client \
     -o yaml \
-    | kubectl apply -f -
+    | apply -f -
+
+echo "Installing flux-operator"
+apply -k "$REPO/kubernetes/apps/flux-system/flux-operator/app"
+kubectl wait --for=condition=Established --timeout 5m crd/fluxinstances.fluxcd.controlplane.io
+kubectl -n flux-system rollout status deploy/flux-operator --timeout 5m
+
+echo "Installing Flux"
+apply -n flux-system -k "$REPO/kubernetes/apps/flux-system/flux-instance/app"
+kubectl -n flux-system wait fluxinstance/flux --for=condition=Ready --timeout 10m
+
+echo "Syncing kubernetes/flux"
+apply -f "$REPO/kubernetes/flux/sync.yaml"
+
+echo "Flux is up. Watch it bring up the rest with: flux get kustomizations --watch"

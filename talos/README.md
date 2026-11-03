@@ -9,7 +9,7 @@ talos-session use reader          # ambient, 30 days
 talos-session exec admin -- ...   # one command, 2 hours, nothing left on disk
 ```
 
-`config-gen.sh` and `secrets-bootstrap.sh` use the same mechanism. Each re-runs
+`config-gen.sh` and `bootstrap.sh` use the same mechanism. Each re-runs
 itself under `talos-session exec --secret ...`, which holds what they need in
 memory and hands it over as `/dev/fd/<n>`, so both work standalone:
 
@@ -70,3 +70,23 @@ against yet:
 ```
 talosctl apply -f <rendered> -n <NODE-IP> --insecure
 ```
+
+## Bootstrapping Flux
+
+Once the first control plane is bootstrapped and the API answers:
+
+```
+./bootstrap.sh
+```
+
+It injects the bootstrap-only secrets (the Flux deploy key and the 1Password
+Connect credentials), then installs flux-operator, the FluxInstance and the
+root sync (`kubernetes/flux/sync.yaml`) from this checkout, waiting for each.
+Flux takes it from there and manages all three afterwards. Run it from a
+checkout of main; it is safe to re-run.
+
+`bootstrap-rehearsal.sh` runs the same script against a throwaway kind cluster
+with dummy 1Password credentials, which stop it short of `cluster-apps`, and
+checks the CRD layer, External Secrets and a dry-run of what `cluster-apps`
+applies. Run it after merging a change to the bootstrap path, before relying
+on it.
