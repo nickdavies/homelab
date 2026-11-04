@@ -25,6 +25,22 @@ spec:
   dependsOn:
     - name: rook-ceph-cluster
       namespace: rook-ceph
+  postRenderers:
+    # The chart has no minReadySeconds. With it, availableReplicas only counts
+    # a pod ready for a full minute, so a crash-looping pod can't look healthy
+    # between restarts (the Tuppr health checks read it).
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: mosquitto
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: mosquitto
+              spec:
+                minReadySeconds: 60
   values:
     controllers:
       mosquitto:
@@ -43,6 +59,17 @@ spec:
             image:
               repository: public.ecr.aws/docker/library/eclipse-mosquitto
               tag: 2.0.22
+            probes:
+              # Ready once the MQTT listener accepts connections. Readiness never
+              # restarts the pod.
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: 1883
+                  periodSeconds: 10
+                  failureThreshold: 3
             securityContext:
               allowPrivilegeEscalation: false
               readOnlyRootFilesystem: true
