@@ -33,6 +33,11 @@ spec:
     monitoring:
       enabled: true
       createPrometheusRules: true
+      prometheusRuleOverrides:
+        # Generic host-filesystem alert with no free-space floor; duplicates
+        # kube-prometheus-stack's NodeFilesystemSpaceFillingUp, which has one.
+        CephNodeDiskspaceWarning:
+          disabled: true
     toolbox:
       enabled: true
 

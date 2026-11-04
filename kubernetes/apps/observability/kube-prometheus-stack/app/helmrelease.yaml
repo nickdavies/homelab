@@ -84,6 +84,10 @@ spec:
               sourceLabels:
                 - __meta_kubernetes_pod_node_name
               targetLabel: kubernetes_node
+            # One exporter per node, identified by instance. A pod label
+            # splits each node's history at every restart.
+            - action: labeldrop
+              regex: pod
     kubeStateMetrics:
       enabled: true
     kube-state-metrics:
