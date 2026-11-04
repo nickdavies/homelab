@@ -72,16 +72,16 @@ spec:
             index:
               prefix: loki_index_
               period: 24h
+      # The chart always renders `ruler.storage.type: local` and target=all runs
+      # the ruler, so it needs a writable directory even with no rules defined.
       structuredConfig:
         ruler:
           enable_api: true
-          enable_alertmanager_v2: true
-          alertmanager_url: http://alertmanager-operated.observability.svc.cluster.local:9093
           storage:
             type: local
             local:
-              directory: /rules
-          rule_path: /rules
+              directory: /var/loki/rules
+          rule_path: /var/loki/rules-temp
     singleBinary:
       replicas: 1
       persistence:
@@ -113,12 +113,5 @@ spec:
     test:
       enabled: false
     sidecar:
-      image:
-        repository: ghcr.io/home-operations/k8s-sidecar
-        tag: 2.11.2@sha256:2e18fa6af75c94fb9aff610fba3386e7d518b0d639ecf0948aecaa071b126be0
-      securityContext:
-        readOnlyRootFilesystem: false
       rules:
-        enabled: true
-        searchNamespace: ALL
-        folder: /rules/fake
+        enabled: false
