@@ -7,4 +7,6 @@ metadata:
   namespace: flux-system
 spec:
   interval: 2h
-  url: https://grafana.github.io/helm-charts
+  # The grafana chart moved to grafana-community; grafana.github.io stopped
+  # publishing it at 10.5.15.
+  url: https://grafana-community.github.io/helm-charts
