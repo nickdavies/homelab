@@ -41,7 +41,7 @@ spec:
       containers:
         - name: mc
           # Minecraft 26.3 needs Java 25.
-          image: itzg/minecraft-server:java25
+          image: itzg/minecraft-server:2026.10.1-java25@sha256:d12aed7e35981dfe259b60fbfee77d23a19b5898a7a31dca298d18b47b7b5776
           envFrom:
             - configMapRef:
                 name: minecraft-${SERVER_NAME}-server-config
