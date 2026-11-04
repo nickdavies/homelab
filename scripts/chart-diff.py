@@ -62,20 +62,6 @@ def without_version_labels(obj, chart_ids: set):
     return obj
 
 
-def redacted(obj: dict) -> dict:
-    """A Secret with every data/stringData value masked, so the PR comment
-    shows keys added or removed but never a value. This also hides the churn
-    from charts that fill an unset password with randAlphaNum, which differs
-    on every `helm template`."""
-    if obj.get("kind") != "Secret":
-        return obj
-    out = dict(obj)
-    for key in ("data", "stringData"):
-        if isinstance(out.get(key), dict):
-            out[key] = {k: "<redacted>" for k in out[key]}
-    return out
-
-
 def clip(line: str) -> str:
     """Long single-line values (base64 blobs, bundled CRDs) say nothing in a diff."""
     if len(line) <= 300:
@@ -89,8 +75,8 @@ def object_diff(old: Rendered, new: Rendered) -> tuple[str, dict]:
     counts = {"added": 0, "removed": 0, "changed": 0}
     parts = []
     for key in sorted(old.objects.keys() | new.objects.keys(), key=lambda k: tuple(str(p) for p in k)):
-        o = redacted(without_version_labels(old.objects[key], ids)) if key in old.objects else None
-        n = redacted(without_version_labels(new.objects[key], ids)) if key in new.objects else None
+        o = without_version_labels(old.objects[key], ids) if key in old.objects else None
+        n = without_version_labels(new.objects[key], ids) if key in new.objects else None
         if o == n:
             continue
         counts["added" if o is None else "removed" if n is None else "changed"] += 1
