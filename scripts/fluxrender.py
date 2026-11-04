@@ -8,7 +8,8 @@ Shared by chart-diff.py and crd-order.py:
     PLACEHOLDER_<NAME>), and records which Flux Kustomization applies each
     object.
   - releases() resolves each HelmRelease's chart and values from the repo.
-  - render() runs `helm template` for one release; split() keys the output.
+  - render() runs `helm template` for one release, with every Secret value
+    replaced by REDACTED; split() keys the output.
 
 Requires: kustomize, helm, PyYAML.
 """
@@ -385,7 +386,31 @@ def render(rel: Release, chart: Chart, cache: Path, workdir: Path, kube_version:
     )
     if result.returncode != 0:
         raise RuntimeError(f"helm template {chart.label}: {result.stderr.strip()}")
-    return result.stdout, chart_ids(tgz)
+    return redact_secrets(result.stdout), chart_ids(tgz)
+
+
+# Valid base64 (8 characters of its alphabet), so a redacted Secret's `data`
+# is still a valid manifest, and readable in a diff.
+REDACTED = "REDACTED"
+
+
+def redact_secrets(manifest: str) -> str:
+    """The manifest with every Secret data/stringData value replaced by
+    REDACTED, before anything writes or posts it: renders go into PR comments
+    and workflow artifacts on a public repo. Charts that fill an unset password
+    with randAlphaNum (grafana's admin-password) would otherwise publish it,
+    and show it as changed on every render. Other documents are untouched."""
+    parts = re.split(r"(^---\s*$)", manifest, flags=re.M)
+    for i, raw in enumerate(parts):
+        if not re.search(r"^kind:\s*Secret\s*$", raw, flags=re.M):
+            continue
+        obj = yaml.load(raw, Loader=Loader)
+        for key in ("data", "stringData"):
+            if isinstance(obj.get(key), dict):
+                obj[key] = {k: REDACTED for k in obj[key]}
+        comments = "".join(line for line in raw.splitlines(keepends=True) if line.startswith("#"))
+        parts[i] = f"\n{comments}{dump(obj)}"
+    return "".join(parts)
 
 
 @dataclass
