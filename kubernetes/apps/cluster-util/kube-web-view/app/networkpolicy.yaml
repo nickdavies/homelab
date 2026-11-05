@@ -1,0 +1,29 @@
+# Only the internal gateway's Envoy proxy may reach kube-web-view. It has no
+# authentication of its own and can read nearly every object in the cluster,
+# so Authelia on kube-web-view.internal (securitypolicy.yaml) only helps if
+# nothing can go around the route.
+#
+# The break-glass port-forward (docs/break-glass-access.md) connects inside
+# the pod, so it still works. Ingress only. Kubelet probes come from the node,
+# which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kube-web-view
+spec:
+  podSelector:
+    matchLabels:
+      application: kube-web-view
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - protocol: TCP
+          port: 8080

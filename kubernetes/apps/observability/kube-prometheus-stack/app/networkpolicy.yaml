@@ -1,0 +1,120 @@
+# Only Prometheus's and Alertmanager's known clients may reach them. Neither
+# has authentication: any caller can POST /-/quit (--web.enable-lifecycle),
+# silence or inject alerts, and read every metric. Authelia on
+# prometheus.internal (securitypolicy.yaml) only helps if nothing can go around
+# the route.
+#
+# Ingress only: both dial out to scrape targets, Alertmanager receivers and
+# the apiserver. Kubelet probes come from the node, which a NetworkPolicy
+# never blocks, and port-forwards connect inside the pod.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+      operator.prometheus.io/name: kube-prometheus-stack
+  policyTypes: [Ingress]
+  ingress:
+    # Self-monitoring: each replica scrapes both replicas' web (9090) and
+    # config-reloader (8080) ports.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+              operator.prometheus.io/name: kube-prometheus-stack
+      ports:
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 8080
+    # Grafana's datasource, and the internal gateway's Envoy proxy.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: grafana
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - protocol: TCP
+          port: 9090
+    # The homelab ops workspace (agent-workspaces components/ops). Its egress
+    # policy, ws-homelab-ops, is the other half.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: workspaces
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - ws-homelab
+                  - ws-homelab-remote-control
+      ports:
+        - protocol: TCP
+          port: 9090
+    # The Ceph dashboard (rook-ceph cluster prometheusEndpoint). ceph-mgr is
+    # host network, and over flannel a host reaches pods from its flannel.1
+    # (podCIDR .0) or cni0 (podCIDR .1) address, never the node IP. Those two
+    # addresses are never assigned to a pod, so each /31 admits host traffic
+    # only. One per current node podCIDR (k8s-node-1..8 hold 10.244.0-7.0/24).
+    # A node that re-registers with a new podCIDR needs its /31 here, or the
+    # dashboard's Prometheus panels go blank while the mgr runs there.
+    - from:
+        - ipBlock: { cidr: 10.244.0.0/31 }
+        - ipBlock: { cidr: 10.244.1.0/31 }
+        - ipBlock: { cidr: 10.244.2.0/31 }
+        - ipBlock: { cidr: 10.244.3.0/31 }
+        - ipBlock: { cidr: 10.244.4.0/31 }
+        - ipBlock: { cidr: 10.244.5.0/31 }
+        - ipBlock: { cidr: 10.244.6.0/31 }
+        - ipBlock: { cidr: 10.244.7.0/31 }
+      ports:
+        - protocol: TCP
+          port: 9090
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: alertmanager
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: alertmanager
+      alertmanager: kube-prometheus-stack
+  policyTypes: [Ingress]
+  ingress:
+    # Prometheus sends alerts to 9093 and scrapes 9093 and config-reloader 8080.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+              operator.prometheus.io/name: kube-prometheus-stack
+      ports:
+        - protocol: TCP
+          port: 9093
+        - protocol: TCP
+          port: 8080
+    # Grafana's datasource, and Loki's ruler (loki helmrelease alertmanager_url).
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: grafana
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: loki
+              app.kubernetes.io/component: single-binary
+      ports:
+        - protocol: TCP
+          port: 9093
+    # 9094 (mesh) is left closed: one replica, so there are no peers. Opening
+    # it is part of going to more than one.

@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: cluster-util
 resources:
   - deployment.yaml
+  - networkpolicy.yaml
   - rbac.yaml
   - service.yaml
   - gateway.yaml

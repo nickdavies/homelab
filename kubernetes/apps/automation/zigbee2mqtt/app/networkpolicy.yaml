@@ -1,0 +1,30 @@
+# Only the internal gateway's Envoy proxy may reach the frontend. It has no
+# auth_token and can permit joins, remove devices and flash firmware, so
+# Authelia on z2m.internal (securitypolicy.yaml) only helps if nothing can go
+# around the route.
+#
+# Home Assistant and the other MQTT clients reach Zigbee2MQTT through
+# Mosquitto, never directly. Ingress only: Zigbee2MQTT dials out to Mosquitto
+# and the coordinator. Kubelet probes come from the node, which a
+# NetworkPolicy never blocks, and port-forwards connect inside the pod.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zigbee2mqtt
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: zigbee2mqtt
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - protocol: TCP
+          port: 8080
