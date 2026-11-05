@@ -1,0 +1,41 @@
+# Only smtp-relay's known clients may reach it. The :25 listener accepts mail
+# from anyone without authentication and delivers it upstream with our SMTP
+# credentials (config/maddy.conf), so any pod that can connect can send mail
+# as our domain.
+#
+# - Authelia: notifier (AUTHELIA_NOTIFIER_SMTP_ADDRESS).
+# - Prometheus: the ServiceMonitor scrapes 9749/metrics.
+#
+# Ingress only: the relay dials out to the upstream SMTP server. Kubelet probes
+# come from the node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: smtp-relay
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: smtp-relay
+      app.kubernetes.io/controller: smtp-relay
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: security
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: authelia
+      ports:
+        - protocol: TCP
+          port: 25
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9749

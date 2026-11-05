@@ -6,6 +6,7 @@ resources:
   - ./externalsecret.yaml
   - ./certificate.yaml
   - ./helmrelease.yaml
+  - ./networkpolicy.yaml
 configMapGenerator:
   - name: smtp-relay-configmap
     files:
