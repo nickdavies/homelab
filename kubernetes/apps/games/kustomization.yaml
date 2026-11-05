@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
 - minecraft/ks.yaml
 - namespace.yaml
+- networkpolicy.yaml
