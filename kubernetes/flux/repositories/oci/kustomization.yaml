@@ -7,4 +7,6 @@ resources:
   - envoy-gateway.yaml
   - external-secrets.yaml
   - garage-operator.yaml
+  - node-feature-discovery.yaml
+  - reloader.yaml
   - tuppr.yaml

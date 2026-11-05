@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - 1password-connect.yaml
   - intel.yaml
-  - node-feature-discovery.yaml
   - backube.yaml
   - ceph-csi-operator.yaml
   - cloudnative-pg.yaml
@@ -17,5 +16,4 @@ resources:
   - piraeus.yaml
   - prometheus-community.yaml
   - rook-ceph.yaml
-  - stakater.yaml
   - tailscale.yaml
