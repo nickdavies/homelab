@@ -5,5 +5,6 @@ resources:
   - app-template.yaml
   - descheduler.yaml
   - envoy-gateway.yaml
+  - external-secrets.yaml
   - garage-operator.yaml
   - tuppr.yaml
