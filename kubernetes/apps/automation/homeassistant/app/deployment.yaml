@@ -4,6 +4,9 @@ metadata:
   name: &app homeassistant
 spec:
   replicas: 1
+  # availableReplicas counts the pod only after 2 minutes of readiness, so a
+  # crash-looping HA can't look healthy between restarts (Tuppr health checks).
+  minReadySeconds: 120
   selector:
     matchLabels:
       app: *app
@@ -92,7 +95,7 @@ spec:
           defaultMode: 0400
       containers:
       - name: overlay-manager
-        image: nickdavies1/kube-overlayfs:main
+        image: nickdavies1/kube-overlayfs:main@sha256:0c4df4e11935a90b03a0db1198e078270d0b73de4e10216b9b31b6f56187438d
         securityContext:
           privileged: true
           allowPrivilegeEscalation: true
@@ -153,6 +156,16 @@ spec:
               - "test -f /config/.success-marker"
           initialDelaySeconds: 60
           periodSeconds: 30
+          failureThreshold: 3
+        # Ready once HA's HTTP server answers (unauthenticated). Readiness never
+        # restarts the container, so a slow start just stays not-ready; the
+        # liveness probe above only checks the overlay mount, not HA itself.
+        readinessProbe:
+          httpGet:
+            path: /manifest.json
+            port: 8123
+          periodSeconds: 10
+          timeoutSeconds: 5
           failureThreshold: 3
         env:
           - name: TZ

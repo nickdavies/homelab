@@ -16,7 +16,7 @@ spec:
       serviceAccountName: git-sync-reloader-adapter
       containers:
       - name: webhook-adapter
-        image: nickdavies1/git-sync-reloader-adapter:main
+        image: nickdavies1/git-sync-reloader-adapter:main@sha256:f62d8262d62a371f8ed47776ddd023c6711b428fe655a54683f1f4f459e91f73
         args: 
         - "--port=8080"
         - "--addr=0.0.0.0"

@@ -3,10 +3,12 @@
   customManagers: [
     {
       customType: "regex",
+      // The image name excludes ':' so the tag match starts at the tag, not at
+      // the ':' inside "@sha256:".
       description: "Process CloudNative-PG imageName with full image reference",
       managerFilePatterns: ["/(^|/)kubernetes/.+\\.ya?ml$/"],
       matchStrings: [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\s+imageName: \\S+:(?<currentValue>[^@\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?",
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\s+imageName: [^:\\s]+:(?<currentValue>[^@\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?",
       ],
       datasourceTemplate: "docker",
     },
