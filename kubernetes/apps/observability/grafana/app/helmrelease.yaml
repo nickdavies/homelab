@@ -213,7 +213,7 @@ spec:
           datasource:
             - { name: DS_PROMETHEUS, value: Prometheus }
         cert-manager:
-          url: https://raw.githubusercontent.com/monitoring-mixins/website/master/assets/cert-manager/dashboards/cert-manager.json
+          url: https://raw.githubusercontent.com/monitoring-mixins/website/master/assets/cert-manager/dashboards/cert-manager-overview.json
           datasource: Prometheus
         external-secrets:
           url: https://raw.githubusercontent.com/external-secrets/external-secrets/main/docs/snippets/dashboard.json
@@ -312,7 +312,7 @@ spec:
         #   datasource: Prometheus
         unifi-uxg:
           # renovate: depName="UniFi-Poller: USG Insights - Prometheus"
-          url: https://raw.githubusercontent.com/adampetrovic/unifi-dashboards/master/v2.0.0/UniFi-Poller_%20USG%20Insights%20-%20Prometheus.json
+          url: https://raw.githubusercontent.com/unpoller/dashboards/master/v2.0.0/UniFi-Poller_%20USG%20Insights%20-%20Prometheus.json
           datasource: Prometheus
         unifi-usw:
           # renovate: depName="UniFi-Poller: USW Insights - Prometheus"
