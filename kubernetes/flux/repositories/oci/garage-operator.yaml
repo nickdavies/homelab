@@ -13,7 +13,10 @@ spec:
     # The digest wins over the tag; the tag is for humans and Renovate.
     tag: 0.8.3
     digest: sha256:b5ce1bd3fa0bca8fe6c872732859e2e00f6a9ade0b850efba54ab232b85ececf
-  # Upstream signs with cosign v3 bundles, which source-controller verifies only
-  # from v1.8. Until then, check provenance by hand before bumping the digest:
-  #   gh attestation verify oci://<url>@<digest> -R rajsinghtech/garage-operator
   url: oci://ghcr.io/rajsinghtech/charts/garage-operator
+  verify:
+    provider: cosign
+    # Upstream publishes charts only from v* tags, so branch builds are rejected.
+    matchOIDCIdentity:
+      - issuer: ^https://token\.actions\.githubusercontent\.com$
+        subject: ^https://github\.com/rajsinghtech/garage-operator/\.github/workflows/helm\.yml@refs/tags/v.*$
