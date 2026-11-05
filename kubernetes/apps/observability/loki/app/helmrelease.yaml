@@ -10,7 +10,9 @@ spec:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
   ref:
+    # The digest wins over the tag; the tag is for humans and Renovate.
     tag: 7.5.0
+    digest: sha256:6006cfff9edd0d5c70449cb89510c1c3c2142c11caacf66d6aac83fc0517f07d
   url: oci://ghcr.io/grafana/helm-charts/loki
 ---
 # yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2beta2.json

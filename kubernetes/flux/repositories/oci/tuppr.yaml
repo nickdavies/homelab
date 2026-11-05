@@ -14,3 +14,8 @@ spec:
     tag: 0.5.12
     digest: sha256:3fcc637e75bc3b20ad8cd1ae8b62323a1a6c7eceeaf05e2dabe8592a71c6b626
   url: oci://ghcr.io/home-operations/charts/tuppr
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+      - issuer: ^https://token\.actions\.githubusercontent\.com$
+        subject: ^https://github\.com/home-operations/tuppr/\.github/workflows/release\.yaml@refs/tags/.+$
