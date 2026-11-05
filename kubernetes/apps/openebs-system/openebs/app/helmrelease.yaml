@@ -5,36 +5,31 @@ metadata:
   name: openebs
 spec:
   interval: 30m
+  # The standalone hostpath provisioner chart, not the openebs 4.x umbrella:
+  # the umbrella defaults to Mayastor, LVM, ZFS, Loki, Alloy and MinIO, and
+  # bundles this same chart for its hostpath engine.
   chart:
     spec:
-      chart: openebs
-      version: 3.10.0
+      chart: localpv-provisioner
+      version: 4.6.0
       sourceRef:
         kind: HelmRepository
         name: openebs
         namespace: flux-system
-  # The chart ships the BlockDevice and BlockDeviceClaim CRDs in crds/, which
-  # Helm installs once and never upgrades.
   install:
-    crds: CreateReplace
     remediation:
       retries: 3
   upgrade:
-    crds: CreateReplace
     cleanupOnFail: true
     remediation:
       retries: 3
   uninstall:
     keepHistory: false
   values:
-    ndm:
-      enabled: false
-    localprovisioner:
+    hostpathClass:
       enabled: true
-      deviceClass:
-        enabled: false
-      hostpathClass:
-        enabled: true
-        name: openebs-hostpath
-        isDefaultClass: false
-        basePath: /var/openebs/local
+      name: openebs-hostpath
+      isDefaultClass: false
+      basePath: /var/openebs/local
+    analytics:
+      enabled: false
