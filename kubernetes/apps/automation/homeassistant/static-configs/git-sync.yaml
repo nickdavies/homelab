@@ -36,6 +36,9 @@ spec:
             - --period=60s
             - --link=head
             - --max-failures=3
+            # root owns the volume's root, which git refuses as dubious ownership.
+            # git-sync reads that as a broken repo and deletes its worktrees.
+            - --git-config=safe.directory:*
             - --ssh-key-file=/etc/git-secret/identity
             - --ssh-known-hosts-file=/etc/git-secret/known_hosts
             - --webhook-url=http://git-sync-reloader-adapter.kube-system.svc.cluster.local:8080/webhook/automation/home-assistant-static-config-version
