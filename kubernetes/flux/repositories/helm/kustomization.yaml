@@ -9,7 +9,6 @@ resources:
   - ceph-csi-operator.yaml
   - cloudnative-pg.yaml
   - external-dns.yaml
-  - external-secrets.yaml
   - grafana.yaml
   - jetstack.yaml
   - k8s-gateway.yaml
