@@ -1,0 +1,21 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/source.toolkit.fluxcd.io/ocirepository_v1.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: rook-ceph-cluster
+spec:
+  interval: 1h
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  ref:
+    # The digest wins over the tag; the tag is for humans and Renovate.
+    tag: 1.21.1
+    digest: sha256:2e65e2fa65fcae9ec4104e8474c5c6a805bc040531bb5dda6ba525ef42383076
+  url: oci://ghcr.io/rook/rook-ceph-cluster
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+      - issuer: ^https://token\.actions\.githubusercontent\.com$
+        subject: ^https://github\.com/rook/rook/\.github/workflows/push-build\.yaml@refs/tags/v.+$

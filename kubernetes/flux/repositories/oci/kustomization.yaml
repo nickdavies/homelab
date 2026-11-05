@@ -9,4 +9,6 @@ resources:
   - garage-operator.yaml
   - node-feature-discovery.yaml
   - reloader.yaml
+  - rook-ceph.yaml
+  - rook-ceph-cluster.yaml
   - tuppr.yaml

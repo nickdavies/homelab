@@ -15,5 +15,4 @@ resources:
   - openebs.yaml
   - piraeus.yaml
   - prometheus-community.yaml
-  - rook-ceph.yaml
   - tailscale.yaml
