@@ -11,8 +11,8 @@ spec:
     operation: copy
   ref:
     # The digest wins over the tag; the tag is for humans and Renovate.
-    tag: 0.8.3
-    digest: sha256:b5ce1bd3fa0bca8fe6c872732859e2e00f6a9ade0b850efba54ab232b85ececf
+    tag: 0.9.0
+    digest: sha256:b42209895a946ab4977d9f9e0702e22a3f61b2337bde87fbaa6789a5cfea3659
   url: oci://ghcr.io/rajsinghtech/charts/garage-operator
   verify:
     provider: cosign
