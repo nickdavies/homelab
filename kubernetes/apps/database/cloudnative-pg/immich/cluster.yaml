@@ -9,7 +9,7 @@ metadata:
 spec:
   instances: 3
   # renovate: datasource=docker depName=ghcr.io/immich-app/postgres
-  imageName: ghcr.io/immich-app/postgres:18-vectorchord0.5.3
+  imageName: ghcr.io/immich-app/postgres:18-vectorchord1.1.1
   primaryUpdateStrategy: unsupervised
   storage:
     size: 40Gi
