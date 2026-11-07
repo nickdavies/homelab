@@ -34,6 +34,16 @@
       versioning: "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<build>\\d+))?$",
     },
     {
+      // Tags are <postgres major>-vectorchord<version> (18-vectorchord0.5.3).
+      // Docker versioning reads "-vectorchord0.5.3" as a fixed suffix and would
+      // never bump it. Track VectorChord as the version and hold the Postgres
+      // major as the compatibility group: a major Postgres upgrade needs a
+      // CNPG major-upgrade plan, not a tag bump.
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/immich-app/postgres"],
+      versioning: "regex:^(?<compatibility>\\d+)-vectorchord(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
+    },
+    {
       // One PR per Flux minor, merged lowest first, so each minor's release
       // notes get read and its API migrations land before the next.
       matchPackageNames: ["fluxcd/flux2"],
