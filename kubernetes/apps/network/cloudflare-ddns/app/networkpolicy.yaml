@@ -1,0 +1,47 @@
+---
+# The updater holds a Cloudflare DNS-edit token. Everything it talks to (the
+# API, the cdn-cgi/trace IP lookups, cloudflare-dns.com) is on Cloudflare's
+# anycast ranges, so egress is limited to those plus cluster DNS. No ingress.
+#
+# Ranges from https://www.cloudflare.com/ips-v4/ (2026-11-07). If Cloudflare
+# moves the API outside them, updates fail and the pod logs it; re-check the
+# list then.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cloudflare-ddns
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflare-ddns
+      app.kubernetes.io/controller: cloudflare-ddns
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - ipBlock: { cidr: 173.245.48.0/20 }
+        - ipBlock: { cidr: 103.21.244.0/22 }
+        - ipBlock: { cidr: 103.22.200.0/22 }
+        - ipBlock: { cidr: 103.31.4.0/22 }
+        - ipBlock: { cidr: 141.101.64.0/18 }
+        - ipBlock: { cidr: 108.162.192.0/18 }
+        - ipBlock: { cidr: 190.93.240.0/20 }
+        - ipBlock: { cidr: 188.114.96.0/20 }
+        - ipBlock: { cidr: 197.234.240.0/22 }
+        - ipBlock: { cidr: 198.41.128.0/17 }
+        - ipBlock: { cidr: 162.158.0.0/15 }
+        - ipBlock: { cidr: 104.16.0.0/13 }
+        - ipBlock: { cidr: 104.24.0.0/14 }
+        - ipBlock: { cidr: 172.64.0.0/13 }
+        - ipBlock: { cidr: 131.0.72.0/22 }
+      ports:
+        - { port: 443, protocol: TCP }
