@@ -6,4 +6,5 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1h
-  url: https://openebs.github.io/charts
+  # openebs.github.io/charts stopped at 3.10.0 (2023-12).
+  url: https://openebs.github.io/dynamic-localpv-provisioner
