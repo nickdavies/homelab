@@ -16,19 +16,19 @@ spec:
       labelSelector:
         matchLabels:
           app: dragonfly
-  env:
-    - name: MAX_MEMORY
-      valueFrom:
-        resourceFieldRef:
-          resource: limits.memory
-          divisor: 1Mi
+  # Dragonfly refuses a maxmemory below 256MiB per thread. That is a cap on
+  # its dataset, not an allocation, so the request is sized to real usage
+  # (~60Mi per pod) with headroom. The limit is a hard backstop at the same
+  # size: process overhead means a dataset near maxmemory is OOM-killed
+  # before Dragonfly's own cap applies.
   args:
-    - --maxmemory=$(MAX_MEMORY)Mi
+    - --maxmemory=512Mi
     - --proactor_threads=2
     - --cluster_mode=emulated
     - --default_lua_flags=allow-undeclared-keys
   resources:
     requests:
       cpu: 100m
+      memory: 128Mi
     limits:
       memory: 512Mi
