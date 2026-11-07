@@ -21,29 +21,42 @@ spec:
   uninstall:
     keepHistory: false
   values:
+    defaultPodOptions:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
     controllers:
       cloudflare-ddns:
-        type: cronjob
-        cronjob:
-          concurrencyPolicy: Forbid
-          schedule: '@hourly'
-          ttlSecondsAfterFinished: 259200 # 3 days
+        # One updater at a time; it re-checks every 5 minutes on its own.
+        strategy: Recreate
+        annotations:
+          reloader.stakater.com/auto: 'true'
         containers:
           app:
+            # https://github.com/favonia/cloudflare-ddns
             image:
-              repository: ghcr.io/onedr0p/kubanetics
-              tag: 2025.3.2@sha256:309a7587c2aa7ce6a99812a61c5024240a21b708f94802a09105c61513572164
+              repository: ghcr.io/favonia/cloudflare-ddns
+              tag: 1.18.0@sha256:345b41895a8846d74c62d30bd27e61101a754f8ab8da10c68115823883803afb
+            # CLOUDFLARE_API_TOKEN and DOMAINS (the A record's name)
             envFrom:
               - secretRef:
                   name: cloudflare-ddns-secret
-            command: [/bin/bash, /app/cloudflare-ddns.sh]
-    persistence:
-      config:
-        enabled: true
-        type: configMap
-        name: cloudflare-ddns-configmap
-        defaultMode: 0775
-        globalMounts:
-          - path: /app/cloudflare-ddns.sh
-            subPath: cloudflare-ddns.sh
-            readOnly: true
+            env:
+              # Only the A record is managed; any AAAA record is left alone.
+              IP6_PROVIDER: none
+              EMOJI: 'false'
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: [ALL]
+            resources:
+              requests:
+                cpu: 5m
+                memory: 16Mi
+              limits:
+                memory: 64Mi
