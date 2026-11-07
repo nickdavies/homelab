@@ -9,5 +9,5 @@ spec:
   # tags, so a range silently stops at its upper bound.
   ref:
     # The digest wins over the tag; the tag is for humans and Renovate.
-    tag: v1.9.3
-    digest: sha256:be1b8f163a338f94e7d6532336c08d6856fc70a0b790ac14a2826a54d23e0dd3
+    tag: 1.10.0
+    digest: sha256:62fe8cca72a8770bb33900dd5c0990011ab98f2d6f4420c449ce44b1ca4eebe6
