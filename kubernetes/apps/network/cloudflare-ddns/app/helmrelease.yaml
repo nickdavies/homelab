@@ -31,10 +31,18 @@ spec:
           type: RuntimeDefault
     controllers:
       cloudflare-ddns:
-        # One updater at a time; it re-checks every 5 minutes on its own.
-        strategy: Recreate
-        annotations:
-          reloader.stakater.com/auto: 'true'
+        # A CronJob running one update per Job (UPDATE_CRON=@once), not a
+        # long-running Deployment, so failures alert. A failed detection or
+        # update exits 1; once the Job's retries run out it counts as failed,
+        # and KubeJobFailed pages via Alertmanager. Scheduled mode only logs.
+        # The TTL clears a failed Job an hour later, so the alert resolves
+        # once runs succeed again.
+        type: cronjob
+        cronjob:
+          concurrencyPolicy: Forbid
+          schedule: '*/15 * * * *'
+          backoffLimit: 3
+          ttlSecondsAfterFinished: 3600
         containers:
           app:
             # https://github.com/favonia/cloudflare-ddns
@@ -48,6 +56,7 @@ spec:
             env:
               # Only the A record is managed; any AAAA record is left alone.
               IP6_PROVIDER: none
+              UPDATE_CRON: '@once'
               EMOJI: 'false'
             securityContext:
               allowPrivilegeEscalation: false
