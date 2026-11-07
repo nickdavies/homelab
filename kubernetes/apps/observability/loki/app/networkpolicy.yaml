@@ -1,0 +1,97 @@
+# Only Loki's known clients may reach it. Loki runs auth_enabled: false, so
+# anything that can connect can read every log line, write forged ones, and
+# delete them (deletion_mode: filter-and-delete). Ports carry the access level:
+#
+#   gateway :8080        full API     Vector (writes), Grafana, Prometheus
+#   gateway :8081        query only   agents (loki-query Service)
+#   single-binary :3100  full API     gateway, Prometheus, Loki itself
+#
+# Ingress only: Loki dials out to Alertmanager (ruler) and the apiserver (rules
+# sidecar). Kubelet probes come from the node, which a NetworkPolicy never
+# blocks.
+---
+# The Services map port 80 to these container ports; policies match the
+# container port.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: loki-gateway
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: loki
+      app.kubernetes.io/component: gateway
+  policyTypes: [Ingress]
+  ingress:
+    # Prometheus also scrapes the gateway's nginx metrics here.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vector-aggregator
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: grafana
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 8080
+    # The homelab ops workspace (agent-workspaces components/ops). Its egress
+    # policy is the other half.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: workspaces
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - ws-homelab
+                  - ws-homelab-remote-control
+      ports:
+        - protocol: TCP
+          port: 8081
+---
+# Loki's own pods are allowed on every port: the gateway proxies to 3100, and
+# single-binary dials its own pod IP for gRPC and memberlist.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: loki-single-binary
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: loki
+      app.kubernetes.io/component: single-binary
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: loki
+              app.kubernetes.io/name: loki
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 3100
+    # The ops workspace still queries 3100 directly. Remove once
+    # agent-workspaces points it at loki-query.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: workspaces
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - ws-homelab
+                  - ws-homelab-remote-control
+      ports:
+        - protocol: TCP
+          port: 3100
