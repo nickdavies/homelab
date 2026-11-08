@@ -5,11 +5,10 @@ listed in `app/config/rooms.yaml`, plus their web and sphere trackers.
 
 - `archipelago.<public domain>`: trackers, room pages and patch downloads only
   (allowlist in `app/route.yaml`), with cookies stripped.
-- No full-UI route. Anything behind Authelia would hand this pod your
-  Authelia session cookie, and it runs internet-facing game servers. Use
-  `kubectl port-forward` for the rare admin task (see Owning rooms).
-- Each room: its own hostname, through the Cloudflare tunnel. Players connect
-  with `wss://<room hostname>:443`. The `:443` matters, because clients
+- Admin tasks: `kubectl port-forward` (see Owning rooms).
+- Each room: its own hostname, public through the Cloudflare tunnel or
+  LAN-only on the internal gateway. Players connect with
+  `wss://<room hostname>:443`. The `:443` matters, because clients
   default to 38281 when no port is given.
 
 `rooms.yaml` is the source of truth. On every pod start the `reconcile`
@@ -35,8 +34,7 @@ players get disconnected briefly.
 3. Add `app/rooms/<name>.yaml` and list it in `app/kustomization.yaml`. Use
    the same port as `targetPort`, and pick the hostname. For a LAN-only room
    use the `internal` gateway and an `*.internal.${SECRET_DOMAIN}` name. Keep
-   the cookie filters either way. A browser-based client's websocket
-   handshake carries Authelia's cookie for that domain.
+   the cookie filters either way (`app/route.yaml` says why).
 
    ```yaml
    ---
@@ -90,8 +88,8 @@ kubectl -n games port-forward archipelago-0 8080
 ```
 
 Then open `http://localhost:8080/session/<ROOM_OWNER>` once, and use the
-room pages on `localhost:8080`. localhost never receives an Authelia cookie.
-In-game, `!admin` with the seed's server password works without any of this.
+room pages on `localhost:8080`. If the seed was generated with a server
+password, `!admin` from any client works without any of this.
 
 ## Workarounds for WebHost 0.6.8
 
