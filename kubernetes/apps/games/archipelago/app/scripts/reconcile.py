@@ -77,6 +77,7 @@ def main() -> None:
     from flask import get_flashed_messages
     from pony.orm import commit, db_session, select
     from Utils import utcnow
+    from WebHostLib import to_url
     from WebHostLib.models import Room, Seed
     from WebHostLib.upload import upload_zip_to_db
 
@@ -108,7 +109,8 @@ def main() -> None:
             room.last_port = spec["port"]
             room.timeout = NEVER_SLEEP
             room.last_activity = now
-            print(f"reconcile: {name}: port {spec['port']} room={room_id} tracker={room.tracker}")
+            print(f"reconcile: {name}: port {spec['port']} room=/room/{to_url(room_id)} "
+                  f"tracker=/tracker/{to_url(room.tracker)} sphere=/sphere_tracker/{to_url(room.tracker)}")
 
         wanted = {uuid.uuid5(NAMESPACE, f"room:{name}") for name in rooms}
         for room in select(r for r in Room if r.owner == owner):

@@ -3,9 +3,11 @@
 Stock upstream WebHost (`ghcr.io/archipelagomw/archipelago`) hosting the rooms
 listed in `app/config/rooms.yaml`, plus their web and sphere trackers.
 
-- `archipelago.internal.<domain>`: full UI, behind Authelia.
 - `archipelago.<public domain>`: trackers, room pages and patch downloads only
-  (allowlist in `app/route.yaml`).
+  (allowlist in `app/route.yaml`), with cookies stripped.
+- No full-UI route. Anything behind Authelia would hand this pod your
+  Authelia session cookie, and it runs internet-facing game servers. Use
+  `kubectl port-forward` for the rare admin task (see Owning rooms).
 - Each room: its own hostname, through the Cloudflare tunnel. Players connect
   with `wss://<room hostname>:443`. The `:443` matters, because clients
   default to 38281 when no port is given.
@@ -32,7 +34,9 @@ players get disconnected briefly.
 
 3. Add `app/rooms/<name>.yaml` and list it in `app/kustomization.yaml`. Use
    the same port as `targetPort`, and pick the hostname. For a LAN-only room
-   use the `internal` gateway and an `*.internal.${SECRET_DOMAIN}` name.
+   use the `internal` gateway and an `*.internal.${SECRET_DOMAIN}` name. Keep
+   the cookie filters either way. A browser-based client's websocket
+   handshake carries Authelia's cookie for that domain.
 
    ```yaml
    ---
@@ -59,22 +63,35 @@ players get disconnected briefly.
        - name: external
          namespace: network
      rules:
-       - backendRefs:
+       - filters:
+           - type: RequestHeaderModifier
+             requestHeaderModifier:
+               remove: [Cookie]
+           - type: ResponseHeaderModifier
+             responseHeaderModifier:
+               remove: [Set-Cookie]
+         backendRefs:
            - kind: Service
              name: archipelago-oneblock-nov
              port: 38281
    ```
 
-4. The tracker URL is printed in the `reconcile` container's log (`kubectl
-   logs archipelago-0 -c reconcile`) and is on the room page.
+4. The room and tracker paths are printed in the `reconcile` container's log
+   (`kubectl logs archipelago-0 -c reconcile`). Prefix them with
+   `https://archipelago.<public domain>`.
 
 ## Owning rooms
 
 Every reconciled room belongs to the session id in 1Password item
-`archipelago`, field `ROOM_OWNER`. Visit
-`https://archipelago.internal.<domain>/session/<ROOM_OWNER>` once in a
-browser to adopt it. That browser can then send room commands and read room
-logs.
+`archipelago`, field `ROOM_OWNER`. To send room commands or read room logs:
+
+```sh
+kubectl -n games port-forward archipelago-0 8080
+```
+
+Then open `http://localhost:8080/session/<ROOM_OWNER>` once, and use the
+room pages on `localhost:8080`. localhost never receives an Authelia cookie.
+In-game, `!admin` with the seed's server password works without any of this.
 
 ## Workarounds for WebHost 0.6.8
 

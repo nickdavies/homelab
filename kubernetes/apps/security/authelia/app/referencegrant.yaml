@@ -17,9 +17,6 @@ spec:
       namespace: cluster-util
     - group: gateway.envoyproxy.io
       kind: SecurityPolicy
-      namespace: games
-    - group: gateway.envoyproxy.io
-      kind: SecurityPolicy
       namespace: observability
     - group: gateway.envoyproxy.io
       kind: SecurityPolicy

@@ -6,7 +6,6 @@ resources:
   - ./statefulset.yaml
   - ./service.yaml
   - ./route.yaml
-  - ./securitypolicy.yaml
   - ./networkpolicy.yaml
   - ../../../../templates/volsync
 # Hashed names: editing rooms.yaml, the config or a script renames the

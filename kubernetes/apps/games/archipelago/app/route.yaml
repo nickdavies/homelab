@@ -1,32 +1,23 @@
 ---
-# Full UI, behind Authelia (securitypolicy.yaml). Upload a seed, own rooms via
-# /session/<ROOM_OWNER>, read room logs.
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: archipelago-internal
-spec:
-  hostnames:
-    - "archipelago.internal.${SECRET_DOMAIN}"
-  parentRefs:
-    - name: internal
-      namespace: network
-  rules:
-    - backendRefs:
-        - kind: Service
-          name: archipelago
-          port: 8080
----
-# Public, read-only: trackers, room pages and patch downloads. An allowlist
-# rather than a blocklist because the dangerous routes are plain GETs:
-# /new_room/<seed> creates a room on every hit, and /session/<id> hands any
-# visitor the session (and so the rooms) of an owner id they know. Paths not
-# matched here get Envoy's 404. The tracker and room pages refresh by
+# Public, read-only: trackers, room pages and patch downloads. There is no
+# full-UI route: seeds come from rooms.yaml, and the rare admin task (adopting
+# room ownership, reading room logs) goes through kubectl port-forward. See
+# ../README.md.
+#
+# An allowlist rather than a blocklist because the dangerous routes are plain
+# GETs: /new_room/<seed> creates a room on every hit, and /session/<id> hands
+# any visitor the session (and so the rooms) of an owner id they know. Paths
+# not matched here get Envoy's 404. The tracker and room pages refresh by
 # reloading their own URL, so no /api/ route is needed.
+#
+# Cookies are stripped both ways. Browsers send Authelia's
+# ${SECRET_PUBLIC_DOMAIN} session cookie to every subdomain, and these pages
+# need no session, so a compromised pod sees no cookie to steal and can set
+# none on sibling hostnames.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: archipelago-external
+  name: archipelago
 spec:
   hostnames:
     - "archipelago.${SECRET_PUBLIC_DOMAIN}"
@@ -46,6 +37,13 @@ spec:
         # nobody outside needs it.
         - path: {type: PathPrefix, value: /room/}
           method: GET
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove: [Cookie]
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            remove: [Set-Cookie]
       backendRefs:
         - kind: Service
           name: archipelago
