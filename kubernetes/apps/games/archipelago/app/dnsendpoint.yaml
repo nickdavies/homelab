@@ -1,0 +1,17 @@
+---
+# ap.<domain> -> the home IP, not proxied: Cloudflare only proxies a handful
+# of ports, and the rooms listen on 38281-38290 (service.yaml). home.<domain>
+# is the record the DDNS updater keeps pointed at the current IP.
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: archipelago-game
+spec:
+  endpoints:
+    - dnsName: "ap.${SECRET_PUBLIC_DOMAIN}"
+      recordType: CNAME
+      targets: ["home.${SECRET_PUBLIC_DOMAIN}"]
+      providerSpecific:
+        # external-dns runs with --cloudflare-proxied; this record opts out.
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "false"

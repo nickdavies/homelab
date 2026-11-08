@@ -1,8 +1,8 @@
 ---
 # Archipelago WebHost: the web UI and trackers, plus one game server per room
 # in rooms.yaml, all in this pod. Rooms bind inside the pod's network
-# namespace, so no hostNetwork: each room's port is routed by its own Service
-# (see ../README.md).
+# namespace, so no hostNetwork: the archipelago-game Service exposes the room
+# port range (service.yaml).
 #
 # Single replica only: the DB is SQLite and WebHost's locks are files in the
 # container.
@@ -78,6 +78,10 @@ spec:
             - name: seeds
               mountPath: /seeds
               readOnly: true
+            # Not subPath: the kubelet only refreshes whole-volume mounts on renewal.
+            - name: tls
+              mountPath: /tls
+              readOnly: true
       containers:
         - name: webhost
           image: *image
@@ -89,11 +93,21 @@ spec:
               containerPort: 8080
           securityContext: *securityContext
           volumeMounts: *volumeMounts
+          # The room ports face the internet directly, so a flood or memory
+          # blow-up must stay inside this pod instead of pressuring the node.
+          # Hitting a limit restarts or evicts only this pod; saves are on the
+          # PVC.
           resources:
             requests:
               cpu: 50m
-              # ~310Mi with one small room (web ~260Mi, each hoster ~65Mi plus its rooms).
+              # ~320Mi with one small room (web ~260Mi, each hoster ~65Mi plus its rooms).
               memory: 384Mi
+            limits:
+              memory: 1Gi
+              # ~40Mi in use: files WebHost generates at startup, plus room logs
+              # in /app/logs, which grow with every connection attempt and are
+              # unbounded. With no request, the request defaults to this.
+              ephemeral-storage: 1Gi
           # Rooms take a few seconds to bind after the web UI is up.
           startupProbe:
             exec:
@@ -137,3 +151,6 @@ spec:
             server: ${SECRET_NFS_DOMAIN}
             path: /volume1/k8s/archipelago/seeds
             readOnly: true
+        - name: tls
+          secret:
+            secretName: archipelago-game-tls

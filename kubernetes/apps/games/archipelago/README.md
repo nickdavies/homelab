@@ -3,16 +3,22 @@
 Stock upstream WebHost (`ghcr.io/archipelagomw/archipelago`) hosting the rooms
 listed in `app/config/rooms.yaml`, plus their web and sphere trackers.
 
-- `ap.<public domain>` and `archipelago.<public domain>`: the primary room.
-  - Players connect with `wss://ap.<public domain>:443`. The `:443` matters,
-    because clients default to 38281 when no port is given.
-  - `/` redirects to its room page, which links its trackers and patch
-    downloads.
-  - The trackers, room pages and patch downloads of every room are reachable
-    here too (allowlist in `app/route.yaml`), with cookies stripped.
-- Any other room that should be playable at the same time gets its own
-  hostname (see Extra rooms).
-- Admin tasks: `kubectl port-forward` (see Owning rooms).
+- **Playing:** `ap.<public domain>:<room port>`. The room on 38281 needs no
+  port at all, because clients default to 38281. Players can also click
+  their name on the room page, which opens the Archipelago Launcher already
+  connected.
+  - The address resolves straight to the home IP (not through Cloudflare).
+    The router forwards 38281-38290 to `192.168.254.203`, the
+    `archipelago-game` LoadBalancer.
+  - On the LAN, blocky resolves it to that IP directly.
+  - Rooms speak TLS with a Let's Encrypt cert. Clients handle that whether or
+    not players type `wss://`.
+- **Web pages:** `ap-tracker.<public domain>`, through the Cloudflare tunnel.
+  - `/` redirects to the primary room's page, which links its trackers and
+    patch downloads.
+  - Every room's tracker and room pages are reachable (allowlist in
+    `app/route.yaml`), with cookies stripped.
+- **Admin tasks:** `kubectl port-forward` (see Owning rooms).
 
 `rooms.yaml` is the source of truth for what runs. On every pod start the
 `reconcile` initContainer uploads any new seed, pins each room to its port,
@@ -25,7 +31,8 @@ restarts every room, so players get disconnected briefly.
 1. Generate the seed locally and copy the zip to the NAS under
    `/volume1/k8s/archipelago/seeds/`. Seeds are immutable: reconcile refuses
    to start if a room's zip changes. A new zip needs a new room name.
-2. Add it to `app/config/rooms.yaml` with an unused port in 38281-38299:
+2. Add it to `app/config/rooms.yaml` with an unused port in 38281-38290.
+   Use 38281 for the main game, so players can leave the port off:
 
    ```yaml
    rooms:
@@ -34,78 +41,22 @@ restarts every room, so players get disconnected briefly.
        port: 38281
    ```
 
-3. Make it the primary room, or give it its own hostname, or neither (it runs
-   but isn't reachable from outside).
-
-The room and tracker paths are printed in the `reconcile` container's log
+That's all a room needs to be playable. The room and tracker paths are
+printed in the `reconcile` container's log
 (`kubectl logs archipelago-0 -c reconcile`).
 
 ## Switching the primary room
 
-In `app/route.yaml`, change the two values marked `PRIMARY`:
+The primary room is only where `ap-tracker.<public domain>/` redirects. In
+`app/route.yaml`, set the redirect's `replaceFullPath` (marked `PRIMARY`) to
+`/room/<id>`. The id comes from the room's name, so it can go in the same
+change as adding the room:
 
-- the `archipelago-primary` Service's `targetPort`: the room's port;
-- the `/` redirect's `replaceFullPath`: `/room/<id>`. The id comes from the
-  room's name, so it can be set in the same change as adding the room:
-
-  ```sh
-  python3 -c "import uuid,base64,sys; print(base64.urlsafe_b64encode(uuid.uuid5(uuid.UUID('6b1f2c1e-5c0a-4a52-9b8e-0f0d6a3e8a11'), 'room:' + sys.argv[1]).bytes).rstrip(b'=').decode())" oneblock-nov
-  ```
-
-  It is also in the reconcile log once the room exists.
-
-The previous primary keeps running on its port. Remove it from `rooms.yaml`
-to put it to sleep, or give it its own hostname to keep it playable.
-
-## Extra rooms
-
-Add `app/rooms/<name>.yaml` and list it in `app/kustomization.yaml`. Use
-the same port as `targetPort`, and pick the hostname. Players connect with
-`wss://<hostname>:443`; its room and tracker pages are on
-`ap.<public domain>` like every room's. For a LAN-only room use the
-`internal` gateway and an `*.internal.${SECRET_DOMAIN}` name. Keep the
-cookie filters either way (`app/route.yaml` says why).
-
-```yaml
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: archipelago-oneblock-nov
-spec:
-  selector:
-    app: archipelago
-  ports:
-    - name: game
-      port: 38281
-      targetPort: 38281
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: archipelago-oneblock-nov
-spec:
-  hostnames:
-    - "ap-oneblock.${SECRET_PUBLIC_DOMAIN}"
-  parentRefs:
-    - name: external
-      namespace: network
-  rules:
-    - filters:
-        - type: RequestHeaderModifier
-          requestHeaderModifier:
-            remove: [Cookie]
-        - type: ResponseHeaderModifier
-          responseHeaderModifier:
-            remove: [Set-Cookie]
-      backendRefs:
-        - kind: Service
-          name: archipelago-oneblock-nov
-          port: 38281
+```sh
+python3 -c "import uuid,base64,sys; print(base64.urlsafe_b64encode(uuid.uuid5(uuid.UUID('6b1f2c1e-5c0a-4a52-9b8e-0f0d6a3e8a11'), 'room:' + sys.argv[1]).bytes).rstrip(b'=').decode())" oneblock-nov
 ```
 
-A new hostname fails DNS for about a minute after the change applies, until
-external-dns creates its record.
+It is also in the reconcile log once the room exists.
 
 ## Owning rooms
 
