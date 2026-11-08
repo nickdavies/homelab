@@ -1,6 +1,22 @@
 ---
-# Public, read-only: trackers, room pages and patch downloads. Admin tasks go
-# through kubectl port-forward (../README.md).
+# The primary room: the one game served at archipelago.<domain> / ap.<domain>
+# itself. Switching it means changing two values, marked PRIMARY below: this
+# Service's targetPort (the room's port in rooms.yaml) and the / redirect
+# (the room's path, printed by reconcile; ../README.md shows how to derive it).
+apiVersion: v1
+kind: Service
+metadata:
+  name: archipelago-primary
+spec:
+  selector:
+    app: archipelago
+  ports:
+    - name: game
+      port: 38281
+      targetPort: 38281 # PRIMARY: e2e-test's port
+---
+# Public, read-only: the primary room's game server, trackers, room pages and
+# patch downloads. Admin tasks go through kubectl port-forward (../README.md).
 #
 # An allowlist rather than a blocklist because the dangerous routes are plain
 # GETs: /new_room/<seed> creates a room on every hit, and /session/<id> hands
@@ -19,10 +35,41 @@ metadata:
 spec:
   hostnames:
     - "archipelago.${SECRET_PUBLIC_DOMAIN}"
+    - "ap.${SECRET_PUBLIC_DOMAIN}"
   parentRefs:
     - name: external
       namespace: network
   rules:
+    # Game clients: wss://ap.<domain>:443 opens a websocket on /. Exact path
+    # plus a header match outranks the redirect below.
+    - matches:
+        - path: {type: Exact, value: /}
+          headers:
+            - type: RegularExpression
+              name: Upgrade
+              value: "(?i)websocket"
+      filters: &stripCookies
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove: [Cookie]
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            remove: [Set-Cookie]
+      backendRefs:
+        - kind: Service
+          name: archipelago-primary
+          port: 38281
+    # Browsers: / goes to the primary room's page, which links its trackers
+    # and patch downloads. 302 because the primary changes.
+    - matches:
+        - path: {type: Exact, value: /}
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            statusCode: 302
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /room/pNf6yE1gUzyav46QNrsvJw # PRIMARY: e2e-test
     - matches:
         - path: {type: PathPrefix, value: /tracker/}
         - path: {type: PathPrefix, value: /generic_tracker/}
@@ -35,13 +82,7 @@ spec:
         # nobody outside needs it.
         - path: {type: PathPrefix, value: /room/}
           method: GET
-      filters:
-        - type: RequestHeaderModifier
-          requestHeaderModifier:
-            remove: [Cookie]
-        - type: ResponseHeaderModifier
-          responseHeaderModifier:
-            remove: [Set-Cookie]
+      filters: *stripCookies
       backendRefs:
         - kind: Service
           name: archipelago
