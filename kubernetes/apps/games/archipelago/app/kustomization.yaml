@@ -7,6 +7,7 @@ resources:
   - ./service.yaml
   - ./route.yaml
   - ./networkpolicy.yaml
+  - ./rooms/e2e-test.yaml
   - ../../../../templates/volsync
 # Hashed names: editing rooms.yaml, the config or a script renames the
 # ConfigMap, which rolls the pod and re-runs reconcile.

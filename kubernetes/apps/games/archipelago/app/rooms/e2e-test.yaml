@@ -1,0 +1,35 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: archipelago-e2e-test
+spec:
+  selector:
+    app: archipelago
+  ports:
+    - name: game
+      port: 38281
+      targetPort: 38281
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: archipelago-e2e-test
+spec:
+  hostnames:
+    - "ap-e2e-test.${SECRET_PUBLIC_DOMAIN}"
+  parentRefs:
+    - name: external
+      namespace: network
+  rules:
+    - filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove: [Cookie]
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            remove: [Set-Cookie]
+      backendRefs:
+        - kind: Service
+          name: archipelago-e2e-test
+          port: 38281
