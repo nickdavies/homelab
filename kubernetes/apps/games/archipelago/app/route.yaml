@@ -1,5 +1,6 @@
 ---
-# Web pages at ap-tracker.<domain>, through the Cloudflare tunnel. Game
+# Web pages at ap-tracker.<domain>, through the Cloudflare tunnel: trackers,
+# room pages, patch downloads, and the options creator. Game
 # traffic doesn't come this way: rooms listen directly on ap.<domain>
 # (service.yaml).
 #
@@ -50,6 +51,12 @@ spec:
         # nobody outside needs it.
         - path: {type: PathPrefix, value: /room/}
           method: GET
+        # The games list, options creator (its YAML export is a POST) and
+        # game info pages. The creator's "generate" submit is refused by
+        # MAX_ROLL: 0 and its button removed (scripts/webhost.py).
+        - path: {type: PathPrefix, value: /games}
+        # Setup guides.
+        - path: {type: PathPrefix, value: /tutorial}
       filters:
         - type: RequestHeaderModifier
           requestHeaderModifier:

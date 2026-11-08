@@ -13,6 +13,11 @@ SELFLAUNCHKEY: /tls/tls.key
 PORT: 8080
 # Seeds are generated locally and listed in rooms.yaml; nothing generates here.
 SELFGEN: false
+# The public options creator posts "generate" to the same endpoint as "export
+# YAML". With SELFGEN off nothing would ever process those queued jobs, so
+# every submission would just grow the DB. 0 refuses them before anything is
+# written; exports don't read this.
+MAX_ROLL: 0
 HOSTERS: 1
 # Rooms only run on the port reconcile pins from rooms.yaml. An empty list
 # means a room created through the UI can't bind anywhere, instead of landing
