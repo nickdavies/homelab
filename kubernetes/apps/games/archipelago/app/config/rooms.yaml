@@ -1,9 +1,13 @@
 # Rooms to host, reconciled into the WebHost DB on every pod start
 # (scripts/reconcile.py). Each needs its zip on the seeds share and its own
-# Service port + HTTPRoute; see ../README.md.
+# Service port + HTTPRoute; see ../../README.md.
 #
 #   rooms:
 #     <name>:
 #       zip: <file under /volume1/k8s/archipelago/seeds>
 #       port: <38281-38299>
-rooms: {}
+rooms:
+  # Throwaway 2-player ChecksFinder seed (Alice, Bob) for end-to-end testing.
+  e2e-test:
+    zip: e2e-test/AP_02899583883375885774.zip
+    port: 38281
