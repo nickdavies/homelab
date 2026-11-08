@@ -1,0 +1,13 @@
+---
+# The web UI. Each room's game port gets its own Service (see ../README.md).
+apiVersion: v1
+kind: Service
+metadata:
+  name: archipelago
+spec:
+  selector:
+    app: archipelago
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

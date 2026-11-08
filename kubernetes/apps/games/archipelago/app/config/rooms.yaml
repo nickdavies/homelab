@@ -1,0 +1,9 @@
+# Rooms to host, reconciled into the WebHost DB on every pod start
+# (scripts/reconcile.py). Each needs its zip on the seeds share and its own
+# Service port + HTTPRoute; see ../README.md.
+#
+#   rooms:
+#     <name>:
+#       zip: <file under /volume1/k8s/archipelago/seeds>
+#       port: <38281-38299>
+rooms: {}
