@@ -1,0 +1,52 @@
+---
+# Full UI, behind Authelia (securitypolicy.yaml). Upload a seed, own rooms via
+# /session/<ROOM_OWNER>, read room logs.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: archipelago-internal
+spec:
+  hostnames:
+    - "archipelago.internal.${SECRET_DOMAIN}"
+  parentRefs:
+    - name: internal
+      namespace: network
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: archipelago
+          port: 8080
+---
+# Public, read-only: trackers, room pages and patch downloads. An allowlist
+# rather than a blocklist because the dangerous routes are plain GETs:
+# /new_room/<seed> creates a room on every hit, and /session/<id> hands any
+# visitor the session (and so the rooms) of an owner id they know. Paths not
+# matched here get Envoy's 404. The tracker and room pages refresh by
+# reloading their own URL, so no /api/ route is needed.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: archipelago-external
+spec:
+  hostnames:
+    - "archipelago.${SECRET_PUBLIC_DOMAIN}"
+  parentRefs:
+    - name: external
+      namespace: network
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /tracker/}
+        - path: {type: PathPrefix, value: /generic_tracker/}
+        - path: {type: PathPrefix, value: /sphere_tracker/}
+        - path: {type: PathPrefix, value: /dl_patch/}
+        - path: {type: PathPrefix, value: /slot_file/}
+        - path: {type: PathPrefix, value: /static/}
+        - path: {type: Exact, value: /favicon.ico}
+        # POST /room/ sends server commands; WebHost checks the owner, but
+        # nobody outside needs it.
+        - path: {type: PathPrefix, value: /room/}
+          method: GET
+      backendRefs:
+        - kind: Service
+          name: archipelago
+          port: 8080

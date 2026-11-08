@@ -1,0 +1,139 @@
+---
+# Archipelago WebHost: the web UI and trackers, plus one game server per room
+# in rooms.yaml, all in this pod. Rooms bind inside the pod's network
+# namespace, so no hostNetwork: each room's port is routed by its own Service
+# (see ../README.md).
+#
+# Single replica only: the DB is SQLite and WebHost's locks are files in the
+# container.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: archipelago
+spec:
+  replicas: 1
+  serviceName: archipelago
+  selector:
+    matchLabels:
+      app: archipelago
+  template:
+    metadata:
+      labels:
+        app: archipelago
+    spec:
+      # preStop takes a second or two; it gives the hosters up to 20s to save.
+      terminationGracePeriodSeconds: 45
+      securityContext:
+        # The image runs as root from a root-owned /app it writes to at startup
+        # (generated static docs, options files, file locks), so non-root isn't
+        # an option without rebuilding it. fsGroup keeps the DB readable by the
+        # VolSync movers, which run as 568.
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      initContainers:
+        - name: reconcile
+          image: &image ghcr.io/archipelagomw/archipelago:0.6.8@sha256:e99b395b24271ee225ce7e765ef7510c4e6e0f48cb7e3782da0a3a53d7ec98b2
+          command:
+            - python
+            - /scripts/reconcile.py
+            - --rooms
+            - /config/rooms.yaml
+            - --seeds-dir
+            - /seeds
+            - --config_override
+            - /secrets/secrets.yaml
+          env:
+            - name: PYTHONPATH
+              value: /app
+            - name: ROOM_OWNER
+              valueFrom:
+                secretKeyRef:
+                  name: archipelago-secret
+                  key: ROOM_OWNER
+          securityContext: &securityContext
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts: &volumeMounts
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+            - name: config
+              mountPath: /config
+            - name: scripts
+              mountPath: /scripts
+            - name: secrets
+              mountPath: /secrets
+            - name: seeds
+              mountPath: /seeds
+              readOnly: true
+      containers:
+        - name: webhost
+          image: *image
+          args:
+            - --config_override
+            - /secrets/secrets.yaml
+          ports:
+            - name: http
+              containerPort: 8080
+          securityContext: *securityContext
+          volumeMounts: *volumeMounts
+          resources:
+            requests:
+              cpu: 50m
+              # ~310Mi with one small room (web ~260Mi, each hoster ~65Mi plus its rooms).
+              memory: 384Mi
+          # Rooms take a few seconds to bind after the web UI is up.
+          startupProbe:
+            exec:
+              command: &roomsAlive [python, /scripts/rooms_alive.py]
+            periodSeconds: 5
+            failureThreshold: 60
+            timeoutSeconds: 10
+          livenessProbe:
+            exec:
+              command: *roomsAlive
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+          lifecycle:
+            preStop:
+              exec:
+                command: [python, /scripts/prestop.py]
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ${APP}
+        - name: config
+          configMap:
+            name: archipelago-config
+        - name: scripts
+          configMap:
+            name: archipelago-scripts
+        - name: secrets
+          secret:
+            secretName: archipelago-secret
+            items:
+              - key: secrets.yaml
+                path: secrets.yaml
+        - name: seeds
+          nfs:
+            server: ${SECRET_NFS_DOMAIN}
+            path: /volume1/k8s/archipelago/seeds
+            readOnly: true

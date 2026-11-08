@@ -1,0 +1,22 @@
+# WebHost settings; every key and its default is in WebHostLib/__init__.py.
+# SECRET_KEY comes from --config_override (externalsecret.yaml).
+
+# Only printed on room pages ("running on <HOST_ADDRESS> with port <port>"),
+# which is wrong behind the tunnel anyway. Setting it stops WebHost looking up
+# its public IP at startup.
+HOST_ADDRESS: archipelago.${SECRET_PUBLIC_DOMAIN}
+# Above 1024 so the container needs no NET_BIND_SERVICE.
+PORT: 8080
+# Seeds are generated locally and listed in rooms.yaml; nothing generates here.
+SELFGEN: false
+HOSTERS: 1
+# Rooms only run on the port reconcile pins from rooms.yaml. An empty list
+# means a room created through the UI can't bind anywhere, instead of landing
+# on a port no Service routes to.
+GAME_PORTS: []
+# Reconciled rooms never sleep; this must be >= reconcile.py's NEVER_SLEEP.
+MAX_ROOM_TIMEOUT: 315360000
+PONY:
+  provider: sqlite
+  filename: /data/ap.db3
+  create_db: true

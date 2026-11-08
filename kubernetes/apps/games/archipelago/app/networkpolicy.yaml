@@ -1,0 +1,38 @@
+---
+# Every room's game server runs in this pod and accepts connections from the
+# internet, so it gets nothing it doesn't need.
+#
+# Ingress: only the two Envoy gateways, on the web port and the room port
+# range (rooms.yaml). Kubelet probes come from the node and need no rule.
+#
+# Egress: none. The DB is local SQLite and the seeds share is mounted by the
+# kubelet, not dialled by the pod. At startup WebHost tries to download LttP
+# sprites; that fails, is logged, and nothing depends on it. DNS comes from
+# the namespace's allow-dns policy where that exists.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: archipelago
+spec:
+  podSelector:
+    matchLabels:
+      app: archipelago
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchExpressions:
+              - key: gateway.envoyproxy.io/owning-gateway-name
+                operator: In
+                values: [internal, external]
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 38281
+          endPort: 38299
