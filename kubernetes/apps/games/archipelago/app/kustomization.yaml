@@ -19,6 +19,8 @@ configMapGenerator:
       - config/rooms.yaml
   - name: archipelago-scripts
     files:
+      - scripts/install_apworlds.py
       - scripts/reconcile.py
+      - scripts/webhost.py
       - scripts/rooms_alive.py
       - scripts/prestop.py

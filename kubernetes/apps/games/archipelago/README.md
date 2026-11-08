@@ -18,6 +18,10 @@ listed in `app/config/rooms.yaml`, plus their web and sphere trackers.
     patch downloads.
   - Every room's tracker and room pages are reachable (allowlist in
     `app/route.yaml`), with cookies stripped.
+  - `/games` is the options creator, for every built-in game plus the
+    apworlds you install (see Apworlds). It only downloads YAMLs:
+    `MAX_ROLL: 0` refuses generation, and `scripts/webhost.py` removes the
+    "Generate Single-Player Game" button.
 - **Admin tasks:** `kubectl port-forward` (see Owning rooms).
 
 `rooms.yaml` is the source of truth for what runs. On every pod start the
@@ -57,6 +61,26 @@ python3 -c "import uuid,base64,sys; print(base64.urlsafe_b64encode(uuid.uuid5(uu
 ```
 
 It is also in the reconcile log once the room exists.
+
+## Apworlds
+
+Custom games for the options creator. Rooms don't need them, because a seed
+carries its own game data.
+
+They come from the `archipelago/apworlds` share, published by
+`tools/archipelago-apworlds` from a local Archipelago instance where you
+install them with the APWorld Manager (see that tool's README). On every pod
+start the `apworlds` initContainer copies the files listed in the share's
+`apworlds.yaml` into `/app/custom_worlds`, after checking each sha256. A
+mismatch, or a manifest for a different Archipelago version, fails the start.
+Nothing else on the share runs.
+
+An apworld is Python that runs inside this pod, with its cert key, session
+key and DB, so only install ones you trust. The NetworkPolicy still blocks
+all outbound traffic.
+
+Apworlds without tutorials get an empty list (`scripts/webhost.py`), so
+their options pages work. Their info and guide pages are missing.
 
 ## Owning rooms
 

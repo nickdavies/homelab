@@ -40,8 +40,29 @@ spec:
                   - key: node-role.kubernetes.io/control-plane
                     operator: DoesNotExist
       initContainers:
-        - name: reconcile
+        # Copies the hash-checked apworlds from the NAS into custom-worlds,
+        # which reconcile and webhost mount at /app/custom_worlds. Only this
+        # container sees the share itself.
+        - name: apworlds
           image: &image ghcr.io/archipelagomw/archipelago:0.6.8@sha256:e99b395b24271ee225ce7e765ef7510c4e6e0f48cb7e3782da0a3a53d7ec98b2
+          command: [python, /scripts/install_apworlds.py, /apworlds, /custom_worlds]
+          env:
+            - name: PYTHONPATH
+              value: /app
+          securityContext: &securityContext
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: apworlds
+              mountPath: /apworlds
+              readOnly: true
+            - name: custom-worlds
+              mountPath: /custom_worlds
+        - name: reconcile
+          image: *image
           command:
             - python
             - /scripts/reconcile.py
@@ -59,10 +80,7 @@ spec:
                 secretKeyRef:
                   name: archipelago-secret
                   key: ROOM_OWNER
-          securityContext: &securityContext
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: [ALL]
+          securityContext: *securityContext
           volumeMounts: &volumeMounts
             - name: data
               mountPath: /data
@@ -82,10 +100,17 @@ spec:
             - name: tls
               mountPath: /tls
               readOnly: true
+            - name: custom-worlds
+              mountPath: /app/custom_worlds
+              readOnly: true
       containers:
         - name: webhost
           image: *image
-          args:
+          # WebHost.py, after removing the generate buttons and defaulting
+          # apworld tutorials (scripts/webhost.py).
+          command:
+            - python
+            - /scripts/webhost.py
             - --config_override
             - /secrets/secrets.yaml
           ports:
@@ -154,3 +179,12 @@ spec:
         - name: tls
           secret:
             secretName: archipelago-game-tls
+        # Written by tools/archipelago-apworlds: apworlds.yaml plus the files it lists.
+        - name: apworlds
+          nfs:
+            server: ${SECRET_NFS_DOMAIN}
+            path: /volume1/k8s/archipelago/apworlds
+            readOnly: true
+        - name: custom-worlds
+          emptyDir:
+            sizeLimit: 256Mi
