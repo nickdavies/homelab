@@ -125,8 +125,9 @@ spec:
           resources:
             requests:
               cpu: 50m
-              # ~320Mi with one small room (web ~260Mi, each hoster ~65Mi plus its rooms).
-              memory: 384Mi
+              # ~490Mi with one small room and 7 apworlds loaded (~320Mi with none).
+              # Each apworld is a Python module in the web process.
+              memory: 512Mi
             limits:
               memory: 1Gi
               # ~40Mi in use: files WebHost generates at startup, plus room logs
