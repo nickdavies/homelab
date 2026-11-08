@@ -25,6 +25,8 @@ import yaml
 NAMESPACE = uuid.UUID("6b1f2c1e-5c0a-4a52-9b8e-0f0d6a3e8a11")
 # Longer than any game will run; MAX_ROOM_TIMEOUT in config.yaml must be >= this.
 NEVER_SLEEP = 10 * 365 * 24 * 60 * 60
+# The ports the archipelago-game Service and the router forward (service.yaml).
+ROOM_PORTS = range(38281, 38291)
 
 
 def fail(msg: str) -> None:
@@ -38,8 +40,8 @@ def load_rooms(path: str, seeds_dir: str) -> dict:
     ports = {}
     for name, spec in rooms.items():
         port = spec.get("port")
-        if not isinstance(port, int) or not 0 < port < 65536:
-            fail(f"{name}: port must be an int in 1-65535, got {port!r}")
+        if port not in ROOM_PORTS:
+            fail(f"{name}: port must be {ROOM_PORTS.start}-{ROOM_PORTS.stop - 1}, got {port!r}")
         if port in ports:
             fail(f"{name}: port {port} already used by {ports[port]}")
         ports[port] = name

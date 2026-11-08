@@ -1,0 +1,20 @@
+---
+# TLS for the room ports (config.yaml SELFLAUNCHCERT/KEY). With TLS on, a
+# client given a bare ap.<domain>:<port> still connects: its plain ws://
+# attempt fails as InvalidMessage, which makes CommonClient retry with wss://.
+# WebHost re-reads the files once a day, and the kubelet updates the mounted
+# Secret in place, so renewals need no restart.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: archipelago-game
+spec:
+  secretName: archipelago-game-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  commonName: ap.${SECRET_PUBLIC_DOMAIN}
+  dnsNames:
+    - ap.${SECRET_PUBLIC_DOMAIN}
+  privateKey:
+    rotationPolicy: Always

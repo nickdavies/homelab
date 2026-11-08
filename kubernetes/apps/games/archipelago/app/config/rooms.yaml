@@ -1,12 +1,11 @@
 # Rooms to host, reconciled into the WebHost DB on every pod start
-# (scripts/reconcile.py). Each needs its zip on the seeds share. To be
-# playable it must be the primary room (../route.yaml) or have its own
-# hostname; see ../../README.md.
+# (scripts/reconcile.py). Each needs its zip on the seeds share and a port in
+# 38281-38290; players connect to ap.<domain>:<port>. See ../../README.md.
 #
 #   rooms:
 #     <name>:
 #       zip: <file under /volume1/k8s/archipelago/seeds>
-#       port: <38281-38299>
+#       port: <38281-38290>
 rooms:
   # Throwaway 2-player ChecksFinder seed (Alice, Bob) for end-to-end testing.
   e2e-test:

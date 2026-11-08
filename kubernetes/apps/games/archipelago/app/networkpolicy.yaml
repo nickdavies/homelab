@@ -2,8 +2,12 @@
 # Every room's game server runs in this pod and accepts connections from the
 # internet, so it gets nothing it doesn't need.
 #
-# Ingress: only the two Envoy gateways, on the web port and the room port
-# range (rooms.yaml). Kubelet probes come from the node and need no rule.
+# Ingress:
+# - the web port, from the external Envoy gateway only (route.yaml);
+# - the room port range, from anywhere: players come in through the router's
+#   port forward and the LoadBalancer (service.yaml), SNATed to a node
+#   address, so there is no source to filter on.
+# Kubelet probes come from the node and need no rule.
 #
 # Egress: none. The DB is local SQLite and the seeds share is mounted by the
 # kubelet, not dialled by the pod. At startup WebHost tries to download LttP
@@ -24,15 +28,13 @@ spec:
             matchLabels:
               kubernetes.io/metadata.name: network
           podSelector:
-            matchExpressions:
-              - key: gateway.envoyproxy.io/owning-gateway-name
-                operator: In
-                values: [internal, external]
             matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: external
               gateway.envoyproxy.io/owning-gateway-namespace: network
       ports:
         - protocol: TCP
           port: 8080
+    - ports:
         - protocol: TCP
           port: 38281
-          endPort: 38299
+          endPort: 38290

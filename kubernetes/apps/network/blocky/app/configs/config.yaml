@@ -37,11 +37,17 @@ conditional:
 # customDNS is evaluated ahead of the conditional mapping above, and cluster
 # workloads resolve via CoreDNS -> the node's 1.1.1.1, not through blocky, so
 # this does not black-hole rethink's own path to LG during bridge mode.
+#
+# ap.<public domain> is the Archipelago game address. Publicly it points at
+# the home IP, which the router forwards to this LoadBalancer IP
+# (games/archipelago/app/service.yaml); on the LAN, go straight there instead
+# of relying on hairpin NAT. Same hostname, so the room cert still matches.
 customDNS:
   customTTL: 1h
   mapping:
     common.lgthinq.com: ${RETHINK_IP}
     rethink.lan: ${RETHINK_IP}
+    ap.${SECRET_PUBLIC_DOMAIN}: 192.168.254.203
 
 blocking:
   denylists:

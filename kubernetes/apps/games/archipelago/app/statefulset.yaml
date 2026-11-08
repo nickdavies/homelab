@@ -1,8 +1,8 @@
 ---
 # Archipelago WebHost: the web UI and trackers, plus one game server per room
 # in rooms.yaml, all in this pod. Rooms bind inside the pod's network
-# namespace, so no hostNetwork: each room's port is routed by its own Service
-# (see ../README.md).
+# namespace, so no hostNetwork: the archipelago-game Service exposes the room
+# port range (service.yaml).
 #
 # Single replica only: the DB is SQLite and WebHost's locks are files in the
 # container.
@@ -78,6 +78,10 @@ spec:
             - name: seeds
               mountPath: /seeds
               readOnly: true
+            # Not subPath: the kubelet only refreshes whole-volume mounts on renewal.
+            - name: tls
+              mountPath: /tls
+              readOnly: true
       containers:
         - name: webhost
           image: *image
@@ -137,3 +141,6 @@ spec:
             server: ${SECRET_NFS_DOMAIN}
             path: /volume1/k8s/archipelago/seeds
             readOnly: true
+        - name: tls
+          secret:
+            secretName: archipelago-game-tls

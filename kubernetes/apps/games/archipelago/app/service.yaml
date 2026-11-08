@@ -1,5 +1,5 @@
 ---
-# The web UI. Each room's game port gets its own Service (see ../README.md).
+# The web UI, reached through the tunnel (route.yaml).
 apiVersion: v1
 kind: Service
 metadata:
@@ -11,3 +11,33 @@ spec:
     - name: http
       port: 8080
       targetPort: http
+---
+# Every room's game port, straight from the internet: the router forwards
+# 38281-38290 on the home IP to this address, and ap.<domain> points at the
+# home IP (dnsendpoint.yaml). The same address and port that WebHost prints
+# on the room page (HOST_ADDRESS + the room's port) is what players use, so
+# its /connect text and archipelago:// links work as they are.
+#
+# Kubernetes Services take no port ranges, hence the list. It must match the
+# range reconcile.py accepts.
+apiVersion: v1
+kind: Service
+metadata:
+  name: archipelago-game
+spec:
+  type: LoadBalancer
+  # Static pool: the router's port forward points here.
+  loadBalancerIP: 192.168.254.203
+  selector:
+    app: archipelago
+  ports:
+    - {name: game-38281, port: 38281, targetPort: 38281}
+    - {name: game-38282, port: 38282, targetPort: 38282}
+    - {name: game-38283, port: 38283, targetPort: 38283}
+    - {name: game-38284, port: 38284, targetPort: 38284}
+    - {name: game-38285, port: 38285, targetPort: 38285}
+    - {name: game-38286, port: 38286, targetPort: 38286}
+    - {name: game-38287, port: 38287, targetPort: 38287}
+    - {name: game-38288, port: 38288, targetPort: 38288}
+    - {name: game-38289, port: 38289, targetPort: 38289}
+    - {name: game-38290, port: 38290, targetPort: 38290}
