@@ -1,10 +1,10 @@
 # WebHost settings; every key and its default is in WebHostLib/__init__.py.
 # SECRET_KEY comes from --config_override (externalsecret.yaml).
 
-# Only printed on room pages ("running on <HOST_ADDRESS> with port <port>"),
-# which is wrong behind the tunnel anyway. Setting it stops WebHost looking up
-# its public IP at startup.
-HOST_ADDRESS: archipelago.${SECRET_PUBLIC_DOMAIN}
+# Only printed on room pages ("running on <HOST_ADDRESS> with port <port>").
+# The host is right for the primary room; the port never is, since players
+# use 443. Setting it stops WebHost looking up its public IP at startup.
+HOST_ADDRESS: ap.${SECRET_PUBLIC_DOMAIN}
 # Above 1024 so the container needs no NET_BIND_SERVICE.
 PORT: 8080
 # Seeds are generated locally and listed in rooms.yaml; nothing generates here.
