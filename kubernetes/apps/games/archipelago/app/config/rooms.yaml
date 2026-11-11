@@ -7,7 +7,8 @@
 #       zip: <file under /volume1/k8s/archipelago/seeds>
 #       port: <38281-38290>
 rooms:
-  # Throwaway 2-player ChecksFinder seed (Alice, Bob) for end-to-end testing.
-  e2e-test:
-    zip: e2e-test/AP_02899583883375885774.zip
+  # 9-player test seed, no server password. Custom games (Hades, KSP1,
+  # RE3Remake, TP Dusklight) are carried in the seed's datapackage.
+  techies-nov-test:
+    zip: techies-nov-test/AP_83251643023198694758.zip
     port: 38281
