@@ -7,8 +7,8 @@
 #       zip: <file under /volume1/k8s/archipelago/seeds>
 #       port: <38281-38290>
 rooms:
-  # 9-player test seed, no server password. Custom games (Hades, KSP1,
+  # 10-player test seed, no server password. Custom games (Hades, KSP1,
   # RE3Remake, TP Dusklight) are carried in the seed's datapackage.
   techies-nov-test:
-    zip: techies-nov-test/AP_83251643023198694758.zip
+    zip: techies-nov-test/AP_86080561783932935158.zip
     port: 38281
