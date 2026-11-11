@@ -34,14 +34,17 @@ restarts every room, so players get disconnected briefly.
 
 1. Generate the seed locally and copy the zip to the NAS under
    `/volume1/k8s/archipelago/seeds/`. Seeds are immutable: reconcile refuses
-   to start if a room's zip changes. A new zip needs a new room name.
+   to start if a room's zip changes. A new zip needs a new room name, so
+   end names in `-v1`: rerolling the seed is then a bump to `-v2` (plus the
+   PRIMARY id), and the old room sleeps with its save kept. Keeping a name
+   instead means deleting `/data/ap.db3`, which wipes every room's save.
 2. Add it to `app/config/rooms.yaml` with an unused port in 38281-38290.
    Use 38281 for the main game, so players can leave the port off:
 
    ```yaml
    rooms:
-     oneblock-nov:
-       zip: oneblock-nov/AP_12345.zip
+     oneblock-nov-v1:
+       zip: oneblock-nov-v1/AP_12345.zip
        port: 38281
    ```
 
@@ -57,7 +60,7 @@ The primary room is only where `ap-tracker.<public domain>/` redirects. In
 change as adding the room:
 
 ```sh
-python3 -c "import uuid,base64,sys; print(base64.urlsafe_b64encode(uuid.uuid5(uuid.UUID('6b1f2c1e-5c0a-4a52-9b8e-0f0d6a3e8a11'), 'room:' + sys.argv[1]).bytes).rstrip(b'=').decode())" oneblock-nov
+python3 -c "import uuid,base64,sys; print(base64.urlsafe_b64encode(uuid.uuid5(uuid.UUID('6b1f2c1e-5c0a-4a52-9b8e-0f0d6a3e8a11'), 'room:' + sys.argv[1]).bytes).rstrip(b'=').decode())" oneblock-nov-v1
 ```
 
 It is also in the reconcile log once the room exists.
