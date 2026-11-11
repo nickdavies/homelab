@@ -38,7 +38,7 @@ spec:
             statusCode: 302
             path:
               type: ReplaceFullPath
-              replaceFullPath: /room/pNf6yE1gUzyav46QNrsvJw # PRIMARY: e2e-test
+              replaceFullPath: /room/AtoL5RmPURuRKCcRKJN9Xw # PRIMARY: techies-nov-test
     - matches:
         - path: {type: PathPrefix, value: /tracker/}
         - path: {type: PathPrefix, value: /generic_tracker/}
