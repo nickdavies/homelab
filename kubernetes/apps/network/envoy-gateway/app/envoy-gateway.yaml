@@ -17,6 +17,12 @@ spec:
   values:
     config:
       envoyGateway:
+        # For games/archipelago/app/admin.yaml's cookie filter. This switch is
+        # controller-wide: any EnvoyExtensionPolicy, on either gateway, can now
+        # run Lua inside Envoy. There is no per-gateway switch (EnvoyProxy's
+        # `lua` field only picks the validation mode).
+        extensionApis:
+          enableLua: true
         logging:
           level:
             default: debug
