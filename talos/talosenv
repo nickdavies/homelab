@@ -2,7 +2,7 @@
 # with it. Renovate moves it with the last rollout stage (the Pi), so it only
 # changes once every node runs the new version.
 # renovate: datasource=docker depName=ghcr.io/siderolabs/talos
-TALOS_VERSION=v1.14.5
+TALOS_VERSION=v1.14.6
 # The config contract config-gen.sh generates for (talosctl gen config
 # --talos-version), separate from TALOS_VERSION: it picks the generator's
 # defaults and layout, and a newer one restructures the whole config. v1.14
