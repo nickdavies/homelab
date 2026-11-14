@@ -1,0 +1,112 @@
+# Namespace baseline: deny everything, then allow DNS for every pod. The game
+# servers here run third-party code (modpacks, mods) and accept connections
+# from the internet, so a compromised server must not reach anything in the
+# cluster or on the LAN. A new server type (e.g. an Archipelago server) starts
+# fully denied and needs its own policy below.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: games
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: games
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# Minecraft servers (minecraft/*/statefulset.yaml carry the part-of label).
+#
+# Ingress: the game port from anyone. Players arrive through the LoadBalancer
+# (and the router's port forward), SNATed, so there's no source to filter on.
+# RCON (25575) is deliberately not allowed: rcon-cli runs inside the pod over
+# localhost, and nothing in the cluster speaks RCON.
+#
+# Egress: any TCP port on the public internet only. Mojang auth, NeoForge and
+# modpack downloads, and the oneblock Archipelago mod's websocket to an AP
+# server on an arbitrary port. The modpacks NFS share is mounted by the
+# kubelet, not dialled by the pod.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: minecraft
+  namespace: games
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: minecraft
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 25565
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+      ports:
+        - protocol: TCP
+---
+# VolSync backup/restore movers: restic to in-cluster Garage and to R2. These
+# run on schedule even while the servers are scaled to 0.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: volsync-movers
+  namespace: games
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/created-by: volsync
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: storage
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: garage
+      ports:
+        - protocol: TCP
+          port: 3900
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+      ports:
+        - protocol: TCP
+          port: 443
