@@ -17,7 +17,7 @@ TALOS_CONFIG_CONTRACT=v1.13
 # back. The Makefile reads it too, for the Kubernetes version CI renders charts
 # against. Unquoted so Renovate's annotation regex reads a bare version.
 # renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
-KUBE_VERSION=v1.36.6
+KUBE_VERSION=v1.37.2
 
 VIP=192.168.254.10
 
