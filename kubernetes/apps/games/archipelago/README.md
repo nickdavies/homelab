@@ -22,7 +22,8 @@ listed in `app/config/rooms.yaml`, plus their web and sphere trackers.
     apworlds you install (see Apworlds). It only downloads YAMLs:
     `MAX_ROLL: 0` refuses generation, and `scripts/webhost.py` removes the
     "Generate Single-Player Game" button.
-- **Admin tasks:** `kubectl port-forward` (see Owning rooms).
+- **Admin tasks:** `ap-admin.internal.<domain>`, behind Authelia (see
+  Owning rooms).
 
 `rooms.yaml` is the source of truth for what runs. On every pod start the
 `reconcile` initContainer uploads any new seed, pins each room to its port,
@@ -88,15 +89,20 @@ their options pages work. Their info and guide pages are missing.
 ## Owning rooms
 
 Every reconciled room belongs to the session id in 1Password item
-`archipelago`, field `ROOM_OWNER`. To send room commands or read room logs:
+`archipelago`, field `ROOM_OWNER`. To send room commands or read room logs,
+open `https://ap-admin.internal.<domain>/session/<ROOM_OWNER>` once (from
+the LAN, logged in to Authelia as `group:admin`), then use the room pages on
+that host. The command box on a room page runs commands on the server
+without echoing them to the room's chat. `app/admin.yaml` explains which
+cookies reach the pod.
 
-```sh
-kubectl -n games port-forward archipelago-0 8080
-```
+If Authelia is down the route fails closed. Use
+`kubectl -n games port-forward archipelago-0 8080` and the same steps on
+`http://localhost:8080` instead.
 
-Then open `http://localhost:8080/session/<ROOM_OWNER>` once, and use the
-room pages on `localhost:8080`. If the seed was generated with a server
-password, `!admin` from any client works without any of this.
+If the seed was generated with a server password, `!admin` from any client
+also works, but every `!admin` line, password masked, is broadcast to the
+room's chat.
 
 ## Workarounds for WebHost 0.6.8
 

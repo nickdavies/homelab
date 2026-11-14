@@ -1,0 +1,101 @@
+---
+# The whole WebHost UI at ap-admin.internal.<domain>, behind Authelia, so room
+# commands can be sent from any LAN browser without kubectl. Room commands
+# typed here run on the server's own command processor and never reach the
+# room's chat, unlike `!admin` from a client (see ../README.md, Owning rooms).
+#
+# Unlike route.yaml, nothing is filtered by path: /session/<id> and POST
+# /room/<id> are exactly what this route is for.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: archipelago-admin
+spec:
+  hostnames:
+    - "ap-admin.internal.${SECRET_DOMAIN}"
+  parentRefs:
+    - name: internal
+      namespace: network
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: archipelago
+          port: 8080
+---
+# Same Authelia ext-authz wiring as automation/rethink/app/securitypolicy.yaml,
+# which explains each field. The *.internal access_control rule (one_factor,
+# group:admin) covers the hostname. No headersToBackend: WebHost ignores them.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: archipelago-admin-authelia
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: archipelago-admin
+  extAuth:
+    headersToExtAuth:
+      - accept
+      - cookie
+      - location
+      - authorization
+      - proxy-authorization
+      - x-forwarded-proto
+    failOpen: false
+    http:
+      backendRefs:
+        - kind: Service
+          name: authelia
+          namespace: security
+          port: 80
+      path: /api/authz/ext-authz/
+---
+# WebHost needs its own session cookie here, so route.yaml's strip-everything
+# filters can't be used. This pod runs third-party apworld code, and browsers
+# send it every cookie scoped to internal.<domain> or <domain>, Authelia's
+# session included. So the cookie headers are allowlisted in both directions:
+#
+# - Requests keep only `session`, WebHost's Flask cookie. Envoy's default filter
+#   order runs ext_authz before lua, so Authelia has already checked its cookie
+#   by the time this drops it. A sibling app's domain-scoped cookie that is
+#   also named `session` would still get through; none sets one today.
+# - Responses may only set a host-only `session`. Anything else, or anything
+#   with a Domain attribute, could overwrite or plant cookies (Authelia's
+#   included) on sibling hosts.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyExtensionPolicy
+metadata:
+  name: archipelago-admin-cookies
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: archipelago-admin
+  lua:
+    - type: Inline
+      inline: |
+        function envoy_on_request(request_handle)
+          local headers, keep = request_handle:headers(), {}
+          -- HTTP/2 clients may send each cookie as its own header.
+          for i = 0, headers:getNumValues("cookie") - 1 do
+            for pair in string.gmatch(headers:getAtIndex("cookie", i), "[^;]+") do
+              pair = pair:match("^%s*(.-)%s*$")
+              if pair:match("^session=") then keep[#keep + 1] = pair end
+            end
+          end
+          headers:remove("cookie")
+          if #keep > 0 then headers:add("cookie", table.concat(keep, "; ")) end
+        end
+
+        function envoy_on_response(response_handle)
+          local headers, keep = response_handle:headers(), {}
+          for i = 0, headers:getNumValues("set-cookie") - 1 do
+            local cookie = headers:getAtIndex("set-cookie", i)
+            if cookie:match("^session=") and not cookie:lower():match(";%s*domain=") then
+              keep[#keep + 1] = cookie
+            end
+          end
+          headers:remove("set-cookie")
+          for _, cookie in ipairs(keep) do headers:add("set-cookie", cookie) end
+        end
