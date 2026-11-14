@@ -19,6 +19,11 @@ access_control:
     - name: internal
       networks: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
   rules:
+    - domain: ["frigate.internal.${SECRET_DOMAIN}"]
+      policy: two_factor
+      subject:
+        - 'group:admin'
+        - 'group:frigate'
     - domain: ["*.internal.${SECRET_DOMAIN}"]
       policy: one_factor
       subject:
