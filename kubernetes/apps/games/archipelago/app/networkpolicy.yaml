@@ -3,7 +3,8 @@
 # internet, so it gets nothing it doesn't need.
 #
 # Ingress:
-# - the web port, from the external Envoy gateway only (route.yaml);
+# - the web port, from the external Envoy gateway (route.yaml) and the
+#   internal one (admin.yaml) only;
 # - the room port range, from anywhere: players come in through the router's
 #   port forward and the LoadBalancer (service.yaml), SNATed to a node
 #   address, so there is no source to filter on.
@@ -30,6 +31,13 @@ spec:
           podSelector:
             matchLabels:
               gateway.envoyproxy.io/owning-gateway-name: external
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
               gateway.envoyproxy.io/owning-gateway-namespace: network
       ports:
         - protocol: TCP

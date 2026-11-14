@@ -6,6 +6,7 @@ resources:
   - ./statefulset.yaml
   - ./service.yaml
   - ./route.yaml
+  - ./admin.yaml
   - ./certificate.yaml
   - ./dnsendpoint.yaml
   - ./networkpolicy.yaml
