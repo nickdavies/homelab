@@ -1,0 +1,29 @@
+# Only the internal gateway's Envoy may reach Paperless, and only on the web
+# port. The pod also runs Tika (9998) and gotenberg (3000), which listen on
+# 0.0.0.0 with no auth and parse arbitrary documents; Paperless reaches them
+# over localhost, so nothing else needs them.
+#
+# Ingress only. Kubelet probes come from the node, which a NetworkPolicy never
+# blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: paperless-ngx
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: paperless-ngx
+      app.kubernetes.io/controller: paperless-ngx
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - protocol: TCP
+          port: 80
