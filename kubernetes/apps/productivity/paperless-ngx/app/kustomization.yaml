@@ -5,4 +5,5 @@ resources:
   - ./externalsecret.yaml
   - ./route.yaml
   - ./helmrelease.yaml
+  - ./networkpolicy.yaml
   - ../../../../templates/volsync
