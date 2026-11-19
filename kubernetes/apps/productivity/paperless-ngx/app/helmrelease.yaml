@@ -32,6 +32,12 @@ spec:
         annotations:
           reloader.stakater.com/auto: 'true'
         containers:
+          # Both images bundle an OpenJDK 21 older than 21.0.13.1, which is
+          # vulnerable to CVE-2026-114938 (Java4Shell) on AVX-512 VBMI CPUs
+          # (nodes 5-8). Disabling the Base64 intrinsic removes the vulnerable
+          # code path. JAVA_TOOL_OPTIONS rather than JVM args so Tika's forked
+          # child JVM and gotenberg's per-request pdftk JVM both pick it up.
+          # Remove once both images ship a fixed JDK.
           gotenburg:
             image:
               repository: thecodingmachine/gotenberg
@@ -39,11 +45,14 @@ spec:
               pullPolicy: IfNotPresent
             env:
               - {name: DISABLE_GOOGLE_CHROME, value: '1'}
+              - &java4shell {name: JAVA_TOOL_OPTIONS, value: '-XX:-UseBASE64Intrinsics'}
           tika:
             image:
               repository: docker.io/apache/tika
               tag: 3.3.3.0-full
               pullPolicy: IfNotPresent
+            env:
+              - *java4shell
           app:
             image:
               repository: ghcr.io/paperless-ngx/paperless-ngx
