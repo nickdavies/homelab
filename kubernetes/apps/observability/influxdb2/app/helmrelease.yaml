@@ -36,7 +36,7 @@ spec:
           app:
             image:
               repository: influxdb
-              tag: 2.9.1
+              tag: 2.10.1
             env:
               INFLUXDB_DATA_CACHE_MAX_MEMORY_SIZE: 3G
               TZ: ${TIMEZONE}
@@ -89,7 +89,7 @@ spec:
           bootstrap:
             image:
               repository: influxdb
-              tag: 2.9.1
+              tag: 2.10.1
             command: [/bin/bash, /app/bootstrap.sh]
             env:
               INFLUX_ORG: *org
