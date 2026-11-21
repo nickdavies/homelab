@@ -1,0 +1,35 @@
+---
+# groceries has no authentication of its own. Authelia gates it here: the
+# groceries.internal rule in Authelia's access_control admits group:admin and
+# group:groceries, so household members get in without being cluster admins.
+# The header lists match rethink's policy; see that file for why each is needed.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: groceries-authelia
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: groceries
+  extAuth:
+    headersToExtAuth:
+      - accept
+      - cookie
+      - location
+      - authorization
+      - proxy-authorization
+      - x-forwarded-proto
+    failOpen: false
+    http:
+      backendRefs:
+        - kind: Service
+          name: authelia
+          namespace: security
+          port: 80
+      path: /api/authz/ext-authz/
+      headersToBackend:
+        - "remote-user"
+        - "remote-groups"
+        - "remote-email"
+        - "remote-name"

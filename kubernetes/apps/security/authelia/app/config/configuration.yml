@@ -24,6 +24,11 @@ access_control:
       subject:
         - 'group:admin'
         - 'group:frigate'
+    - domain: ["groceries.internal.${SECRET_DOMAIN}"]
+      policy: one_factor
+      subject:
+        - 'group:admin'
+        - 'group:groceries'
     - domain: ["*.internal.${SECRET_DOMAIN}"]
       policy: one_factor
       subject:
