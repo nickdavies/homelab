@@ -9,6 +9,31 @@ talos-session use reader          # ambient, 30 days
 talos-session exec admin -- ...   # one command, 2 hours, nothing left on disk
 ```
 
+The same admin talosconfig yields a 4-hour cluster-admin kubeconfig, the
+break-glass for when OIDC (Authelia, kubelogin) is down:
+
+```
+talos-session exec --kube -- kubectl get nodes   # one command, nothing on disk
+talos-session kubeconfig                         # ambient, at $XDG_RUNTIME_DIR/talos-session/kubeconfig
+```
+
+A control-plane node's machined signs it from the Kubernetes CA as
+`O=system:masters`. Kubernetes authentication and RBAC are not involved, so all
+it needs is the Talos API on one control plane and a working kube-apiserver.
+The lifetime is set on the nodes by
+[`patches-control-plane/admin-kubeconfig.yaml`](patches-control-plane/admin-kubeconfig.yaml),
+because the Talos RPC takes no TTL. talos-session refuses any kubeconfig
+longer-lived than that, so a node missing the patch fails loudly instead of
+handing out a year-long certificate.
+
+The kubeconfig points at the VIP, which needs etcd. If the VIP is down, sign
+from a node and talk to it directly. The apiserver certificate covers each
+node's own IP:
+
+```
+talos-session -e 192.168.254.11 exec --kube -- kubectl --server https://192.168.254.11:6443 get nodes
+```
+
 `config-gen.sh` and `bootstrap.sh` use the same mechanism. Each re-runs
 itself under `talos-session exec --secret ...`, which holds what they need in
 memory and hands it over as `/dev/fd/<n>`, so both work standalone:

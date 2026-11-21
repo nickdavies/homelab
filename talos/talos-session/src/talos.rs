@@ -7,9 +7,9 @@
 //! at `/dev/fd/<n>`. They exist only in that process tree's memory and are
 //! reaped when it exits.
 //!
-//! Minting a short-lived Talos certificate is the same pipeline with one extra
-//! step in the middle: the root credential goes in on a descriptor, and what
-//! comes back out is what the child gets.
+//! Minting a short-lived Talos certificate or kubeconfig is the same pipeline
+//! with one extra step in the middle: the root credential goes in on a
+//! descriptor, and what comes back out is what the child gets.
 
 use std::ffi::{CString, OsString};
 use std::fs::File;
@@ -18,10 +18,12 @@ use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::SystemTime;
 
 use anyhow::{bail, Context, Result};
 
-use crate::policy::{ttl_arg, Role};
+use crate::policy::{self, ttl_arg, Role};
+use crate::store;
 
 /// A secret to expose to a child process, and the environment variable that
 /// will carry its path.
@@ -127,7 +129,34 @@ fn mint_to(admin_config: &[u8], role: Role, staging: &Path, target: &Target) -> 
         let _ = std::fs::remove_file(staging);
     }
 
-    result
+    result.map(drop)
+}
+
+/// Fetches a cluster-admin kubeconfig from the control plane, in memory.
+///
+/// The signing happens in machined on the target node, from the Kubernetes CA
+/// in its machine config, so this works whatever state kube-apiserver's own
+/// authentication is in. The certificate is `O=system:masters` and its lifetime
+/// is whatever that node is configured for, so it is checked against
+/// [`policy::KUBECONFIG_TTL`] before anyone gets it.
+pub fn kubeconfig(admin_config: &[u8], target: &Target) -> Result<Vec<u8>> {
+    let mut args = vec!["kubeconfig".to_string(), "--merge=false".to_string()];
+    if !target.endpoints.is_empty() {
+        args.push("--endpoints".to_string());
+        args.push(target.endpoints.join(","));
+    }
+    if let Some(node) = target.node() {
+        args.push("--nodes".to_string());
+        args.push(node.to_string());
+    }
+    // `-` is talosctl's spelling of stdout, so the kubeconfig never hits disk.
+    args.push("-".to_string());
+
+    let config = run_as_admin(admin_config, &args)?;
+    let not_after = store::kubeconfig_not_after(&config)?;
+    policy::check_kubeconfig_expiry(not_after, SystemTime::now())?;
+
+    Ok(config)
 }
 
 /// Renders `talosctl config info` for an existing credential.
@@ -203,8 +232,8 @@ pub fn exec_exposing(exposed: &[Exposed], argv: &[OsString]) -> Result<()> {
     Err(err).with_context(|| format!("running {}", program.to_string_lossy()))
 }
 
-/// Runs `talosctl <args>` authenticated by `admin_config`.
-fn run_as_admin(admin_config: &[u8], args: &[String]) -> Result<()> {
+/// Runs `talosctl <args>` authenticated by `admin_config`, returning its stdout.
+fn run_as_admin(admin_config: &[u8], args: &[String]) -> Result<Vec<u8>> {
     let fd = memfd_with(admin_config)?;
     let raw = fd.as_raw_fd();
 
@@ -221,10 +250,14 @@ fn run_as_admin(admin_config: &[u8], args: &[String]) -> Result<()> {
 
     let output = cmd.output().context("running `talosctl`")?;
     if !output.status.success() {
-        bail!("talosctl config new failed: {}", diagnostic(&output.stderr));
+        bail!(
+            "`talosctl {}` failed: {}",
+            args.join(" "),
+            diagnostic(&output.stderr)
+        );
     }
 
-    Ok(())
+    Ok(output.stdout)
 }
 
 /// Trims a talosctl failure down to the part worth reading.

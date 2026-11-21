@@ -9,8 +9,20 @@ The everyday `homelab` kube context logs in through Authelia (`kubelogin get-tok
 --oidc-issuer-url=https://auth.internal.<domain>`). It keeps working only until its cached
 token needs a refresh, so during an Authelia outage it will stop working too.
 
-Use the **operator kubeconfig stored in 1Password** instead. It doesn't log in through OIDC,
-so an Authelia or gateway outage doesn't affect it.
+Mint a **4-hour cluster-admin kubeconfig with `talos-session`** instead. Talos signs it
+from the Kubernetes CA, so it never touches OIDC or the gateway:
+
+```bash
+talos-session exec --kube -- kubectl get nodes    # one command, nothing on disk
+talos-session kubeconfig                          # or: ambient, for a debugging session
+export KUBECONFIG="$XDG_RUNTIME_DIR/talos-session/kubeconfig"
+```
+
+If the API VIP is down too, see `talos/README.md` for signing from one node and pointing
+`--server` at it.
+
+If the Talos API is unreachable as well, fall back to the **operator kubeconfig stored in
+1Password**:
 
 ```bash
 # Save the operator kubeconfig from 1Password to a file outside any repo, then:
