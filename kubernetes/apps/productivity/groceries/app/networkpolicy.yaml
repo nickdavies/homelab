@@ -1,0 +1,28 @@
+# Only the internal gateway's Envoy may reach groceries. The app trusts whoever
+# reaches it, so Authelia (securitypolicy.yaml) only helps if nothing can go
+# around the route.
+#
+# Ingress only: the app dials out to AnyList and the Kroger API. Kubelet probes
+# come from the node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: groceries
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: groceries
+      app.kubernetes.io/controller: groceries
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - protocol: TCP
+          port: 8000

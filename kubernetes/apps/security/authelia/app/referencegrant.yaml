@@ -23,6 +23,9 @@ spec:
       namespace: observability
     - group: gateway.envoyproxy.io
       kind: SecurityPolicy
+      namespace: productivity
+    - group: gateway.envoyproxy.io
+      kind: SecurityPolicy
       namespace: storage
   to:
     - group: ""
