@@ -38,7 +38,7 @@ spec:
           app:
             image:
               repository: ghcr.io/nickdavies/groceries
-              tag: main@sha256:3633435d89eb7ddfd988fceab769b5520b97268727fd5a261e75fc25f8219ec9
+              tag: main@sha256:56d8e699f42a3dffae63a88458f3d0a57982a3d6500a9752c2823650ad8e3813
             envFrom:
               - secretRef:
                   name: groceries-secret
