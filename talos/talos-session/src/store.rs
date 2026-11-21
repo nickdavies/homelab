@@ -6,7 +6,8 @@
 //! was hand-rolling, so none of this needs root.
 
 use std::collections::HashMap;
-use std::os::unix::fs::PermissionsExt;
+use std::io::Write;
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -49,6 +50,11 @@ pub fn active_path() -> Result<PathBuf> {
     Ok(session_dir()?.join("config"))
 }
 
+/// The well-known path that `$KUBECONFIG` should point at.
+pub fn kubeconfig_path() -> Result<PathBuf> {
+    Ok(session_dir()?.join("kubeconfig"))
+}
+
 /// Where a role's credential is cached for reuse by `exec`.
 pub fn cache_path(role: Role) -> Result<PathBuf> {
     let dir = session_dir()?.join("cache");
@@ -86,10 +92,83 @@ pub fn not_after(path: &Path) -> Result<Option<SystemTime>> {
         );
     };
 
-    let Some(encoded) = context.crt.as_deref() else {
-        return Ok(None);
-    };
+    context.crt.as_deref().map(cert_not_after).transpose()
+}
 
+/// The subset of a kubeconfig this tool needs to read back.
+#[derive(Deserialize)]
+struct KubeConfig {
+    #[serde(rename = "current-context")]
+    current_context: String,
+    contexts: Vec<NamedKubeContext>,
+    users: Vec<NamedKubeUser>,
+}
+
+#[derive(Deserialize)]
+struct NamedKubeContext {
+    name: String,
+    context: KubeContext,
+}
+
+#[derive(Deserialize)]
+struct KubeContext {
+    user: String,
+}
+
+#[derive(Deserialize)]
+struct NamedKubeUser {
+    name: String,
+    user: KubeUser,
+}
+
+#[derive(Deserialize)]
+struct KubeUser {
+    #[serde(rename = "client-certificate-data")]
+    client_certificate_data: Option<String>,
+}
+
+/// Reads the client certificate's expiry out of a kubeconfig.
+///
+/// A kubeconfig without a client certificate is an error, not `None`: every
+/// one Talos issues carries one, so its absence means this is not what was
+/// asked for.
+pub fn kubeconfig_not_after(raw: &[u8]) -> Result<SystemTime> {
+    let config: KubeConfig = serde_yaml_ng::from_slice(raw).context("parsing the kubeconfig")?;
+
+    let context = config
+        .contexts
+        .iter()
+        .find(|c| c.name == config.current_context)
+        .with_context(|| {
+            format!(
+                "kubeconfig names context {:?}, which it does not define",
+                config.current_context
+            )
+        })?;
+
+    let user = config
+        .users
+        .iter()
+        .find(|u| u.name == context.context.user)
+        .with_context(|| {
+            format!(
+                "kubeconfig context names user {:?}, which it does not define",
+                context.context.user
+            )
+        })?;
+
+    let encoded = user
+        .user
+        .client_certificate_data
+        .as_deref()
+        .context("kubeconfig carries no client certificate")?;
+
+    cert_not_after(encoded)
+}
+
+/// Expiry of a base64-encoded PEM certificate, the form both talosconfig and
+/// kubeconfig embed it in.
+fn cert_not_after(encoded: &str) -> Result<SystemTime> {
     let pem_bytes = base64::engine::general_purpose::STANDARD
         .decode(encoded)
         .context("decoding the client certificate")?;
@@ -104,7 +183,29 @@ pub fn not_after(path: &Path) -> Result<Option<SystemTime>> {
     let seconds =
         u64::try_from(seconds).context("client certificate expires before the Unix epoch")?;
 
-    Ok(Some(UNIX_EPOCH + Duration::from_secs(seconds)))
+    Ok(UNIX_EPOCH + Duration::from_secs(seconds))
+}
+
+/// Writes `bytes` to `dest`, owner-only, via a sibling file renamed into place
+/// so a concurrent reader never sees a half-written credential.
+pub fn install_private(dest: &Path, bytes: &[u8]) -> Result<()> {
+    let mut name = dest.file_name().unwrap_or_default().to_os_string();
+    name.push(format!(".new.{}", std::process::id()));
+    let staging = dest.with_file_name(name);
+
+    let _ = std::fs::remove_file(&staging);
+    let written = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(&staging)
+        .and_then(|mut f| f.write_all(bytes))
+        .and_then(|()| std::fs::rename(&staging, dest));
+
+    if written.is_err() {
+        let _ = std::fs::remove_file(&staging);
+    }
+    written.with_context(|| format!("installing credential at {}", dest.display()))
 }
 
 /// Every credential this tool currently holds, as (label, path) pairs.
@@ -153,6 +254,65 @@ mod tests {
     #[test]
     fn missing_file_is_not_usable() {
         assert!(!is_usable(Path::new("/nonexistent/talos-session/config")));
+    }
+
+    /// Throwaway self-signed `O=system:masters` certificate, valid until
+    /// 2026-11-21T04:00:00Z. Its key was discarded at generation.
+    const FIXTURE_CRT: &str = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJwekNDQVUyZ0F3SUJBZ0lVUk1GQlVOOG9reUI5a3dBTHRuZjJpYVFFUXNzd0NnWUlLb1pJemowRUF3SXcKS1RFWE1CVUdBMVVFQ2d3T2MzbHpkR1Z0T20xaGMzUmxjbk14RGpBTUJnTlZCQU1NQldGa2JXbHVNQjRYRFRJMgpNVEV5TVRBd01EQXdNRm9YRFRJMk1URXlNVEEwTURBd01Gb3dLVEVYTUJVR0ExVUVDZ3dPYzNsemRHVnRPbTFoCmMzUmxjbk14RGpBTUJnTlZCQU1NQldGa2JXbHVNRmt3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUUKb3NUbjFrWHBobzlJVEpPTkRpbEd2OGVtdDZMbXB6WWtMRlRHQlFMNFJqeU0zK3hHNk5hZWdOTTdyVURFR0lqNQpTQXAwb2FJYmVGRTU5bkxuYXEzeG5hTlRNRkV3SFFZRFZSME9CQllFRkgvMS9oZmJIZkZvdDdpMlZ6QlNvSC9UCmdHWFNNQjhHQTFVZEl3UVlNQmFBRkgvMS9oZmJIZkZvdDdpMlZ6QlNvSC9UZ0dYU01BOEdBMVVkRXdFQi93UUYKTUFNQkFmOHdDZ1lJS29aSXpqMEVBd0lEU0FBd1JRSWdFR05nMVdVNmZpTE1vWDFUQ3A1SkxzUE94cUN6WWlhOQpwUjhra3U3S3JFd0NJUUM4clBVMUN1dkNhaGNMZzJudlJWSFcraGtVNTIyU0ZqS0dyWUhkQ1l4SDFBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=";
+    const FIXTURE_NOT_AFTER: u64 = 1_795_233_600;
+
+    /// The shape `talosctl kubeconfig` emits.
+    fn kubeconfig(current: &str, user_crt: Option<&str>) -> String {
+        let crt = user_crt
+            .map(|c| format!("\n        client-certificate-data: {c}"))
+            .unwrap_or_default();
+        format!(
+            "apiVersion: v1\nkind: Config\nclusters:\n- name: homelab\n  cluster:\n        server: https://192.168.254.10:6443\ncontexts:\n- name: admin@homelab\n  context:\n        cluster: homelab\n        namespace: default\n        user: admin@homelab\ncurrent-context: {current}\nusers:\n- name: admin@homelab\n  user:\n        client-key-data: unused{crt}\n"
+        )
+    }
+
+    #[test]
+    fn kubeconfig_expiry_comes_from_the_current_users_certificate() {
+        let raw = kubeconfig("admin@homelab", Some(FIXTURE_CRT));
+        assert_eq!(
+            kubeconfig_not_after(raw.as_bytes()).unwrap(),
+            UNIX_EPOCH + Duration::from_secs(FIXTURE_NOT_AFTER)
+        );
+    }
+
+    #[test]
+    fn kubeconfig_without_a_certificate_is_an_error() {
+        let raw = kubeconfig("admin@homelab", None);
+        assert!(kubeconfig_not_after(raw.as_bytes()).is_err());
+    }
+
+    #[test]
+    fn kubeconfig_with_a_dangling_context_is_an_error() {
+        let raw = kubeconfig("other@homelab", Some(FIXTURE_CRT));
+        let err = kubeconfig_not_after(raw.as_bytes()).unwrap_err();
+        assert!(err.to_string().contains("other@homelab"), "{err}");
+    }
+
+    #[test]
+    fn install_private_writes_owner_only() {
+        let dir =
+            std::env::temp_dir().join(format!("talos-session-install-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let dest = dir.join("kubeconfig");
+
+        install_private(&dest, b"first").unwrap();
+        install_private(&dest, b"second").unwrap();
+
+        assert_eq!(std::fs::read(&dest).unwrap(), b"second");
+        let mode = std::fs::metadata(&dest).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o600);
+        assert_eq!(
+            std::fs::read_dir(&dir).unwrap().count(),
+            1,
+            "staging file left behind"
+        );
+
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
