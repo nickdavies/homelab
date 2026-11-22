@@ -1,0 +1,41 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: groceries-recipe-backup
+  annotations:
+    # The ks substitutes ${APP} for VolSync; keep it away from the {{ $value }} templates.
+    kustomize.toolkit.fluxcd.io/substitute: disabled
+spec:
+  groups:
+    - name: groceries-recipe-backup
+      rules:
+        # A run pushes this timestamp as its last step, only after every file is
+        # written and re-hashed. It runs every 30m, so a day is ~48 missed runs.
+        - alert: RecipeBackupStale
+          expr: time() - groceries_recipe_backup_last_success_timestamp_seconds{job="groceries_recipe_backup"} > 86400
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: AnyList recipe backup is stale
+            description: The recipe backup last succeeded {{ $value | humanizeDuration }} ago.
+        # Also covers a Pushgateway restart (series gone until the next push, 30m).
+        - alert: RecipeBackupNeverSucceeded
+          expr: absent(groceries_recipe_backup_last_success_timestamp_seconds{job="groceries_recipe_backup"})
+          for: 2h
+          labels:
+            severity: critical
+          annotations:
+            summary: AnyList recipe backup has no recorded success
+            description: No groceries-recipe-backup run has pushed a success to the Pushgateway in 2h.
+        # A stored file no longer matched its sha256 name. Current versions are
+        # rewritten from AnyList; older ones can only be restored from VolSync.
+        - alert: RecipeBackupHashFailures
+          expr: groceries_recipe_backup_hash_failures{job="groceries_recipe_backup"} > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: AnyList recipe backup found corrupt files
+            description: The last recipe backup run found {{ $value }} files that didn't match their hash. See the job's logs.
