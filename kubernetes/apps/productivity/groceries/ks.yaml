@@ -25,3 +25,31 @@ spec:
     substitute:
       APP: *app
       VOLSYNC_CAPACITY: 1Gi
+---
+# Recipe backup CronJob on its own PVC (measured ~9 MB with photos, 2026-11-22).
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app groceries-recipe-backup
+  namespace: flux-system
+spec:
+  targetNamespace: productivity
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  dependsOn:
+    - name: volsync
+  path: ./kubernetes/apps/productivity/groceries/backup
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homelab
+    namespace: flux-system
+  wait: true
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
+  postBuild:
+    substitute:
+      APP: *app
+      VOLSYNC_CAPACITY: 1Gi
