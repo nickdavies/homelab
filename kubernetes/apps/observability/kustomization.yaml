@@ -7,5 +7,6 @@ resources:
   - ./influxdb2/ks.yaml
   - ./kube-prometheus-stack/ks.yaml
   - ./loki/ks.yaml
+  - ./pushgateway/ks.yaml
   - ./unpoller/ks.yaml
   - ./vector/ks.yaml

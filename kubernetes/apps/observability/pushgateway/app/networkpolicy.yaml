@@ -1,0 +1,28 @@
+# The Pushgateway has no auth: anything that can reach it can overwrite or delete
+# another job's metrics, and with them its freshness alerts. So only Prometheus may
+# scrape it, and only pods that opt in with the label below may push.
+#
+# To push from a job, add `pushgateway.homelab/push: "true"` to its pod labels.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pushgateway
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: pushgateway
+      app.kubernetes.io/controller: pushgateway
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+              operator.prometheus.io/name: kube-prometheus-stack
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              pushgateway.homelab/push: "true"
+      ports:
+        - protocol: TCP
+          port: 9091
