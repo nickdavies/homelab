@@ -35,6 +35,10 @@ spec:
     reusePVC: true
   # https://github.com/cloudnative-pg/cloudnative-pg/issues/2570
   enablePDB: false
+  # A smart shutdown waits for clients to disconnect, and pooled app
+  # connections never do, so a drained primary waits out the whole 180s default
+  # before CNPG promotes a replica. Fall through to a fast shutdown quickly.
+  smartShutdownTimeout: 15
   resources:
     requests:
       cpu: 250m
