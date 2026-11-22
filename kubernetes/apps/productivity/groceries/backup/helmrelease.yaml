@@ -53,7 +53,7 @@ spec:
           app:
             image:
               repository: ghcr.io/nickdavies/groceries
-              tag: main@sha256:92560d1a3f9427385573bc2c619095f7f592b0ab577b73db07dae727608cde19
+              tag: main@sha256:968ef4093c4aa98c5a413cda65a7cd9ab3590ddf36f463f5506c32ed87d30b84
             command: [python, -m, groceries.backup]
             envFrom:
               # Only ANYLIST_EMAIL and ANYLIST_PASSWORD are used.
