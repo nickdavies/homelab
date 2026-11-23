@@ -4,5 +4,4 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - ./headlamp/ks.yaml
-  - ./kube-web-view/ks.yaml
   - ./nut-relay/ks.yaml

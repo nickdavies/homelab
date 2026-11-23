@@ -34,24 +34,18 @@ Delete the file and `unset KUBECONFIG` when you're done.
 
 Everything below works with either kubeconfig, as long as the apiserver is reachable.
 
-## kube-web-view — the primary debugging tool
-
-```bash
-kubectl port-forward -n cluster-util svc/kube-web-view 8080:80
-```
-
-Then open <http://localhost:8080>.
-
-Port-forward goes through the apiserver, bypassing Envoy Gateway, MetalLB, Authelia,
-cert-manager and cluster DNS. kube-web-view reads all of its data from the apiserver, so
-whenever port-forward works, kube-web-view works.
-
-Headlamp works the same way. It authenticates as its own ServiceAccount, not through
-Authelia, so it needs no login over port-forward:
+## Headlamp — the primary debugging tool
 
 ```bash
 kubectl port-forward -n cluster-util svc/headlamp 4466:80
 ```
+
+Then open <http://localhost:4466>.
+
+Port-forward goes through the apiserver, bypassing Envoy Gateway, MetalLB, Authelia,
+cert-manager and cluster DNS. Headlamp reads all of its data from the apiserver as its own
+ServiceAccount, not through Authelia, so whenever port-forward works, Headlamp works, with
+no login.
 
 ## Other services
 
