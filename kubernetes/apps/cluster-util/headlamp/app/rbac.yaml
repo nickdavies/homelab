@@ -5,7 +5,7 @@ metadata:
   name: headlamp
 # Every Headlamp user acts as this role (unsafeUseServiceAccountToken in
 # helmrelease.yaml). Read and watch everything except Secrets and pod logs,
-# matching kube-web-view's defaults. The chart creates the ServiceAccount.
+# which can carry credentials. The chart creates the ServiceAccount.
 #
 # RBAC has no "all groups except core" form, so every non-core group is listed.
 # A kind from a group added later shows as forbidden in the UI until its group
