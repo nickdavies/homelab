@@ -7,5 +7,6 @@ resources:
   - ./client.yaml
   - ./app-database.yaml
   - ./externalsecret.yaml
+  - ./networkpolicy.yaml
   - ./objectstore.yaml
   - ./scheduledbackup.yaml

@@ -1,0 +1,52 @@
+---
+# Only the immich CNPG cluster's known clients may reach it.
+#
+#   5432   immich-server; the operator; replicas streaming from the primary
+#   8000   instance manager: the operator, and instances polling each other
+#   9187   metrics, Prometheus (PodMonitor)
+#
+# Ingress only. `kubectl port-forward` and `kubectl exec` go through the
+# kubelet into the pod's network namespace, so they still work. Nothing
+# reaches the instances through the API server's pods/proxy (that would come
+# from a node's flannel address and be dropped here).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: immich-postgres
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: immich
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: media
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: immich-server
+      ports:
+        - { port: 5432, protocol: TCP }
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - { port: 5432, protocol: TCP }
+        - { port: 8000, protocol: TCP }
+    # Which instance is primary moves on switchover, so every instance may
+    # reach every other on any port.
+    - from:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: immich
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 9187, protocol: TCP }
