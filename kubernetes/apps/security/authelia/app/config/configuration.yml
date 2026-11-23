@@ -66,6 +66,13 @@ identity_providers:
         rules:
           - policy: 'two_factor'
             subject: 'group:budgets'
+      # Shared household apps. One factor, like groceries: the data is chores,
+      # and every member signs in from their phone.
+      household:
+        default_policy: 'deny'
+        rules:
+          - policy: 'one_factor'
+            subject: 'group:household'
     cors:
       endpoints: ["authorization", "token", "revocation", "introspection"]
       allowed_origins_from_client_redirect_uris: true
@@ -134,6 +141,29 @@ identity_providers:
         grant_types:
           - 'authorization_code'
         access_token_signed_response_alg: 'none'
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_basic'
+      # The web app and the phone app both start the login and send the code
+      # to Donetick's server, which exchanges it with the secret. The phone
+      # app's redirect is its own URL scheme.
+      - client_id: 'donetick'
+        client_name: 'Donetick'
+        client_secret: "${DONETICK_OAUTH_CLIENT_SECRET_HASH}"
+        public: false
+        authorization_policy: 'household'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris:
+          - 'https://donetick.internal.${SECRET_DOMAIN}/auth/oauth2'
+          - 'donetick://auth/oauth2'
+        scopes:
+          - 'openid'
+          - 'profile'
+          - 'email'
+        response_types:
+          - 'code'
+        grant_types:
+          - 'authorization_code'
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'client_secret_basic'
       # kubectl, via kubelogin. A public client with PKCE rather than a
