@@ -6,6 +6,7 @@ resources:
   - ./cluster.yaml
   - ./cert-auth.yaml
   - ./externalsecret.yaml
+  - ./networkpolicy.yaml
   - ./objectstore.yaml
   - ./scheduledbackup.yaml
   - ./service.yaml
