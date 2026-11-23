@@ -17,6 +17,8 @@ spec:
         reloader.stakater.com/auto: "true"
       labels:
         app: minecraft-${SERVER_NAME}
+        # Selected by the minecraft NetworkPolicy (games/networkpolicy.yaml).
+        app.kubernetes.io/part-of: minecraft
     spec:
       affinity:
         nodeAffinity:
