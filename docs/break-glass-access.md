@@ -46,6 +46,13 @@ Port-forward goes through the apiserver, bypassing Envoy Gateway, MetalLB, Authe
 cert-manager and cluster DNS. kube-web-view reads all of its data from the apiserver, so
 whenever port-forward works, kube-web-view works.
 
+Headlamp works the same way. It authenticates as its own ServiceAccount, not through
+Authelia, so it needs no login over port-forward:
+
+```bash
+kubectl port-forward -n cluster-util svc/headlamp 4466:80
+```
+
 ## Other services
 
 Same pattern, different Service:

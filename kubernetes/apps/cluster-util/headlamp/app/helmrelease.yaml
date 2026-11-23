@@ -1,0 +1,81 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/source.toolkit.fluxcd.io/ocirepository_v1.json
+# Upstream's GHCR chart isn't anonymously pullable, and upstream cosign-signs
+# the release tarball rather than an OCI artifact, so this pulls the
+# charts-mirror copy.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: headlamp
+spec:
+  interval: 1h
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  ref:
+    # The digest wins over the tag; the tag is for humans and Renovate.
+    tag: 0.46.0
+    digest: sha256:03d05e6f89c370416cace93034d946cb28f32a82372a48332b8a63eed671e67c
+  url: oci://ghcr.io/home-operations/charts-mirror/headlamp
+  verify:
+    provider: cosign
+    # This identity is the mirror's CI, so it doesn't vouch for the upstream chart.
+    matchOIDCIdentity:
+      - issuer: ^https://token\.actions\.githubusercontent\.com$
+        subject: ^https://github\.com/home-operations/charts-mirror/\.github/workflows/app-builder\.yaml@refs/heads/main$
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: headlamp
+spec:
+  interval: 1h
+  chartRef:
+    kind: OCIRepository
+    name: headlamp
+  install:
+    remediation:
+      retries: -1
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  values:
+    image:
+      registry: ghcr.io
+      repository: headlamp-k8s/headlamp
+      tag: v0.46.0@sha256:8a0ef97527544baa2b35825940ddf4db6e2d09c30cd5aa31fd269ff604cc8b75
+    config:
+      inCluster: true
+      # Every request goes to the apiserver as the pod's ServiceAccount, so
+      # what the UI can do is exactly what rbac.yaml grants. Safe only because
+      # Authelia (securitypolicy.yaml) is the sole way in.
+      unsafeUseServiceAccountToken: true
+      oidc:
+        secret:
+          # The chart otherwise creates an empty Secret named "oidc".
+          create: false
+      # The bundled Prometheus plugin queries through the apiserver's
+      # services/proxy, which rbac.yaml deliberately doesn't grant.
+      staticPlugins:
+        enabled: false
+    # The chart's default binds the ServiceAccount to cluster-admin.
+    clusterRoleBinding:
+      create: false
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 100
+      runAsGroup: 101
+      capabilities:
+        drop: [ALL]
+      seccompProfile:
+        type: RuntimeDefault
+    resources:
+      requests:
+        cpu: 10m
+        memory: 128Mi
+      limits:
+        memory: 512Mi

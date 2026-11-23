@@ -1,0 +1,32 @@
+---
+# Headlamp runs with per-user auth disabled (unsafeUseServiceAccountToken), so
+# this policy is its only authentication. Same Authelia ext-authz wiring as
+# automation/rethink/app/securitypolicy.yaml, which explains each field.
+#
+# The Service is ClusterIP, so this route is the only way in. When Authelia is
+# down, use the port-forward in docs/break-glass-access.md.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: headlamp-authelia
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: headlamp
+  extAuth:
+    headersToExtAuth:
+      - accept
+      - cookie
+      - location
+      - authorization
+      - proxy-authorization
+      - x-forwarded-proto
+    failOpen: false
+    http:
+      backendRefs:
+        - kind: Service
+          name: authelia
+          namespace: security
+          port: 80
+      path: /api/authz/ext-authz/
