@@ -1,0 +1,79 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: trivy-operator
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: trivy-operator
+      version: 0.38.1
+      sourceRef:
+        kind: HelmRepository
+        name: aqua
+        namespace: flux-system
+  maxHistory: 3
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    # These namespaces pull private images, which the operator can't read
+    # without the cluster-wide Secret access turned off below.
+    excludeNamespaces: pipelines,pipelines-agents
+    operator:
+      # The default also grants cluster-wide Secret create/get/update and
+      # nodes/proxy, to copy image pull secrets into scan Jobs.
+      accessGlobalSecretsAndServiceAccount: false
+      # One shared vulnerability DB instead of a download per scan Job.
+      builtInTrivyServer: true
+      scanJobsConcurrentLimit: 3
+      # Nothing reads SBOMs, and they are the largest reports stored in etcd.
+      sbomGenerationEnabled: false
+      # Both need the node-collector, which mounts host paths Talos doesn't
+      # have and that restricted Pod Security wouldn't admit.
+      infraAssessmentScannerEnabled: false
+      clusterComplianceEnabled: false
+    compliance:
+      specs: []
+    trivy:
+      storageClassName: ceph-block
+      # Report only what an image update can fix.
+      severity: HIGH,CRITICAL
+      ignoreUnfixed: true
+      server:
+        podSecurityContext: &podSecurityContext
+          runAsNonRoot: true
+          runAsUser: 65534
+          runAsGroup: 65534
+          fsGroup: 65534
+          seccompProfile:
+            type: RuntimeDefault
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+    trivyOperator:
+      # The trivy image defaults to root.
+      scanJobPodTemplatePodSecurityContext: *podSecurityContext
+    podSecurityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    resources:
+      requests:
+        cpu: 20m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+    serviceMonitor:
+      enabled: true

@@ -1,0 +1,62 @@
+---
+# Enforced by kube-network-policies (Talos flannel sidecar). It filters in
+# POSTROUTING after DNAT, so egress rules see real endpoints, not Service IPs.
+# Traffic from root on the node bypasses it, so kubelet probes need no rule.
+#
+# One policy for the operator, the Trivy server and the scan Jobs alike:
+# nothing else runs in this namespace (see namespace.yaml). Scan Jobs parse
+# arbitrary image contents, so they get the internet and nothing on the LAN.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: trivy-system
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Scan Jobs and the operator to the Trivy server, which has no auth.
+    - from:
+        - podSelector: {}
+      ports:
+        - { port: 4954, protocol: TCP }
+    # Operator metrics.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+              operator.prometheus.io/name: kube-prometheus-stack
+      ports:
+        - { port: 8080, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - podSelector: {}
+      ports:
+        - { port: 4954, protocol: TCP }
+    # kube-apiserver (the `kubernetes` Service DNATs to node IPs).
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - { port: 6443, protocol: TCP }
+    # Registries: the vulnerability DB (mirror.gcr.io) and every scanned image.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - { port: 443, protocol: TCP }
