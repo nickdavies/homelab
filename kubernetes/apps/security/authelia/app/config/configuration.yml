@@ -156,10 +156,12 @@ identity_providers:
         redirect_uris:
           - 'https://donetick.internal.${SECRET_DOMAIN}/auth/oauth2'
           - 'donetick://auth/oauth2'
+        # groups: Donetick sets each user's household role from it on every login.
         scopes:
           - 'openid'
           - 'profile'
           - 'email'
+          - 'groups'
         response_types:
           - 'code'
         grant_types:
