@@ -54,11 +54,16 @@ oauth2:
   name: Authelia
   client_id: donetick
   pkce: true
-  scopes: [openid, profile, email]
+  scopes: [openid, profile, email, groups]
   auth_url: https://auth.internal.${SECRET_DOMAIN}/api/oidc/authorization
   token_url: https://auth.internal.${SECRET_DOMAIN}/api/oidc/token
   user_info_url: https://auth.internal.${SECRET_DOMAIN}/api/oidc/userinfo
   redirect_url: https://donetick.internal.${SECRET_DOMAIN}/auth/oauth2
+  # The household role follows LLDAP on every login: `admin` members are
+  # Donetick admins, everyone else is set back to member. Admins can delete
+  # any task, including the ones Home Assistant creates. The homeassistant
+  # account only uses its API token and never logs in, so it stays a member.
+  admin_groups: [admin]
 
 # Attachments on the data volume, so the VolSync backup covers them too.
 storage:
