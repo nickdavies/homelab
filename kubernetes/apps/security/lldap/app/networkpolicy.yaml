@@ -1,0 +1,57 @@
+---
+# LLDAP holds every user and group and is Authelia's authentication backend,
+# so only its two known clients may reach it, and it may only reach its
+# database.
+#
+#   ingress 389    LDAP, Authelia
+#           80     web UI / GraphQL, Envoy on the internal gateway
+#   egress  5432   the main CNPG cluster (postgres-rw), client-cert login
+#
+# Kubelet probes come from the node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: lldap
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: lldap
+      app.kubernetes.io/controller: lldap
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: authelia
+      ports:
+        - { port: 389, protocol: TCP }
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - { port: 80, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+          podSelector:
+            matchLabels:
+              cnpg.io/cluster: postgres
+      ports:
+        - { port: 5432, protocol: TCP }
