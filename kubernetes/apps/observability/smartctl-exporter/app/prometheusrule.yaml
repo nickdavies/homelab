@@ -1,0 +1,54 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: smartctl-exporter
+spec:
+  groups:
+    - name: smartctl-exporter
+      rules:
+        - alert: DiskSmartFailed
+          expr: smartctl_device_smart_status == 0
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: Disk failed its SMART health check
+            description: "{{ $labels.device }} on {{ $labels.instance }} reports a failed SMART overall-health status."
+        # NVMe only. Any set bit is bad: spare below threshold, over temperature,
+        # degraded reliability, read-only, or volatile backup failed.
+        - alert: DiskNvmeCriticalWarning
+          expr: smartctl_device_critical_warning > 0
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: NVMe drive raised a critical warning
+            description: "{{ $labels.device }} on {{ $labels.instance }} has critical warning flags {{ $value }} set."
+        - alert: DiskNvmeWearHigh
+          expr: smartctl_device_percentage_used >= 90
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: NVMe drive is near its rated endurance
+            description: "{{ $labels.device }} on {{ $labels.instance }} has used {{ $value }}% of its rated write endurance."
+        - alert: DiskNvmeMediaErrors
+          expr: delta(smartctl_device_media_errors[24h]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: NVMe drive logged new media errors
+            description: "{{ $labels.device }} on {{ $labels.instance }} logged {{ $value }} new media errors in the last 24 hours."
+        # SATA. Growth, not the absolute count: an old drive can carry a few
+        # remapped sectors for years, but a count that is still rising is failing.
+        - alert: DiskSataBadSectorsGrowing
+          expr: |
+            delta(smartctl_device_attribute{attribute_value_type="raw",
+              attribute_name=~"Reallocated_Sector_Ct|Current_Pending_Sector|Offline_Uncorrectable|Reported_Uncorrect"}[24h]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: SATA drive is accumulating bad sectors
+            description: "{{ $labels.device }} on {{ $labels.instance }}: {{ $labels.attribute_name }} rose by {{ $value }} in the last 24 hours."

@@ -1,0 +1,20 @@
+# The exporter is privileged and has no auth, so only Prometheus may reach it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: smartctl-exporter
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: smartctl-exporter
+      app.kubernetes.io/controller: smartctl-exporter
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+              operator.prometheus.io/name: kube-prometheus-stack
+      ports:
+        - protocol: TCP
+          port: 9633
