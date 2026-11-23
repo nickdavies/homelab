@@ -1,5 +1,6 @@
-# Only the internal gateway's Envoy may reach Donetick, so the route is the
-# only way in.
+# The internal gateway's Envoy (the web and phone apps) and Home Assistant,
+# which calls the API directly at donetick.productivity.svc:2021 with its own
+# API token.
 #
 # Ingress only: the server calls Authelia (through the gateway) and Pushover.
 # Kubelet probes come from the node, which a NetworkPolicy never blocks.
@@ -22,6 +23,12 @@ spec:
             matchLabels:
               gateway.envoyproxy.io/owning-gateway-name: internal
               gateway.envoyproxy.io/owning-gateway-namespace: network
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: automation
+          podSelector:
+            matchLabels:
+              app: homeassistant
       ports:
         - protocol: TCP
           port: 2021
