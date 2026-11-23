@@ -1,0 +1,19 @@
+---
+# Defined here rather than through the chart's httpRoute values: the
+# SecurityPolicy targets this route by name, and a chart-side rename would
+# silently leave Headlamp exposed without Authelia.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: headlamp
+spec:
+  hostnames:
+    - "headlamp.internal.${SECRET_DOMAIN}"
+  parentRefs:
+    - name: internal
+      namespace: network
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: headlamp
+          port: 80
