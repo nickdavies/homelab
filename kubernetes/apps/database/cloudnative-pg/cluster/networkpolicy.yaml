@@ -1,0 +1,80 @@
+---
+# Only the main CNPG cluster's known clients may reach it. Most apps log in by
+# client certificate (./cert-auth.yaml), but pg_hba still falls through to
+# scram-sha-256 for everything else, so the network is the first gate.
+#
+#   5432   apps (below); the operator; replicas streaming from the primary
+#   8000   instance manager: the operator, and instances polling each other
+#   9187   metrics, Prometheus (PodMonitor)
+#
+# A new app on this cluster needs a 5432 rule here as well as its role.
+#
+# Ingress only. `kubectl port-forward` and `kubectl exec` go through the
+# kubelet into the pod's network namespace, so they still work. Nothing
+# reaches the instances through the API server's pods/proxy (that would come
+# from a node's flannel address and be dropped here).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: postgres
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: automation
+          podSelector:
+            matchLabels:
+              app: homeassistant
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: grafana
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: productivity
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: paperless-ngx
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: security
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: authelia
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: security
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: lldap
+      ports:
+        - { port: 5432, protocol: TCP }
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - { port: 5432, protocol: TCP }
+        - { port: 8000, protocol: TCP }
+    # Which instance is primary moves on switchover, so every instance may
+    # reach every other on any port.
+    - from:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: postgres
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 9187, protocol: TCP }
