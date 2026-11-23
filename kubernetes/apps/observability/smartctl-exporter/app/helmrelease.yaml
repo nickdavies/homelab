@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: smartctl-exporter
+spec:
+  interval: 15m
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+    namespace: flux-system
+  maxHistory: 3
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  uninstall:
+    keepHistory: false
+  values:
+    defaultPodOptions:
+      automountServiceAccountToken: false
+    controllers:
+      # SMART health for every node's physical disks. No toleration for the Pi's
+      # taint: it boots from an SD card, which has no SMART data.
+      smartctl-exporter:
+        type: daemonset
+        containers:
+          app:
+            # https://github.com/prometheus-community/smartctl_exporter
+            image:
+              repository: quay.io/prometheuscommunity/smartctl-exporter
+              tag: v0.15.0@sha256:a76e08dbf5db4781fefd1ed81c65ad46ae8d2849dae6b6d3acebcde2fc4e59d6
+            args:
+              # SMART data moves slowly; scrapes are served from this cache.
+              - --smartctl.interval=5m
+            # Raw SMART ioctls need root and the host's device nodes. Privileged
+            # is the only way to get the nodes: a privileged container's /dev
+            # already holds them, so there is no hostPath mount.
+            securityContext:
+              privileged: true
+              runAsUser: 0
+              readOnlyRootFilesystem: true
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: &port 9633
+              readiness: *probe
+            resources:
+              requests:
+                cpu: 5m
+                memory: 16Mi
+              limits:
+                memory: 64Mi
+    service:
+      app:
+        controller: smartctl-exporter
+        ports:
+          http:
+            port: *port
+    serviceMonitor:
+      app:
+        enabled: true
+        serviceName: smartctl-exporter
+        endpoints:
+          - port: http
+            scheme: http
+            path: /metrics
+            scrapeTimeout: 10s
+            relabelings:
+              # Name the node, not the pod IP: device names repeat on every
+              # node, and the dashboard's node picker reads this label.
+              - sourceLabels: [__meta_kubernetes_pod_node_name]
+                targetLabel: instance
