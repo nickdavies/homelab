@@ -1,8 +1,8 @@
 # Namespace baseline: deny everything, then allow DNS for every pod. The game
 # servers here run third-party code (modpacks, mods) and accept connections
 # from the internet, so a compromised server must not reach anything in the
-# cluster or on the LAN. A new server type (e.g. an Archipelago server) starts
-# fully denied and needs its own policy below.
+# cluster or on the LAN. A new server type starts fully denied and needs its
+# own policy (Archipelago's is archipelago/app/networkpolicy.yaml).
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -44,8 +44,10 @@ spec:
 #
 # Egress: any TCP port on the public internet only. Mojang auth, NeoForge and
 # modpack downloads, and the oneblock Archipelago mod's websocket to an AP
-# server on an arbitrary port. The modpacks NFS share is mounted by the
-# kubelet, not dialled by the pod.
+# server on an arbitrary port. The in-cluster AP server needs its own rule:
+# blocky resolves ap.<domain> to its LoadBalancer IP, which the public-only
+# rule excludes. The modpacks NFS share is mounted by the kubelet, not dialled
+# by the pod.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -73,6 +75,14 @@ spec:
               - 127.0.0.0/8
       ports:
         - protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              app: archipelago
+      ports:
+        - protocol: TCP
+          port: 38281
+          endPort: 38290
 ---
 # VolSync backup/restore movers: restic to in-cluster Garage and to R2. These
 # run on schedule even while the servers are scaled to 0.
