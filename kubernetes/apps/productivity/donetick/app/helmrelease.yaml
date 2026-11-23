@@ -1,0 +1,94 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app donetick
+spec:
+  interval: 15m
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+    namespace: flux-system
+  install:
+    remediation:
+      retries: 5
+  upgrade:
+    remediation:
+      retries: 5
+      strategy: rollback
+  values:
+    controllers:
+      donetick:
+        # SQLite on an RWO volume: never run two pods at once.
+        strategy: Recreate
+        annotations:
+          reloader.stakater.com/auto: 'true'
+        pod:
+          securityContext:
+            # VolSync's default mover uid/gid, so backups and restores keep ownership.
+            runAsUser: 568
+            runAsGroup: 568
+            fsGroup: 568
+            fsGroupChangePolicy: OnRootMismatch
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+        containers:
+          app:
+            # https://github.com/donetick/donetick
+            # Upgrades migrate the database on startup and can't be rolled back
+            # by reverting the image: restore the volume instead (see the
+            # VolSync template README).
+            image:
+              repository: docker.io/donetick/donetick
+              tag: v0.1.89@sha256:cfe1875c9d04ea89b2e6a60f1a36b28c32661ff2d48c5b8e26dca265bb69d984
+            envFrom:
+              - secretRef:
+                  name: donetick-secret
+            env:
+              DT_ENV: selfhosted
+              DT_SQLITE_PATH: /data/donetick.db
+              TZ: ${TIMEZONE}
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: [ALL]
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/v1/health
+                    port: &port 2021
+              readiness: *probe
+            resources:
+              requests:
+                cpu: 10m
+                memory: 64Mi
+              limits:
+                memory: 256Mi
+    service:
+      app:
+        controller: donetick
+        ports:
+          http:
+            port: *port
+    persistence:
+      config:
+        type: configMap
+        name: donetick-config
+        globalMounts:
+          - path: /config/selfhosted.yaml
+            subPath: selfhosted.yaml
+            readOnly: true
+      data:
+        existingClaim: *app
+        globalMounts:
+          - path: /data
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
