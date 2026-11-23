@@ -1,0 +1,11 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/source.toolkit.fluxcd.io/helmrepository_v1beta2.json
+# Not the OCI copy (ghcr.io/aquasecurity/helm-charts): it stopped at 0.32.1.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: aqua
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://aquasecurity.github.io/helm-charts/

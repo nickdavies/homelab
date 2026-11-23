@@ -218,6 +218,12 @@ spec:
           revision: 1
           datasource:
             - { name: DS_PROMETHEUS, value: Prometheus }
+        trivy-operator:
+          # renovate: depName="Trivy Operator - Vulnerabilities"
+          gnetId: 16337
+          revision: 16
+          datasource:
+            - { name: DS_PROMETHEUS, value: Prometheus }
         cert-manager:
           url: https://raw.githubusercontent.com/monitoring-mixins/website/master/assets/cert-manager/dashboards/cert-manager-overview.json
           datasource: Prometheus

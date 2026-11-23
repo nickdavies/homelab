@@ -1,0 +1,21 @@
+---
+# The operator, its Trivy server and every scan Job run here, and nothing else:
+# the NetworkPolicy in trivy-operator/app covers the whole namespace.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trivy-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# Pods get an API token only if their spec asks for one.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: trivy-system
+automountServiceAccountToken: false
