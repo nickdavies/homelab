@@ -1,0 +1,72 @@
+# Donetick reads ./config/selfhosted.yaml (DT_ENV=selfhosted, workdir /).
+# Secrets come from the environment instead (DT_JWT_SECRET,
+# DT_OAUTH2_CLIENT_SECRET, DT_PUSHOVER_TOKEN; see externalsecret.yaml).
+# Reference: https://github.com/donetick/donetick/blob/develop/config/selfhosted.yaml.example
+name: selfhosted
+is_done_tick_dot_com: false
+# Sign-in is Authelia only, and the `household` group gates who reaches it.
+# Signup stays on so a member's first login creates their account, and the
+# single circle puts every account in the one shared household.
+is_user_creation_disabled: false
+disable_password_auth: true
+single_circle_instance: true
+
+database:
+  type: sqlite
+  migration: true
+
+jwt:
+  session_time: 168h
+  max_refresh: 1440h
+
+server:
+  port: 2021
+  read_timeout: 10s
+  write_timeout: 10s
+  rate_period: 60s
+  rate_limit: 300
+  public_host: https://donetick.internal.${SECRET_DOMAIN}
+  serve_frontend: true
+  serve_swagger: false
+  # The web app, then the phone app's webview origins.
+  cors_allow_origins: &origins
+    - https://donetick.internal.${SECRET_DOMAIN}
+    - https://localhost
+    - http://localhost
+    - capacitor://localhost
+
+realtime:
+  enabled: true
+  sse_enabled: true
+  allowed_origins: *origins
+
+logging:
+  level: info
+  encoding: json
+  development: false
+
+scheduler_jobs:
+  due_job: 30m
+  overdue_job: 3h
+  pre_due_job: 3h
+
+oauth2:
+  name: Authelia
+  client_id: donetick
+  pkce: true
+  scopes: [openid, profile, email]
+  auth_url: https://auth.internal.${SECRET_DOMAIN}/api/oidc/authorization
+  token_url: https://auth.internal.${SECRET_DOMAIN}/api/oidc/token
+  user_info_url: https://auth.internal.${SECRET_DOMAIN}/api/oidc/userinfo
+  redirect_url: https://donetick.internal.${SECRET_DOMAIN}/auth/oauth2
+
+# Attachments on the data volume, so the VolSync backup covers them too.
+storage:
+  storage_type: local
+  base_path: /data/assets
+
+# The hosted push relay (bridge.donetick.com) has no off switch here: its
+# `enabled` defaults to true and a false in YAML is overwritten. It stays inert
+# until a circle admin connects it with an instance token from the relay.
+mcp:
+  enabled: false

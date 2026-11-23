@@ -1,0 +1,27 @@
+# Only the internal gateway's Envoy may reach Donetick, so the route is the
+# only way in.
+#
+# Ingress only: the server calls Authelia (through the gateway) and Pushover.
+# Kubelet probes come from the node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: donetick
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: donetick
+      app.kubernetes.io/controller: donetick
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - protocol: TCP
+          port: 2021
