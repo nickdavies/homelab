@@ -5,6 +5,7 @@ resources:
   - externalsecret.yaml
   - postgres-client-cert.yaml
   - config.yaml
+  - networkpolicy.yaml
   - machine-learning
   - server
 labels:
