@@ -46,9 +46,9 @@ spec:
       specs: []
     trivy:
       storageClassName: ceph-block
-      # Report only what an image update can fix.
+      # Unfixed findings stay in (the chart default): there is often a
+      # mitigation even when there is no patched image.
       severity: HIGH,CRITICAL
-      ignoreUnfixed: true
       server:
         podSecurityContext: &podSecurityContext
           runAsNonRoot: true
