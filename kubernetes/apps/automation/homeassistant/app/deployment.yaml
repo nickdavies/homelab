@@ -95,7 +95,7 @@ spec:
           defaultMode: 0400
       containers:
       - name: overlay-manager
-        image: nickdavies1/kube-overlayfs:main@sha256:0c4df4e11935a90b03a0db1198e078270d0b73de4e10216b9b31b6f56187438d
+        image: ghcr.io/nickdavies/kube-overlayfs:main@sha256:2f460cb50fb1b4b218de7de3356ba41ca56305e0eaee5ef5a812af3064a2950a
         securityContext:
           privileged: true
           allowPrivilegeEscalation: true
