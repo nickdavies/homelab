@@ -1,0 +1,32 @@
+---
+# UnPoller logs in to the UniFi controller with a read-only account and
+# exports what it sees to Prometheus. It may only reach the controller.
+#
+#   ingress 9130   Prometheus (ServiceMonitor)
+#   egress  443    the UniFi controller (UP_UNIFI_DEFAULT_URL, the same
+#                  address as network.yaml's external-unifi Endpoints)
+#
+# InfluxDB output is disabled. Kubelet probes come from the node, which a
+# NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: unpoller
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: unifi-poller
+      app.kubernetes.io/controller: unpoller
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 9130, protocol: TCP }
+  egress:
+    - to:
+        - ipBlock: { cidr: 192.168.254.1/32 }
+      ports:
+        - { port: 443, protocol: TCP }
