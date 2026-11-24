@@ -1,0 +1,83 @@
+# Stores for the repos Flux applies as impersonated reconcilers
+# (nick-assistant-pipelines, agent-workspaces). Each reads one vault with its
+# own read-only Connect token, and its conditions admit only that tenant's
+# namespaces, so a tenant ExternalSecret can't reach the cluster's items.
+#
+# The tokens come from homelab-k8s through onepassword-connect, so there's no
+# second hand-made bootstrap Secret.
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1.json
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: onepassword-connect-token-pipelines
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: onepassword-connect
+  target:
+    name: onepassword-connect-token-pipelines
+    creationPolicy: Owner
+  data:
+    - secretKey: token
+      remoteRef:
+        key: 1password-connect-subvaults
+        property: eso-pipelines
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/clustersecretstore_v1.json
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: onepassword-pipelines
+spec:
+  conditions:
+    - namespaces: [pipelines, pipelines-agents]
+  provider:
+    onepassword:
+      connectHost: http://onepassword-connect.external-secrets.svc.cluster.local:8080
+      vaults:
+        homelab-pipelines: 1
+      auth:
+        secretRef:
+          connectTokenSecretRef:
+            name: onepassword-connect-token-pipelines
+            key: token
+            namespace: external-secrets
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1.json
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: onepassword-connect-token-workspaces
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: onepassword-connect
+  target:
+    name: onepassword-connect-token-workspaces
+    creationPolicy: Owner
+  data:
+    - secretKey: token
+      remoteRef:
+        key: 1password-connect-subvaults
+        property: eso-workspaces
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/clustersecretstore_v1.json
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: onepassword-workspaces
+spec:
+  conditions:
+    - namespaces: [workspaces]
+  provider:
+    onepassword:
+      connectHost: http://onepassword-connect.external-secrets.svc.cluster.local:8080
+      vaults:
+        homelab-workspaces: 1
+      auth:
+        secretRef:
+          connectTokenSecretRef:
+            name: onepassword-connect-token-workspaces
+            key: token
+            namespace: external-secrets
