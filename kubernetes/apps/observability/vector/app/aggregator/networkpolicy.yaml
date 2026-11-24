@@ -1,0 +1,52 @@
+---
+# The aggregator accepts logs only from the agents and writes them only to
+# Loki.
+#
+#   ingress 6010   vector-agent (kubernetes source)
+#           9090   Prometheus (prometheus_exporter sink)
+#   egress  8080   loki-gateway (Service port 80)
+#
+# The journald (6000) and syslog (6020) sources and the API (8686) listen but
+# have no senders: the Service is ClusterIP and nothing references them, so
+# they stay closed. Kubelet probes come from the node, which a NetworkPolicy
+# never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vector-aggregator
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: vector-aggregator
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vector-agent
+      ports:
+        - { port: 6010, protocol: TCP }
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 9090, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: loki
+              app.kubernetes.io/component: gateway
+      ports:
+        - { port: 8080, protocol: TCP }

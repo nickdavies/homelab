@@ -1,0 +1,50 @@
+---
+# The agent runs on every node and reads every pod's logs from the host, so
+# it may only ship them to the aggregator.
+#
+#   ingress 9090   Prometheus (prometheus_exporter sink)
+#   egress  6443   the API server, for pod metadata (kubernetes_logs). The
+#                  kubernetes Service is DNATed to the control-plane nodes
+#                  before the policy matches. The node subnet rather than
+#                  their IPs, so control-plane changes need no edit here;
+#                  only the apiservers listen on 6443 in it.
+#           6010   vector-aggregator
+#
+# Kubelet probes come from the node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vector-agent
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: vector-agent
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 9090, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - { port: 6443, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vector-aggregator
+      ports:
+        - { port: 6010, protocol: TCP }
