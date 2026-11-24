@@ -27,6 +27,30 @@ that window are lost. Anything deleted in that window was removed from
 `/data` 10 minutes later (`BLOCK_GC_DELAY`), so a restic repository pruned
 in that window can fail to restore. Restore that app from R2 instead.
 
+## Restore
+
+`garage-meta` has a `dataSourceRef` to `garage-meta-dst`, which restores the
+latest NAS backup when it's created. On a rebuilt cluster Garage comes back
+with its own node ID, layout, keys and buckets and no manual steps, and the
+app PVCs and CNPG clusters then restore from it.
+
+The `require-meta` initContainer stops Garage from starting if `/meta/node_key`
+is missing. Without it, a restore that found no backup would start an empty
+Garage, and the next 15-minute backup would store that empty state.
+
+Like the app PVCs, `garage-meta-dst` only runs when its `trigger.manual` value
+changes. On a running cluster its snapshot is from whenever it last ran, so
+recreating `garage-meta` restores that old snapshot unless the destination is
+re-triggered first.
+
+### First-ever install
+
+There is no backup to restore, so `require-meta` blocks the pod. Remove the
+initContainer for one commit and let Garage generate its node key. Assign the
+layout (`garage layout assign -z dc1 -c <capacity> <node-id>`, then
+`garage layout apply --version 1`) and create the keys and buckets. Once one
+backup of `garage-meta` has succeeded, restore the initContainer.
+
 ## Manual restic access
 
 ```sh

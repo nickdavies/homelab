@@ -5,6 +5,11 @@ metadata:
   name: garage-meta
 spec:
   accessModes: ["ReadWriteOnce"]
+  # Populated from the NAS backup on creation (./volsync.yaml).
+  dataSourceRef:
+    kind: ReplicationDestination
+    apiGroup: volsync.backube
+    name: garage-meta-dst
   resources:
     requests:
       storage: 2Gi
