@@ -4,9 +4,14 @@
 # around the route.
 #
 # Home Assistant and the other MQTT clients reach Zigbee2MQTT through
-# Mosquitto, never directly. Ingress only: Zigbee2MQTT dials out to Mosquitto
-# and the coordinator. Kubelet probes come from the node, which a
+# Mosquitto, never directly. Kubelet probes come from the node, which a
 # NetworkPolicy never blocks, and port-forwards connect inside the pod.
+#
+#   egress  1883   Mosquitto
+#           443    public internet: the OTA index and images (every URL in
+#                  Koenkk/zigbee-OTA's index.json is raw.githubusercontent.com)
+#
+# The coordinator is USB (/dev/zigbee0), so it needs no network rule.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -15,7 +20,7 @@ spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: zigbee2mqtt
-  policyTypes: [Ingress]
+  policyTypes: [Ingress, Egress]
   ingress:
     - from:
         - namespaceSelector:
@@ -28,3 +33,32 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mosquitto
+      ports:
+        - { port: 1883, protocol: TCP }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+      ports:
+        - { port: 443, protocol: TCP }
