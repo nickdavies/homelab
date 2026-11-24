@@ -4,5 +4,6 @@ kind: Kustomization
 resources:
   - ./configmap.yaml
   - ./git-sync.yaml
+  - ./networkpolicy.yaml
   - ./pvc.yaml
   - ./secret.yaml
