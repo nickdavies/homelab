@@ -14,6 +14,16 @@ spec:
   storage:
     size: 40Gi
     storageClass: openebs-hostpath
+  # Workers only: the control-plane nodes are being emptied down to core
+  # services. Required, not preferred, because openebs-hostpath binds each
+  # instance's PV to whichever node it first lands on.
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
   # postgres has no password; Immich connects as the immich superuser by
   # client certificate (./client.yaml).
   enableSuperuserAccess: false
