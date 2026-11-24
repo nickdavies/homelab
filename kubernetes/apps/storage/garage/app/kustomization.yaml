@@ -9,6 +9,7 @@ resources:
   - ./networkpolicy.yaml
   - ./routes.yaml
   - ./securitypolicy.yaml
+  - ./volsync.yaml
 configMapGenerator:
   - name: garage-configmap
     files:

@@ -1,0 +1,66 @@
+---
+# Backs up the garage-meta PVC (LMDB, node_key, cluster_layout) to a restic
+# repository on the NAS, so Garage can be restored without Garage. Not
+# templates/volsync, whose repository is this Garage. See ../README.md.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/external-secrets.io/externalsecret_v1beta1.json
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: garage-meta-volsync
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: onepassword-connect
+  target:
+    name: garage-meta-volsync-secret
+    template:
+      engineVersion: v2
+      data:
+        RESTIC_REPOSITORY: /mnt/repo
+        RESTIC_PASSWORD: "{{ .RESTIC_PASSWORD }}"
+  dataFrom:
+    - extract:
+        key: volsync-minio-template
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/volsync.backube/replicationsource_v1alpha1.json
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationSource
+metadata:
+  name: garage-meta
+spec:
+  sourcePVC: garage-meta
+  trigger:
+    # Restored metadata is this much older than the object data. Anything
+    # Garage deletes inside that window is gone 10 minutes later, so keep
+    # it short.
+    schedule: "*/15 * * * *"
+  restic:
+    # The RBD snapshot is crash-consistent, which LMDB survives because
+    # metadata_fsync is on (config/configuration.toml).
+    copyMethod: Snapshot
+    pruneIntervalDays: 7
+    # See templates/volsync/README.md "Stale locks"
+    unlock: "2026-11-11"
+    repository: garage-meta-volsync-secret
+    volumeSnapshotClassName: csi-ceph-blockpool
+    cacheCapacity: 1Gi
+    cacheStorageClassName: openebs-hostpath
+    cacheAccessModes: [ReadWriteOnce]
+    storageClassName: ceph-block
+    accessModes: [ReadWriteOnce]
+    moverVolumes:
+      - mountPath: repo
+        volumeSource:
+          nfs:
+            server: ${SECRET_NFS_DOMAIN}
+            path: /volume1/k8s/garage/meta-restic
+    moverSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 568
+      runAsGroup: 568
+      fsGroup: 568
+      seccompProfile:
+        type: RuntimeDefault
+    retain:
+      hourly: 24
+      daily: 7
