@@ -19,13 +19,6 @@ spec:
     - feature: network.device
       matchExpressions:
         name: {op: In, value: ["eth0"]}
-  - name: multus.trusted
-    labels:
-      multus.feature.node.kubernetes.io/trusted: "true"
-    matchFeatures:
-    - feature: network.virtual
-      matchExpressions:
-        name: {op: In, value: ["eth0.10"]}
   - name: multus.iot
     labels:
       multus.feature.node.kubernetes.io/iot: "true"

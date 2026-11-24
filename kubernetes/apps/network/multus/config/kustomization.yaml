@@ -6,4 +6,3 @@ resources:
   - ./net-attach-iot.yaml
   - ./net-attach-mgmt.yaml
   - ./net-attach-not.yaml
-  - ./net-attach-trusted.yaml
