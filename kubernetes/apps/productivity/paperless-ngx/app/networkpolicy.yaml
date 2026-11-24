@@ -1,10 +1,22 @@
-# Only the internal gateway's Envoy may reach Paperless, and only on the web
-# port. The pod also runs Tika (9998) and gotenberg (3000), which listen on
-# 0.0.0.0 with no auth and parse arbitrary documents; Paperless reaches them
-# over localhost, so nothing else needs them.
+# Paperless, Tika and gotenberg share one pod and parse whatever is uploaded
+# or dropped in the consume folder, which makes this the pod most likely to be
+# compromised that also holds sensitive documents.
 #
-# Ingress only. Kubelet probes come from the node, which a NetworkPolicy never
-# blocks.
+#   ingress 80     the internal gateway's Envoy. Tika (9998) and gotenberg
+#                  (3000) listen on 0.0.0.0 with no auth but are only used
+#                  over localhost, so nothing else may reach the pod.
+#   egress  5432   the main CNPG cluster (client-cert login)
+#           6379   shared Dragonfly (Celery broker)
+#           10443  the internal gateway's Envoy, for OIDC against
+#                  auth.internal. That name resolves to the gateway's LB IP,
+#                  which kube-proxy DNATs to the Envoy pods before the policy
+#                  matches.
+#
+# No internet: gotenberg's Chromium renders untrusted HTML, and without
+# egress it can't fetch or exfiltrate anything. No mail accounts are
+# configured, so there's no IMAP. The consume volume is an NFS mount made by
+# the kubelet. Kubelet probes come from the node, which a NetworkPolicy
+# never blocks.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -14,7 +26,7 @@ spec:
     matchLabels:
       app.kubernetes.io/name: paperless-ngx
       app.kubernetes.io/controller: paperless-ngx
-  policyTypes: [Ingress]
+  policyTypes: [Ingress, Egress]
   ingress:
     - from:
         - namespaceSelector:
@@ -27,3 +39,42 @@ spec:
       ports:
         - protocol: TCP
           port: 80
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+          podSelector:
+            matchLabels:
+              cnpg.io/cluster: postgres
+      ports:
+        - { port: 5432, protocol: TCP }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+          podSelector:
+            matchLabels:
+              app: dragonfly
+      ports:
+        - { port: 6379, protocol: TCP }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - { port: 10443, protocol: TCP }
