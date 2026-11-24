@@ -1,0 +1,109 @@
+---
+# The ESO controller writes every Secret in the cluster from two providers:
+# 1Password Connect (all three ClusterSecretStores) and the kubernetes
+# provider (the postgres-client-cert SecretStores, which read the API).
+#
+#   ingress 8080   Prometheus (ServiceMonitor)
+#   egress  6443   the API server. The kubernetes Service is DNATed to the
+#                  control-plane nodes before the policy matches, so the peer
+#                  is the node subnet on 6443 (only the apiservers listen
+#                  there).
+#           8080   onepassword-connect (connect-api)
+#
+# Kubelet probes come from the node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: external-secrets
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: external-secrets
+      app.kubernetes.io/instance: external-secrets
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 8080, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - { port: 6443, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app: onepassword-connect
+      ports:
+        - { port: 8080, protocol: TCP }
+---
+# cert-controller rotates the webhook's serving certificate and patches the
+# webhook configurations and CRDs, all through the API server.
+#
+#   ingress 8080   Prometheus (ServiceMonitor)
+#   egress  6443   the API server, via the node subnet
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: external-secrets-cert-controller
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: external-secrets-cert-controller
+      app.kubernetes.io/instance: external-secrets
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 8080, protocol: TCP }
+  egress:
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - { port: 6443, protocol: TCP }
+---
+# The webhook validates ExternalSecrets and SecretStores
+# (externalsecret-validate, secretstore-validate) and reads only the API.
+#
+#   egress  6443   the API server, via the node subnet
+#
+# Egress only: the apiserver calls the webhook (10250) from the control-plane
+# hosts, which arrive from per-node flannel addresses, and a stale list there
+# would block every ExternalSecret apply.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: external-secrets-webhook
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: external-secrets-webhook
+      app.kubernetes.io/instance: external-secrets
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - { port: 6443, protocol: TCP }
