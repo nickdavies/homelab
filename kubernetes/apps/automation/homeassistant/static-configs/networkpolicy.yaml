@@ -1,0 +1,48 @@
+---
+# hass-static-config-sync pulls hass-configs from GitHub over SSH and pokes the
+# reloader adapter after each new commit. It serves nothing, so all ingress is
+# denied.
+#
+#   egress  22     public internet: github.com (git over SSH)
+#           8080   git-sync-reloader-adapter in kube-system (--webhook-url)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hass-static-config-sync
+spec:
+  podSelector:
+    matchLabels:
+      app: hass-static-config-sync
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app: git-sync-reloader-adapter
+      ports:
+        - { port: 8080, protocol: TCP }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+      ports:
+        - { port: 22, protocol: TCP }
