@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ./dnsendpoint.yaml
   - ./helmrelease.yaml
+  - ./networkpolicy.yaml
 configMapGenerator:
   - name: cloudflared-configmap
     files:
