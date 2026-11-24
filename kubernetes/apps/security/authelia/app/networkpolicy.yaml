@@ -1,0 +1,90 @@
+---
+# Authelia decides every forward-auth check and OIDC login, so only Envoy and
+# Prometheus may reach it, and it may only reach its four backends.
+#
+#   ingress 80     both gateways' Envoy: the auth.* routes, ext-authz from
+#                  SecurityPolicies, and OIDC back-channel calls (every client,
+#                  the kube-apiserver included, uses the auth.* URLs)
+#           8080   Prometheus, /metrics
+#   egress  5432   the main CNPG cluster, storage (client-cert login)
+#           6379   dragonfly-authelia, sessions
+#           389    LLDAP, the authentication backend
+#           25     smtp-relay, the notifier
+#
+# Nothing goes to the internet: Duo is disabled and the NTP and WebAuthn
+# metadata checks don't run. Kubelet probes come from the node, which a
+# NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: authelia
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: authelia
+      app.kubernetes.io/controller: authelia
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: envoy
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - { port: 80, protocol: TCP }
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 8080, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+          podSelector:
+            matchLabels:
+              cnpg.io/cluster: postgres
+      ports:
+        - { port: 5432, protocol: TCP }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+          podSelector:
+            matchLabels:
+              app: dragonfly-authelia
+      ports:
+        - { port: 6379, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: lldap
+      ports:
+        - { port: 389, protocol: TCP }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: smtp-relay
+      ports:
+        - { port: 25, protocol: TCP }
