@@ -8,8 +8,15 @@
 #   Authelia (securitypolicy.yaml).
 # - Prometheus: the ServiceMonitor scrapes 5000/api/metrics.
 #
-# Ingress only: Frigate dials out to the cameras, MQTT and Frigate+. Kubelet
-# probes come from the node, which a NetworkPolicy never blocks.
+# Egress:
+#
+#   1883   Mosquitto
+#   554    RTSP to the cameras, on the cameras' VLAN (192.168.30.0/24, the
+#          multus-not network in homeassistant/app/deployment.yaml). Their
+#          IPs stay in the secret; the rule is scoped by port, not address.
+#   443    public internet: Frigate+ (the plus:// model) and the version check
+#
+# Kubelet probes come from the node, which a NetworkPolicy never blocks.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -19,7 +26,7 @@ spec:
     matchLabels:
       app.kubernetes.io/name: frigate
       app.kubernetes.io/controller: frigate
-  policyTypes: [Ingress]
+  policyTypes: [Ingress, Egress]
   ingress:
     - from:
         - podSelector:
@@ -51,3 +58,36 @@ spec:
       ports:
         - protocol: TCP
           port: 5000
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mosquitto
+      ports:
+        - { port: 1883, protocol: TCP }
+    - to:
+        - ipBlock: { cidr: 192.168.30.0/24 }
+      ports:
+        - { port: 554, protocol: TCP }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+      ports:
+        - { port: 443, protocol: TCP }
