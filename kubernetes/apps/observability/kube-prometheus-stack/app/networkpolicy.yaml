@@ -122,7 +122,8 @@ spec:
 # kube-state-metrics can list every object in the cluster. Only Prometheus
 # scrapes it (8080 metrics, 8081 self-telemetry), and it only talks to the
 # API server. The kubernetes Service is DNATed to the control-plane nodes
-# before the policy matches, so the peers are their IPs on 6443.
+# before the policy matches, so the peer is the node subnet on 6443 (only the
+# apiservers listen there), not each node's IP.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -146,9 +147,7 @@ spec:
           port: 8081
   egress:
     - to:
-        - ipBlock: { cidr: 192.168.254.11/32 }
-        - ipBlock: { cidr: 192.168.254.12/32 }
-        - ipBlock: { cidr: 192.168.254.13/32 }
+        - ipBlock: { cidr: 192.168.254.0/24 }
       ports:
         - protocol: TCP
           port: 6443
@@ -170,9 +169,7 @@ spec:
   policyTypes: [Egress]
   egress:
     - to:
-        - ipBlock: { cidr: 192.168.254.11/32 }
-        - ipBlock: { cidr: 192.168.254.12/32 }
-        - ipBlock: { cidr: 192.168.254.13/32 }
+        - ipBlock: { cidr: 192.168.254.0/24 }
       ports:
         - protocol: TCP
           port: 6443
