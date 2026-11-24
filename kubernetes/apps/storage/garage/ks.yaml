@@ -12,6 +12,7 @@ spec:
   path: ./kubernetes/apps/storage/garage/app
   dependsOn:
     - name: external-secrets
+    - name: volsync # ReplicationSource CRD
   prune: true
   sourceRef:
     kind: GitRepository

@@ -52,8 +52,8 @@ Optional overrides: `VOLSYNC_PUID`, `VOLSYNC_PGID`, `VOLSYNC_RUNASNONROOT`, `VOL
 
 A mover killed mid-run (node reboot, OOM) leaves its restic lock behind, and
 every later sync of that repository fails with `repository is already
-locked`. To clear it, change `spec.restic.unlock` in `garage.yaml` and
-`r2.yaml` to today's date. Each ReplicationSource then runs `restic unlock`
+locked`. To clear it, change `spec.restic.unlock` in `garage.yaml`,
+`r2.yaml` and `apps/storage/garage/app/volsync.yaml` to today's date. Each ReplicationSource then runs `restic unlock`
 once before its next backup, for every app. That's safe because plain
 `restic unlock` only removes locks older than 30 minutes, which a live restic
 process would have refreshed. It is not `--remove-all`.
