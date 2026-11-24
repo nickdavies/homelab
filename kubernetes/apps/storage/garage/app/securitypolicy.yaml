@@ -1,0 +1,32 @@
+---
+# Authelia in front of the admin API, ahead of Garage's own admin token. Same
+# ext-authz wiring as automation/rethink/app/securitypolicy.yaml, which
+# explains each field.
+#
+# A request carrying only the bearer token is now redirected to Authelia, so
+# scripted admin access goes through a port-forward to :3903, not this route.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: garage-admin-authelia
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: garage-admin
+  extAuth:
+    headersToExtAuth:
+      - accept
+      - cookie
+      - location
+      - authorization
+      - proxy-authorization
+      - x-forwarded-proto
+    failOpen: false
+    http:
+      backendRefs:
+        - kind: Service
+          name: authelia
+          namespace: security
+          port: 80
+      path: /api/authz/ext-authz/

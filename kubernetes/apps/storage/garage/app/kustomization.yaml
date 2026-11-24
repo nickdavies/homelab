@@ -8,6 +8,7 @@ resources:
   - ./helmrelease.yaml
   - ./networkpolicy.yaml
   - ./routes.yaml
+  - ./securitypolicy.yaml
 configMapGenerator:
   - name: garage-configmap
     files:
