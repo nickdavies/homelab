@@ -59,9 +59,13 @@ spec:
         pod:
           # The kubernetes_logs source watches pods through the API (rbac.yaml).
           automountServiceAccountToken: true
-          # Collect from every node, including tainted special-purpose ones (laundry-pi).
+          # Collect from every node, including the control plane and tainted
+          # special-purpose ones (laundry-pi).
           tolerations:
             - key: homelab/special-node
+              operator: Exists
+              effect: NoSchedule
+            - key: node-role.kubernetes.io/control-plane
               operator: Exists
               effect: NoSchedule
     service:

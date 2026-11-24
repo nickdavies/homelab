@@ -46,6 +46,12 @@ spec:
       # app-template 5 only mounts the token when asked.
       automountServiceAccountToken: true
       hostNetwork: true
+      # Frigate falls back to the control-plane nodes and needs its macvlan
+      # there.
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
     persistence:
       etc-cni-net-d:
         type: hostPath

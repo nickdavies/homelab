@@ -52,6 +52,9 @@ spec:
             - effect: NoSchedule
               key: homelab/special-node
               operator: Exists
+            - effect: NoSchedule
+              key: node-role.kubernetes.io/control-plane
+              operator: Exists
         controllerPlugin:
           priorityClassName: system-cluster-critical
           hostNetwork: true
@@ -85,6 +88,9 @@ spec:
           tolerations:
             - effect: NoSchedule
               key: homelab/special-node
+              operator: Exists
+            - effect: NoSchedule
+              key: node-role.kubernetes.io/control-plane
               operator: Exists
           resources:
             plugin:
@@ -147,6 +153,9 @@ spec:
           tolerations:
             - effect: NoSchedule
               key: homelab/special-node
+              operator: Exists
+            - effect: NoSchedule
+              key: node-role.kubernetes.io/control-plane
               operator: Exists
           resources:
             plugin:

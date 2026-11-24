@@ -71,6 +71,12 @@ spec:
             memory: 2Gi
           limits:
             memory: 4Gi
+        # The openebs-hostpath PVs pin the replicas to control-plane nodes 2
+        # and 3.
+        tolerations:
+          - key: node-role.kubernetes.io/control-plane
+            operator: Exists
+            effect: NoSchedule
         storageSpec:
           volumeClaimTemplate:
             spec:

@@ -178,6 +178,13 @@ spec:
                 - matchExpressions:
                     - key: node-role.kubernetes.io/control-plane
                       operator: Exists
+          # Rook gives each node's crashcollector and exporter the union of
+          # the tolerations of the Ceph pods on that node, so this covers them
+          # too.
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
         mon: *placement
     cephBlockPools:
       - name: ceph-blockpool
