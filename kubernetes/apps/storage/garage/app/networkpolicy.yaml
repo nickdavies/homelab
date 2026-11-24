@@ -1,0 +1,57 @@
+---
+# Garage holds the in-cluster backups (VolSync restic repos, CNPG WAL and base
+# backups), so only the backup writers may reach S3, only the internal
+# gateway may reach the admin API, and Garage itself dials nothing.
+#
+#   ingress 3900   S3: the main and immich CNPG instances (barman-cloud
+#                  sidecar), the cloudnative-pg-offsite mirror to R2, and
+#                  VolSync movers in any namespace (templates/volsync/garage.yaml)
+#           3903   admin API, the internal gateway's Envoy (garage.internal)
+#   egress  none   single node (rpc_public_addr is loopback); the data and
+#                  snapshot NFS volumes are mounted by the kubelet
+#
+# Movers are matched by the label VolSync puts on every mover pod, in any
+# namespace, so a new app's backups work without editing this file. Kubelet
+# probes come from the node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: garage
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: garage
+      app.kubernetes.io/controller: garage
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+          podSelector:
+            matchExpressions:
+              - key: cnpg.io/cluster
+                operator: In
+                values: [postgres, immich]
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg-offsite
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/created-by: volsync
+      ports:
+        - { port: 3900, protocol: TCP }
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - { port: 3903, protocol: TCP }
