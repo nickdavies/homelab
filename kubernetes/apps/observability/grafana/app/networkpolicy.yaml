@@ -7,7 +7,9 @@
 #   egress  5432   the main CNPG cluster (client-cert login)
 #           6443   the API server, for the dashboard/datasource sidecars. The
 #                  kubernetes Service is DNATed to the control-plane nodes
-#                  before the policy matches, so the peers are their IPs.
+#                  before the policy matches. The node subnet rather than
+#                  their IPs, so control-plane changes need no edit here;
+#                  only the apiservers listen on 6443 in it.
 #           9090   Prometheus
 #           8080   loki-gateway (Service port 80)
 #           9093   Alertmanager
@@ -65,9 +67,7 @@ spec:
       ports:
         - { port: 5432, protocol: TCP }
     - to:
-        - ipBlock: { cidr: 192.168.254.11/32 }
-        - ipBlock: { cidr: 192.168.254.12/32 }
-        - ipBlock: { cidr: 192.168.254.13/32 }
+        - ipBlock: { cidr: 192.168.254.0/24 }
       ports:
         - { port: 6443, protocol: TCP }
     - to:
