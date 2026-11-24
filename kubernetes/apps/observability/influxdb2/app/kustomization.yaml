@@ -5,6 +5,7 @@ resources:
   - ./externalsecret.yaml
   - ./grafana-datasource.yaml
   - ./helmrelease.yaml
+  - ./networkpolicy.yaml
   - ./route.yaml
   - ../../../../templates/volsync
 configMapGenerator:
