@@ -1,0 +1,60 @@
+---
+# cloudflared is the public entry point: it holds the tunnel credentials and
+# forwards every request for the public domain into the cluster. It may only
+# talk to Cloudflare's tunnel edge and the external gateway.
+#
+#   ingress 8080   Prometheus (ServiceMonitor; /ready is the kubelet probe)
+#   egress  7844   Cloudflare's tunnel edge, region1 198.41.192.0/24 and
+#                  region2 198.41.200.0/24. UDP for QUIC
+#                  (TUNNEL_TRANSPORT_PROTOCOL), TCP for the http2 fallback.
+#           10443  the external gateway's Envoy, the origin for every ingress
+#                  rule (gateway-external Service 443 -> 10443)
+#
+# The startup edge-discovery SRV lookup and the api.cloudflare.com precheck
+# already fail and are non-fatal: cloudflared falls back to its built-in edge
+# addresses, and a tunnel run from a credentials file needs no API. DNS stays
+# allowed for the origin hostname.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cloudflared
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflared
+      app.kubernetes.io/controller: cloudflared
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 8080, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - ipBlock: { cidr: 198.41.192.0/24 }
+        - ipBlock: { cidr: 198.41.200.0/24 }
+      ports:
+        - { port: 7844, protocol: UDP }
+        - { port: 7844, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: external
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - { port: 10443, protocol: TCP }
