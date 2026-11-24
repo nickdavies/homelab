@@ -4,6 +4,10 @@ metadata_dir = "/meta"
 metadata_snapshots_dir = "/metadata-snapshots"
 data_dir = "/data"
 db_engine = "lmdb"
+# The default (false) runs LMDB with MDB_NOSYNC, which upstream accepts
+# because a corrupted node resyncs from its replicas. With
+# replication_factor 1 there are none, and writes here are only backups.
+metadata_fsync = true
 metadata_auto_snapshot_interval = "6h"
 
 replication_factor = 1
