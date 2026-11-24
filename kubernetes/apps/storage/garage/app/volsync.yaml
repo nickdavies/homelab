@@ -64,3 +64,38 @@ spec:
     retain:
       hourly: 24
       daily: 7
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/volsync.backube/replicationdestination_v1alpha1.json
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationDestination
+metadata:
+  name: garage-meta-dst
+spec:
+  # Runs once when created, so on a rebuilt cluster it restores the latest
+  # backup. On a running cluster its snapshot is from whenever it last ran.
+  trigger:
+    manual: restore-once
+  restic:
+    repository: garage-meta-volsync-secret
+    copyMethod: Snapshot # must be Snapshot
+    volumeSnapshotClassName: csi-ceph-blockpool
+    cacheCapacity: 1Gi
+    cacheStorageClassName: openebs-hostpath
+    cacheAccessModes: [ReadWriteOnce]
+    storageClassName: ceph-block
+    accessModes: [ReadWriteOnce]
+    capacity: 2Gi
+    moverVolumes:
+      - mountPath: repo
+        volumeSource:
+          nfs:
+            server: ${SECRET_NFS_DOMAIN}
+            path: /volume1/k8s/garage/meta-restic
+    # Restores as 568, which owns every file Garage writes.
+    moverSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 568
+      runAsGroup: 568
+      fsGroup: 568
+      seccompProfile:
+        type: RuntimeDefault

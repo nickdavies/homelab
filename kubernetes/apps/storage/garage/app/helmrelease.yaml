@@ -29,6 +29,26 @@ spec:
       garage:
         annotations:
           reloader.stakater.com/auto: "true"
+        initContainers:
+          # Garage given an empty /meta generates a new node key and runs with
+          # no layout, keys or buckets. Refuse instead, so a failed restore of
+          # garage-meta stops here rather than being backed up over the good
+          # metadata. See ../README.md for a first-ever install.
+          require-meta:
+            image:
+              repository: public.ecr.aws/docker/library/busybox
+              # renovate: depName=public.ecr.aws/docker/library/busybox datasource=docker
+              tag: 1.37.0-musl@sha256:5cec3fc171c87218698e85a52af7087de727372aae264a787b8112901a5b0092
+            command: ["/bin/sh", "-euc"]
+            args:
+              - |
+                [ -s /meta/node_key ] && exit 0
+                echo "/meta/node_key is missing: garage-meta was not restored" >&2
+                exit 1
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: [ALL] }
         containers:
           app:
             image:
