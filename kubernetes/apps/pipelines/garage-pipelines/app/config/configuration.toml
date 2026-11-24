@@ -14,6 +14,11 @@
 metadata_dir = "/meta"
 data_dir = "/data"
 db_engine = "lmdb"
+# The default (false) runs LMDB with MDB_NOSYNC, which upstream accepts
+# because a corrupted node resyncs from its replicas. With rf=1 there are
+# none: a crash mid-write leaves a Garage that won't start until the PVC is
+# wiped and the layout redone by hand.
+metadata_fsync = true
 
 replication_factor = 1
 compression_level = 2
