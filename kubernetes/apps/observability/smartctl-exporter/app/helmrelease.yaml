@@ -24,9 +24,14 @@ spec:
   values:
     defaultPodOptions:
       automountServiceAccountToken: false
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
     controllers:
-      # SMART health for every node's physical disks. No toleration for the Pi's
-      # taint: it boots from an SD card, which has no SMART data.
+      # SMART health for every node's physical disks, control plane included.
+      # No toleration for the Pi's taint: it boots from an SD card, which has
+      # no SMART data.
       smartctl-exporter:
         type: daemonset
         containers:

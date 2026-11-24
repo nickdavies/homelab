@@ -65,6 +65,10 @@ spec:
                     matchExpressions:
                       - key: node-role.kubernetes.io/control-plane
                         operator: DoesNotExist
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
         initContainers:
           # NetworkPolicy never sees net1, and Frigate listens on every
           # interface, including the unauthenticated 5000 that hands out the
