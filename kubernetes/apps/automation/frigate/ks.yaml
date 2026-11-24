@@ -20,6 +20,7 @@ spec:
   timeout: 5m
   dependsOn:
     - name: external-secrets
+    - name: multus-config
     - name: node-feature-discovery
     - name: rook-ceph-cluster
     - name: volsync

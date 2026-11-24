@@ -11,10 +11,11 @@
 # Egress:
 #
 #   1883   Mosquitto
-#   554    RTSP to the cameras, on the cameras' VLAN (192.168.30.0/24, the
-#          multus-not network in homeassistant/app/deployment.yaml). Their
-#          IPs stay in the secret; the rule is scoped by port, not address.
 #   443    public internet: Frigate+ (the plus:// model) and the version check
+#
+# Scope: eth0 only. The cameras are reached over the multus-not macvlan
+# (net1, helmrelease.yaml), which bypasses NetworkPolicy; the net1-guard init
+# container filters that interface instead.
 #
 # Kubelet probes come from the node, which a NetworkPolicy never blocks.
 apiVersion: networking.k8s.io/v1
@@ -75,10 +76,6 @@ spec:
               app.kubernetes.io/name: mosquitto
       ports:
         - { port: 1883, protocol: TCP }
-    - to:
-        - ipBlock: { cidr: 192.168.30.0/24 }
-      ports:
-        - { port: 554, protocol: TCP }
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
