@@ -1,0 +1,54 @@
+---
+# The Dragonfly operator promotes and repoints replicas, so it may only reach
+# the API server and the Dragonfly admin port.
+#
+#   ingress 8080   Prometheus (ServiceMonitor)
+#   egress  6443   the API server, via the node subnet (only the apiservers
+#                  listen on 6443 there; the kubernetes Service is DNATed to
+#                  them before the policy matches)
+#           9999   every Dragonfly instance's admin port (REPLICAOF/
+#                  REPLTAKEOVER), which each instance's policy already admits
+#
+# There are no webhooks. Kubelet probes (8081) come from the node, which a
+# NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dragonfly-operator
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: dragonfly-operator
+      app.kubernetes.io/controller: dragonfly-operator
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 8080, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - { port: 6443, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dragonfly
+      ports:
+        - { port: 9999, protocol: TCP }
