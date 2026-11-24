@@ -1,0 +1,54 @@
+---
+# The CNPG operator holds superuser access to every cluster, so its egress is
+# limited to what it manages.
+#
+#   egress  6443   the API server. The kubernetes Service is DNATed to the
+#                  control-plane nodes before the policy matches, so the peer
+#                  is the node subnet on 6443 (only the apiservers listen
+#                  there).
+#           5432   every CNPG instance (cnpg.io/podRole: instance)
+#           8000   every instance manager's status endpoint
+#           9090   the barman-cloud plugin (gRPC over mTLS)
+#
+# Egress only: the apiserver calls the operator's admission webhooks (9443)
+# from the control-plane hosts, which arrive from per-node flannel addresses,
+# and a stale list there would block every Cluster apply. Each cluster's own
+# policy (cluster/, immich/) already admits the operator on 5432 and 8000.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cloudnative-pg
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: cloudnative-pg
+      app.kubernetes.io/instance: cloudnative-pg
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - { port: 6443, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/podRole: instance
+      ports:
+        - { port: 5432, protocol: TCP }
+        - { port: 8000, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: barman-cloud
+      ports:
+        - { port: 9090, protocol: TCP }
