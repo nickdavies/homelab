@@ -38,7 +38,7 @@ spec:
             image:
               repository: public.ecr.aws/docker/library/busybox
               # renovate: depName=public.ecr.aws/docker/library/busybox datasource=docker
-              tag: 1.37.0-musl@sha256:5cec3fc171c87218698e85a52af7087de727372aae264a787b8112901a5b0092
+              tag: 1.38.0-musl@sha256:80e38f9a1b39188b8bdb28879178edb322a4402b081a9aedda1924609decd6f6
             command: ["/bin/sh", "-euc"]
             args:
               - |
