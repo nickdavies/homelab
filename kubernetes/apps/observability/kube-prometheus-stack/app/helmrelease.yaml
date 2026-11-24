@@ -59,12 +59,15 @@ spec:
           - memory-snapshot-on-shutdown
         retention: 14d
         retentionSize: 50GB
+        # TEMPORARY measurement limit: high enough for WAL replay to finish so
+        # the real replay peak and steady state can be measured, then sized
+        # from those. At 1Gi a restart OOMs mid-replay (~520k series).
         resources:
           requests:
             cpu: 100m
             memory: 512Mi
           limits:
-            memory: 1Gi
+            memory: 4Gi
         storageSpec:
           volumeClaimTemplate:
             spec:
