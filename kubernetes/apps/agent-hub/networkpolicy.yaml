@@ -1,0 +1,82 @@
+# Namespace baseline: deny everything. The approval servers gate what Claude
+# sessions may do, so a pod that could reach them directly, or that they could
+# use to reach the LAN, defeats the point. A new pod here starts fully denied.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: agent-hub
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# Both approval servers (personal, work) have identical traffic.
+#
+#   ingress 8080   internal gateway's Envoy (ai.internal / work.ai.internal):
+#                  hooks, MCP and the approval UI all arrive through it
+#   egress  10443  internal gateway's Envoy, for OIDC against auth.internal.
+#                  That name resolves to the gateway's LB IP, which kube-proxy
+#                  DNATs to the Envoy pods before the policy matches, so the
+#                  peer is the pod on its container port, not 192.168.254.2:443
+#           443    public internet: the Pushover API
+#
+# The servers have no probes.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: approval-servers
+  namespace: agent-hub
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - approval-server-personal
+          - approval-server-work
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - { port: 8080, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - { port: 10443, protocol: TCP }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+      ports:
+        - { port: 443, protocol: TCP }
