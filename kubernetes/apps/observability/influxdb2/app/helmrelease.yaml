@@ -39,6 +39,9 @@ spec:
               tag: 2.10.1
             env:
               INFLUXDB_DATA_CACHE_MAX_MEMORY_SIZE: 3G
+              # Otherwise influxd phones home usage stats every 8h, which the
+              # NetworkPolicy blocks anyway.
+              INFLUXD_REPORTING_DISABLED: "true"
               TZ: ${TIMEZONE}
               # The entrypoint's dasel (first-run setup) needs a current user,
               # and uid 568 has no passwd entry; Go falls back to $USER.
