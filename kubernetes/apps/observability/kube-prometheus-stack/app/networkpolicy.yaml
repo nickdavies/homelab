@@ -118,3 +118,58 @@ spec:
           port: 9093
     # 9094 (mesh) is left closed: one replica, so there are no peers. Opening
     # it is part of going to more than one.
+---
+# kube-state-metrics can list every object in the cluster. Only Prometheus
+# scrapes it (8080 metrics, 8081 self-telemetry), and it only talks to the
+# API server. The kubernetes Service is DNATed to the control-plane nodes
+# before the policy matches, so the peer is the node subnet on 6443 (only the
+# apiservers listen there), not each node's IP.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kube-state-metrics
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: kube-state-metrics
+      app.kubernetes.io/instance: kube-prometheus-stack
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+              operator.prometheus.io/name: kube-prometheus-stack
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8081
+  egress:
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - protocol: TCP
+          port: 6443
+---
+# The operator writes every Prometheus and Alertmanager config, so its egress
+# is the API server only. Egress only: its admission webhook (10250) is called
+# by the apiserver on the control-plane hosts, which arrive from per-node
+# flannel addresses (see the Ceph dashboard rule above), and a stale list
+# there would break every PrometheusRule apply.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-operator
+spec:
+  podSelector:
+    matchLabels:
+      app: kube-prometheus-stack-operator
+      release: kube-prometheus-stack
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock: { cidr: 192.168.254.0/24 }
+      ports:
+        - protocol: TCP
+          port: 6443
