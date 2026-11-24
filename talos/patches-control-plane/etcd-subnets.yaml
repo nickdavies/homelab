@@ -1,0 +1,15 @@
+---
+# etcd peers and clients on the node network only. Unset, Talos advertises the
+# node's first routed address and listens on 0.0.0.0: with VLAN addresses on
+# the node that meant advertising eth0.10's and listening on every VLAN.
+#
+# This also narrows listenSubnets to the same subnet (plus 127.0.0.1 for
+# clients). Talos leaves the VIP out of the advertised addresses itself.
+#
+# On a running member, applying this rewrites its peer URLs at once
+# (MemberUpdate, needs quorum); the listen addresses change only when etcd
+# next starts. Apply one control plane at a time.
+cluster:
+  etcd:
+    advertisedSubnets:
+      - 192.168.254.0/24
