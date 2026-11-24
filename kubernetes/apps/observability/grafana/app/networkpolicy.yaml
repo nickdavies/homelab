@@ -1,0 +1,119 @@
+---
+# Grafana can query every datasource and its sidecars list ConfigMaps
+# cluster-wide, so only Envoy and Prometheus may reach it, and it may only
+# reach its datasources and backends.
+#
+#   ingress 3000   the internal gateway's Envoy (grafana.internal), Prometheus
+#   egress  5432   the main CNPG cluster (client-cert login)
+#           6443   the API server, for the dashboard/datasource sidecars. The
+#                  kubernetes Service is DNATed to the control-plane nodes
+#                  before the policy matches, so the peers are their IPs.
+#           9090   Prometheus
+#           8080   loki-gateway (Service port 80)
+#           9093   Alertmanager
+#           8086   InfluxDB (the Home Assistant datasource)
+#           10443  the internal gateway's Envoy: OIDC token and userinfo
+#                  calls to auth.internal, whose LB IP is DNATed to Envoy
+#           443    public internet: the download-dashboards init container
+#                  (grafana.com gnetId and raw.githubusercontent.com URLs)
+#
+# The chart declares 9094 (alerting gossip) but no ha_peers are configured,
+# so the replicas never talk to each other. Kubelet probes come from the
+# node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grafana
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+      app.kubernetes.io/instance: grafana
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 3000, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+          podSelector:
+            matchLabels:
+              cnpg.io/cluster: postgres
+      ports:
+        - { port: 5432, protocol: TCP }
+    - to:
+        - ipBlock: { cidr: 192.168.254.11/32 }
+        - ipBlock: { cidr: 192.168.254.12/32 }
+        - ipBlock: { cidr: 192.168.254.13/32 }
+      ports:
+        - { port: 6443, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - { port: 9090, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: loki
+              app.kubernetes.io/component: gateway
+      ports:
+        - { port: 8080, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: alertmanager
+      ports:
+        - { port: 9093, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: influxdb2
+      ports:
+        - { port: 8086, protocol: TCP }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - { port: 10443, protocol: TCP }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+      ports:
+        - { port: 443, protocol: TCP }
