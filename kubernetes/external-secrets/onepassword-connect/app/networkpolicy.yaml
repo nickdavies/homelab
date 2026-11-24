@@ -9,8 +9,11 @@
 #   connect-api is localhost (OP_BUS_PEERS), which a NetworkPolicy never sees.
 #
 # The ESO webhook and cert-controller never call providers, so they are left
-# out. Ingress only: Connect dials out to 1password.com. Kubelet probes come
-# from the node, which a NetworkPolicy never blocks.
+# out. Kubelet probes come from the node, which a NetworkPolicy never blocks.
+#
+# Egress is DNS plus the public internet on 443 (1Password's servers). Connect
+# holds the credentials file for every vault it can see, so it must not be
+# able to reach the NAS, kubelets or anything else in the cluster.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -19,7 +22,7 @@ spec:
   podSelector:
     matchLabels:
       app: onepassword-connect
-  policyTypes: [Ingress]
+  policyTypes: [Ingress, Egress]
   ingress:
     - from:
         - podSelector:
@@ -29,3 +32,26 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+      ports:
+        - { port: 443, protocol: TCP }

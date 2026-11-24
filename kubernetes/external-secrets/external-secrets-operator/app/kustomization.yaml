@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: external-secrets
 resources:
   - external-secrets.yaml
+  - networkpolicy.yaml
