@@ -5,3 +5,4 @@ resources:
   - ./approval-server-personal/ks.yaml
   - ./approval-server-work/ks.yaml
   - namespace.yaml
+  - networkpolicy.yaml
