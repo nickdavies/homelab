@@ -46,5 +46,9 @@ if ! grep -qx "hostname: $NODE" "$FILE"; then
     exit 1
 fi
 
-exec talos-session exec admin -- \
+# --cache reuses the admin certificate (2h, on the session tmpfs) across runs,
+# so rolling a change across the nodes, dry run and apply each, costs one
+# 1Password unlock instead of one per call. `talos-session clear admin` drops
+# it early.
+exec talos-session exec --cache admin -- \
     talosctl apply -f "$FILE" -e "$NODE_IP" -n "$NODE_IP" "${DRY_RUN[@]}"
