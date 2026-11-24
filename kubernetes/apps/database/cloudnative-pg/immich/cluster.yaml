@@ -68,9 +68,9 @@ spec:
       parameters: &parameters
         barmanObjectName: garage-immich
         serverName: immich-v1
-#   bootstrap:
-#     recovery:
-#       source: source
+  bootstrap:
+    recovery:
+      source: source
   externalClusters:
     - name: source
       plugin:
