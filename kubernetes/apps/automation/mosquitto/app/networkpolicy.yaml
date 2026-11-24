@@ -1,0 +1,39 @@
+---
+# Mosquitto carries every Zigbee command and the meter and camera events, so
+# only the six clients in its password file (externalsecret.yaml) may connect,
+# and the broker itself dials nothing (no bridges).
+#
+#   ingress 1883   Home Assistant, Zigbee2MQTT, Frigate, rethink, xcel-meter,
+#                  rtlamr2mqtt. HA and rethink also have Multus interfaces,
+#                  but they reach the broker over the pod network.
+#
+# Kubelet probes come from the node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mosquitto
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mosquitto
+      app.kubernetes.io/controller: mosquitto
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: homeassistant
+        - podSelector:
+            matchLabels:
+              app: rethink
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - zigbee2mqtt
+                  - frigate
+                  - xcel-meter
+                  - rtlamr2mqtt
+      ports:
+        - { port: 1883, protocol: TCP }

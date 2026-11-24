@@ -5,6 +5,7 @@ resources:
   - ./claim.yaml
   - ./externalsecret.yaml
   - ./helmrelease.yaml
+  - ./networkpolicy.yaml
 configMapGenerator:
   - name: mosquitto-configmap
     files:
