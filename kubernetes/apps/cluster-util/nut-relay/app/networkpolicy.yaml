@@ -1,0 +1,39 @@
+---
+# nut-relay repeats the NAS's UPS to Home Assistant, whose "[UPS] On battery"
+# alert is the only warning before a hard power cut, so this policy is
+# deliberately narrow and nothing else may touch it.
+#
+#   ingress 3493   Home Assistant (its nut integration targets
+#                  nut-relay.cluster-util:3493 over the pod network)
+#   egress  3493   the NAS (${SECRET_NAS_IP}, the dummy-ups repeater's
+#                  upstream). By IP, so no DNS rule.
+#
+# upsmon -> upsd inside the pod is loopback, which a NetworkPolicy never
+# filters; the readiness probe is an exec, not a network check.
+#
+# Adding a NUT client (e.g. node shutdown on low battery) means adding it to
+# the ingress rule here, or it will be silently refused.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nut-relay
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: nut-relay
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: automation
+          podSelector:
+            matchLabels:
+              app: homeassistant
+      ports:
+        - { port: 3493, protocol: TCP }
+  egress:
+    - to:
+        - ipBlock: { cidr: "${SECRET_NAS_IP}/32" }
+      ports:
+        - { port: 3493, protocol: TCP }
