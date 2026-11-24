@@ -13,34 +13,18 @@ machine:
             gateway: 192.168.254.1
           - network: 192.168.254.0/24
             gateway: 192.168.254.1
+        # Parent links for the multus macvlans (network/multus-config), and
+        # nothing else. The node itself has no address on them: one would
+        # give it a connected route into the VLAN, letting every pod reach
+        # the VLAN masqueraded to the node's address, and every VLAN device
+        # reach the node, without passing the router. Pods that need a VLAN
+        # attach to it with their own address.
         vlans:
-          # Trusted network
-          - vlanId: 10
-            mtu: 1500
-            dhcp: false
-            addresses:
-              - 192.168.10.${NODE_IP_SEGMENT}/24
-            routes:
-              - network: 192.168.10.0/24
-                gateway: 192.168.10.1
-                metric: 2048
           # IoT
           - vlanId: 20
             mtu: 1500
             dhcp: false
-            addresses:
-              - 192.168.20.${NODE_IP_SEGMENT}/24
-            routes:
-              - network: 192.168.20.0/24
-                gateway: 192.168.20.1
-                metric: 2048
           # NoT
           - vlanId: 30
             mtu: 1500
             dhcp: false
-            addresses:
-              - 192.168.30.${NODE_IP_SEGMENT}/24
-            routes:
-              - network: 192.168.30.0/24
-                gateway: 192.168.30.1
-                metric: 2048
