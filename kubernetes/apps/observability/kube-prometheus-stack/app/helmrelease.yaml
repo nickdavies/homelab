@@ -59,13 +59,16 @@ spec:
           - memory-snapshot-on-shutdown
         retention: 14d
         retentionSize: 50GB
-        # TEMPORARY measurement limit: high enough for WAL replay to finish so
-        # the real replay peak and steady state can be measured, then sized
-        # from those. At 1Gi a restart OOMs mid-replay (~520k series).
+        # Sized from measurements (2026-11-24, ~250k live series). Steady-state
+        # RSS was ~870Mi for 14 days; WAL replay after a restart peaked at
+        # 2015Mi working set (1725Mi RSS), and at the old 1Gi limit every
+        # restart OOMed mid-replay. The request covers that peak, so the
+        # scheduler accounts for it on the CP nodes these PVs pin it to; the
+        # limit leaves 2x for a worse replay.
         resources:
           requests:
             cpu: 100m
-            memory: 512Mi
+            memory: 2Gi
           limits:
             memory: 4Gi
         storageSpec:
