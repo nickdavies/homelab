@@ -35,12 +35,28 @@ spec:
       frigate:
         annotations:
           reloader.stakater.com/auto: "true"
+        # The NoT address below is static: a rolling update would bring up a
+        # second pod claiming it while the first still holds it.
+        strategy: Recreate
         # Prefer node-5 (Iris Xe), the only non-control-plane node with an
         # i915 device. The N150 control-plane nodes are a fallback: inference
         # is slower there and shares the box with etcd, but that beats no
         # Frigate while node-5 is down. The descheduler's PreferredNodeAffinity
         # profile moves it back, at most once every 6h.
         pod:
+          # The cameras are on the NoT VLAN, which the router keeps apart from
+          # the cluster network. Frigate reaches them over its own macvlan
+          # address there (net1) instead. Outside the VLAN's DHCP pool
+          # (.100-.200).
+          annotations:
+            k8s.v1.cni.cncf.io/networks: |
+              [
+                {"name": "multus-not", "namespace": "network", "interface": "net1", "ips": ["192.168.30.50/24"]}
+              ]
+          # Only nodes where the multus-not macvlan can attach (NFD rule
+          # kube-system/multus-networks).
+          nodeSelector:
+            multus.feature.node.kubernetes.io/not: "true"
           affinity:
             nodeAffinity:
               preferredDuringSchedulingIgnoredDuringExecution:
@@ -49,6 +65,34 @@ spec:
                     matchExpressions:
                       - key: node-role.kubernetes.io/control-plane
                         operator: DoesNotExist
+        initContainers:
+          # NetworkPolicy never sees net1, and Frigate listens on every
+          # interface, including the unauthenticated 5000 that hands out the
+          # camera credentials. Drop every connection a NoT device opens to the
+          # pod; replies to Frigate's own connections to the cameras still
+          # pass. inet covers IPv6 too: net1 gets a link-local address.
+          net1-guard:
+            image:
+              repository: registry.k8s.io/build-image/distroless-iptables
+              tag: v0.11.3@sha256:59e36fe0907c035386bde9c9030ba5eeacb3c3eb7c1a8aade9ccaa9e3856b146
+            command: ["/usr/bin/sh", "-euc"]
+            args:
+              - |
+                nft -f - <<EOF
+                table inet net1-guard {
+                  chain input {
+                    type filter hook input priority filter; policy accept;
+                    iifname "net1" ct state established,related accept
+                    iifname "net1" drop
+                  }
+                }
+                EOF
+            securityContext:
+              runAsUser: 0
+              runAsNonRoot: false
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"], add: ["NET_ADMIN"] }
         containers:
           app:
             image:
