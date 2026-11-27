@@ -49,7 +49,7 @@ spec:
           tika:
             image:
               repository: docker.io/apache/tika
-              tag: 3.3.3.1-full
+              tag: 3.4.0.0-full
               pullPolicy: IfNotPresent
             env:
               - *java4shell
