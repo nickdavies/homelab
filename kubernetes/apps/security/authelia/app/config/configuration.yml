@@ -29,6 +29,11 @@ access_control:
       subject:
         - 'group:admin'
         - 'group:groceries'
+    - domain: ["books.internal.${SECRET_DOMAIN}"]
+      policy: one_factor
+      subject:
+        - 'group:admin'
+        - 'group:household'
     - domain: ["*.internal.${SECRET_DOMAIN}"]
       policy: one_factor
       subject:

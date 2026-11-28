@@ -1,0 +1,6 @@
+{
+  "web": {"readonly": false},
+  "nick": {"readonly": false},
+  "nick-reader": {"readonly": true},
+  "britta-reader": {"readonly": true}
+}

@@ -1,0 +1,28 @@
+# Only the internal gateway's Envoy may reach calibre-server. The `web` login
+# Envoy injects on books.internal is only safe if nothing can bypass the
+# Authelia-gated route to reach the server directly.
+#
+# Ingress only: the web UI's metadata download fetches from the internet.
+# Kubelet probes come from the node, which a NetworkPolicy never blocks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: calibre
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: calibre
+      app.kubernetes.io/controller: calibre
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              gateway.envoyproxy.io/owning-gateway-name: internal
+              gateway.envoyproxy.io/owning-gateway-namespace: network
+      ports:
+        - protocol: TCP
+          port: 8080

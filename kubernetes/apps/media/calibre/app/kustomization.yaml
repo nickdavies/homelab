@@ -1,0 +1,17 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./externalsecret.yaml
+  - ./helmrelease.yaml
+  - ./httproutefilter.yaml
+  - ./networkpolicy.yaml
+  - ./route.yaml
+  - ./securitypolicy.yaml
+  - ../../../../templates/volsync
+configMapGenerator:
+  - name: calibre-users
+    files:
+      - ./config/users.json
+generatorOptions:
+  disableNameSuffixHash: true

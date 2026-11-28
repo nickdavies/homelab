@@ -1,0 +1,30 @@
+---
+# Authelia gates the web UI. Its books.internal rule admits group:admin and
+# group:household at one factor; books-api (route.yaml) is not covered and
+# relies on calibre's own logins. The header lists match rethink's policy; see
+# that file for why each is needed.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: calibre-authelia
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: calibre
+  extAuth:
+    headersToExtAuth:
+      - accept
+      - cookie
+      - location
+      - authorization
+      - proxy-authorization
+      - x-forwarded-proto
+    failOpen: false
+    http:
+      backendRefs:
+        - kind: Service
+          name: authelia
+          namespace: security
+          port: 80
+      path: /api/authz/ext-authz/
