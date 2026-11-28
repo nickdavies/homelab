@@ -1,0 +1,44 @@
+---
+# Browsers: Authelia (securitypolicy.yaml), then Envoy logs in as `web`
+# (httproutefilter.yaml).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: calibre
+spec:
+  hostnames:
+    - "books.internal.${SECRET_DOMAIN}"
+  parentRefs:
+    - name: internal
+      namespace: network
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: calibre
+          port: 8080
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: gateway.envoyproxy.io
+            kind: HTTPRouteFilter
+            name: calibre-web-credential
+---
+# Everything that can't follow an Authelia redirect, using calibre's own Basic
+# auth: the e-readers (OPDS at /opds, KOSync at /kosync; read-only users) and
+# `calibredb --with-library https://books-api.../#library`. Internal gateway
+# only: the readers' CrossPoint firmware never verifies TLS certificates.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: calibre-api
+spec:
+  hostnames:
+    - "books-api.internal.${SECRET_DOMAIN}"
+  parentRefs:
+    - name: internal
+      namespace: network
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: calibre
+          port: 8080

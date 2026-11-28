@@ -1,0 +1,16 @@
+---
+# Logs every books.internal request into calibre as the read-write `web` user.
+# Only reachable behind Authelia: Envoy Gateway runs ext-authz before the
+# credential injector, so Authelia judges the browser's own request and the
+# injected header only reaches calibre. overwrite replaces any Authorization the
+# browser sends, e.g. one cached from books-api.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: HTTPRouteFilter
+metadata:
+  name: calibre-web-credential
+spec:
+  credentialInjection:
+    overwrite: true
+    credential:
+      valueRef:
+        name: calibre-web-credential

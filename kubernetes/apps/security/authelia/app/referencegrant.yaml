@@ -20,6 +20,9 @@ spec:
       namespace: games
     - group: gateway.envoyproxy.io
       kind: SecurityPolicy
+      namespace: media
+    - group: gateway.envoyproxy.io
+      kind: SecurityPolicy
       namespace: observability
     - group: gateway.envoyproxy.io
       kind: SecurityPolicy
